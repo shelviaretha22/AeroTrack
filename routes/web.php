@@ -8,7 +8,19 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// Dashboard
+// ================================
+// ROOT → LOGIN
+// ================================
+
+Route::get('/', function () {
+    return redirect()->route('login');
+});
+
+
+// ================================
+// DASHBOARD
+// ================================
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware('auth')->name('dashboard');
