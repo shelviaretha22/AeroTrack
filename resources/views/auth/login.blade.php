@@ -1,136 +1,565 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - AeroTrack</title>
+<x-guest-layout>
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+<div class="h-screen w-full overflow-hidden bg-[#F3F6F5]">
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #F3F6F5;
-        }
+    <div class="h-screen w-full flex flex-col lg:flex-row">
 
-        .login-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        {{-- =========================================================
+             LEFT SIDE - AIRPORT IMAGE
+        ========================================================== --}}
+        <div class="relative w-full lg:w-[62%] h-[48vh] lg:h-screen overflow-hidden">
 
-        .login-box {
-            width: 380px;
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-        }
+            {{-- Background Image --}}
+            <img
+                src="{{ asset('images/airport-bg.jpg') }}"
+                alt="Juanda Airport"
+                class="absolute inset-0 w-full h-full object-cover"
+            >
 
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+            {{-- Soft Overall Overlay --}}
+            <div class="absolute inset-0 bg-[#3F6970]/35"></div>
 
-        .logo h1 {
-            margin: 0;
-            color: #365F65;
-            font-size: 32px;
-        }
+            {{-- Left Dark Gradient --}}
+            <div class="absolute inset-0 bg-gradient-to-r
+                        from-[#294F55]/70
+                        via-[#416B70]/38
+                        to-transparent">
+            </div>
 
-        .logo p {
-            margin-top: 5px;
-            color: #777;
-            font-size: 14px;
-        }
+            {{-- Bottom Gradient --}}
+            <div class="absolute inset-0 bg-gradient-to-t
+                        from-[#294F55]/55
+                        via-transparent
+                        to-transparent">
+            </div>
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+            {{-- Soft Color Tint --}}
+            <div class="absolute inset-0 bg-gradient-to-br
+                        from-[#527D82]/15
+                        via-transparent
+                        to-[#B8CECA]/10">
+            </div>
 
-        .form-group label {
-            display: block;
-            margin-bottom: 7px;
-            color: #365F65;
-            font-size: 14px;
-            font-weight: bold;
-        }
+            {{-- Decorative Blur --}}
+            <div class="absolute top-5 left-5 lg:left-10
+                        w-48 h-32 rounded-full
+                        bg-[#294F55]/25 blur-2xl">
+            </div>
 
-        .form-group input {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 12px;
-            border: 1px solid #D9E5E3;
-            border-radius: 8px;
-            outline: none;
-        }
 
-        .form-group input:focus {
-            border-color: #4F8189;
-        }
+            {{-- LEFT CONTENT --}}
+            <div class="relative z-10 h-full flex flex-col
+                        px-7 sm:px-10 lg:px-12 xl:px-14
+                        py-7 lg:py-9">
 
-        .login-button {
-            width: 100%;
-            padding: 13px;
-            border: none;
-            border-radius: 8px;
-            background: #4F8189;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
+                {{-- TOP --}}
+                <div class="flex items-start justify-between">
 
-        .login-button:hover {
-            background: #3F7078;
-        }
-    </style>
-</head>
+                    {{-- AeroTrack Logo --}}
+                    <img
+                        src="{{ asset('images/aerotrack-logo.png') }}"
+                        alt="AeroTrack"
+                        class="w-40 sm:w-44 lg:w-48 h-auto
+                               drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+                    >
 
-<body>
+                    {{-- Department Badge --}}
+                    <div class="hidden sm:flex items-center
+                                px-4 py-2
+                                rounded-full
+                                bg-[#355F65]/55
+                                backdrop-blur-md
+                                border border-white/15
+                                text-white/90
+                                text-[10px]
+                                font-semibold
+                                tracking-[0.18em]">
 
-<div class="login-container">
+                        COMMERCIAL MANAGEMENT
 
-    <div class="login-box">
+                    </div>
 
-        <div class="logo">
-            <h1>AeroTrack</h1>
-            <p>Airport Tenant Monitoring System</p>
+                </div>
+
+
+                {{-- MAIN HERO CONTENT --}}
+                <div class="my-auto max-w-[600px]">
+
+                    {{-- Small Label --}}
+                    <div class="flex items-center gap-3 mb-5">
+
+                        <div class="w-10 h-[2px] bg-[#B8CECA]"></div>
+
+                        <span class="text-[#E3EEEC]
+                                     text-xs sm:text-sm
+                                     font-semibold
+                                     tracking-[0.18em]
+                                     uppercase">
+
+                            Airport Tenant Management
+
+                        </span>
+
+                    </div>
+
+
+                    {{-- Heading --}}
+                    <h1 class="text-white
+                               text-4xl sm:text-5xl lg:text-[54px]
+                               leading-[1.05]
+                               font-bold
+                               tracking-tight
+                               drop-shadow-[0_3px_10px_rgba(0,0,0,0.45)]">
+
+                        Manage Your
+
+                        <span class="block text-[#D9E5E3]">
+                            Airport Tenant
+                        </span>
+
+                        Smarter.
+
+                    </h1>
+
+
+                    {{-- Description --}}
+                    <p class="mt-6 max-w-[520px]
+                              text-[#F0F5F4]/90
+                              text-sm sm:text-base
+                              leading-relaxed
+                              drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]">
+
+                        Satu platform untuk memantau tenant,
+                        lokasi, kontrak, aktivasi, dan pendapatan
+                        dalam pengelolaan tenant bandara.
+
+                    </p>
+
+
+                    {{-- FEATURE TAGS --}}
+                    <div class="mt-8 flex flex-wrap gap-3">
+
+                        <div class="px-4 py-2 rounded-full
+                                    bg-[#365F65]/65
+                                    backdrop-blur-md
+                                    border border-white/15
+                                    text-white
+                                    text-xs font-medium">
+
+                            Tenant Monitoring
+
+                        </div>
+
+                        <div class="px-4 py-2 rounded-full
+                                    bg-[#365F65]/65
+                                    backdrop-blur-md
+                                    border border-white/15
+                                    text-white
+                                    text-xs font-medium">
+
+                            Contract Tracking
+
+                        </div>
+
+                        <div class="px-4 py-2 rounded-full
+                                    bg-[#365F65]/65
+                                    backdrop-blur-md
+                                    border border-white/15
+                                    text-white
+                                    text-xs font-medium">
+
+                            Revenue Monitoring
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                {{-- =====================================================
+                     BOTTOM INSTITUTION BRANDING
+                ====================================================== --}}
+                <div class="flex items-end justify-between gap-5">
+
+                    {{-- Institution --}}
+                    <div class="flex items-center gap-4">
+
+                        {{-- Angkasa Pura Logo --}}
+                        <div class="flex items-center justify-center
+                                    w-14 h-14
+                                    rounded-xl
+                                    bg-white/90
+                                    backdrop-blur-sm
+                                    shadow-[0_4px_15px_rgba(0,0,0,0.18)]
+                                    p-2.5">
+
+                            <img
+                                src="{{ asset('images/angkasa-pura-logo.png') }}"
+                                alt="PT Angkasa Pura Indonesia"
+                                class="max-w-full max-h-full object-contain"
+                            >
+
+                        </div>
+
+
+                        {{-- Institution Text --}}
+                        <div class="text-white
+                                    drop-shadow-[0_2px_5px_rgba(0,0,0,0.4)]">
+
+                            <p class="text-[9px]
+                                      uppercase
+                                      tracking-[0.2em]
+                                      text-[#D9E5E3]/80
+                                      font-semibold">
+
+                                Airport Tenant Management for
+
+                            </p>
+
+                            <p class="mt-1
+                                      text-sm
+                                      font-semibold">
+
+                                Bandar Udara Internasional Juanda
+
+                            </p>
+
+                            <p class="mt-0.5
+                                      text-[11px]
+                                      text-[#E3EEEC]/85">
+
+                                PT Angkasa Pura Indonesia
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- System Label --}}
+                    <div class="hidden sm:block
+                                text-right
+                                text-white/65
+                                text-[9px]
+                                tracking-[0.18em]
+                                uppercase">
+
+                        <p>
+                            AEROTRACK SYSTEM
+                        </p>
+
+                        <p class="mt-1">
+                            2026
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
 
-        <form method="POST" action="{{ route('login') }}">
-            @csrf
 
-            <div class="form-group">
-                <label>Email</label>
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="Enter your email"
-                    required
-                >
+        {{-- =========================================================
+             RIGHT SIDE - LOGIN
+        ========================================================== --}}
+        <div class="relative w-full lg:w-[38%]
+                    h-[52vh] lg:h-screen
+                    bg-[#F8FAF9]
+                    flex items-center justify-center
+                    px-7 sm:px-10 lg:px-12
+                    overflow-hidden">
+
+
+            {{-- Decorative Circle --}}
+            <div class="absolute
+                        -top-24 -right-24
+                        w-72 h-72
+                        rounded-full
+                        bg-[#D9E5E3]/55">
             </div>
 
-            <div class="form-group">
-                <label>Password</label>
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="Enter your password"
-                    required
-                >
+            <div class="absolute
+                        -bottom-28 -left-28
+                        w-80 h-80
+                        rounded-full
+                        bg-[#B8CECA]/20">
             </div>
 
-            <button type="submit" class="login-button">
-                Login
-            </button>
 
-        </form>
+            {{-- LOGIN CONTENT --}}
+            <div class="relative z-10
+                        w-full max-w-[410px]">
+
+
+                {{-- BRAND --}}
+                <div class="mb-10">
+
+                    <div class="flex items-center gap-3">
+
+                        <img
+                            src="{{ asset('images/aerotrack-logo.png') }}"
+                            alt="AeroTrack"
+                            class="w-36 h-auto"
+                        >
+
+                    </div>
+
+                    <div class="mt-7">
+
+                        <p class="text-[#4F8189]
+                                  text-xs
+                                  font-bold
+                                  tracking-[0.2em]
+                                  uppercase">
+
+                            Welcome Back
+
+                        </p>
+
+                        <h2 class="mt-2
+                                   text-3xl
+                                   font-bold
+                                   text-[#365F65]">
+
+                            Sign in to continue
+
+                        </h2>
+
+                        <p class="mt-2
+                                  text-sm
+                                  text-gray-500">
+
+                            Login untuk mengakses AeroTrack
+                            Commercial Management System.
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                {{-- SESSION STATUS --}}
+                <x-auth-session-status
+                    class="mb-4"
+                    :status="session('status')"
+                />
+
+
+                {{-- LOGIN FORM --}}
+                <form method="POST" action="{{ route('login') }}">
+
+                    @csrf
+
+
+                    {{-- EMAIL --}}
+                    <div>
+
+                        <x-input-label
+                            for="email"
+                            :value="__('Email')"
+                            class="text-[#365F65] font-semibold"
+                        />
+
+                        <x-text-input
+                            id="email"
+                            class="block mt-2 w-full
+                                   border-[#D5E1DF]
+                                   focus:border-[#6E9AA0]
+                                   focus:ring-[#6E9AA0]/20
+                                   rounded-xl
+                                   bg-white"
+                            type="email"
+                            name="email"
+                            :value="old('email')"
+                            required
+                            autofocus
+                            autocomplete="username"
+                            placeholder="Enter your email"
+                        />
+
+                        <x-input-error
+                            :messages="$errors->get('email')"
+                            class="mt-2"
+                        />
+
+                    </div>
+
+
+                    {{-- PASSWORD --}}
+                    <div class="mt-5">
+
+                        <x-input-label
+                            for="password"
+                            :value="__('Password')"
+                            class="text-[#365F65] font-semibold"
+                        />
+
+                        <x-text-input
+                            id="password"
+                            class="block mt-2 w-full
+                                   border-[#D5E1DF]
+                                   focus:border-[#6E9AA0]
+                                   focus:ring-[#6E9AA0]/20
+                                   rounded-xl
+                                   bg-white"
+                            type="password"
+                            name="password"
+                            required
+                            autocomplete="current-password"
+                            placeholder="Enter your password"
+                        />
+
+                        <x-input-error
+                            :messages="$errors->get('password')"
+                            class="mt-2"
+                        />
+
+                    </div>
+
+
+                    {{-- REMEMBER --}}
+                    <div class="flex items-center justify-between mt-5">
+
+                        <label
+                            for="remember_me"
+                            class="inline-flex items-center"
+                        >
+
+                            <input
+                                id="remember_me"
+                                type="checkbox"
+                                class="rounded
+                                       border-gray-300
+                                       text-[#4F8189]
+                                       shadow-sm
+                                       focus:ring-[#6E9AA0]"
+                                name="remember"
+                            >
+
+                            <span class="ms-2
+                                         text-sm
+                                         text-gray-500">
+
+                                Remember me
+
+                            </span>
+
+                        </label>
+
+
+                        @if (Route::has('password.request'))
+
+                            <a
+                                class="text-sm
+                                       text-[#4F8189]
+                                       hover:text-[#365F65]
+                                       font-medium
+                                       transition"
+                                href="{{ route('password.request') }}"
+                            >
+
+                                Forgot password?
+
+                            </a>
+
+                        @endif
+
+                    </div>
+
+
+                    {{-- LOGIN BUTTON --}}
+                    <div class="mt-7">
+
+                        <button
+                            type="submit"
+                            class="w-full
+                                   py-3.5
+                                   rounded-xl
+                                   bg-[#4F8189]
+                                   hover:bg-[#3F7078]
+                                   text-white
+                                   font-semibold
+                                   text-sm
+                                   tracking-wide
+                                   transition
+                                   duration-200
+                                   shadow-lg
+                                   shadow-[#4F8189]/20
+                                   hover:shadow-[#4F8189]/30"
+                        >
+
+                            Sign In
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+
+                {{-- FOOTER --}}
+                <div class="mt-10 pt-6
+                            border-t border-[#DCE6E4]">
+
+                    <div class="flex items-center justify-between">
+
+                        <div>
+
+                            <p class="text-[10px]
+                                      font-semibold
+                                      tracking-[0.16em]
+                                      text-[#6E9AA0]
+                                      uppercase">
+
+                                AeroTrack
+
+                            </p>
+
+                            <p class="mt-1
+                                      text-[10px]
+                                      text-gray-400">
+
+                                Airport Tenant Management System
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="text-right">
+
+                            <p class="text-[10px]
+                                      text-gray-400">
+
+                                Juanda Airport
+
+                            </p>
+
+                            <p class="mt-1
+                                      text-[10px]
+                                      text-gray-400">
+
+                                © 2026
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
 
     </div>
 
 </div>
 
-</body>
-</html>
+</x-guest-layout>
