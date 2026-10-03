@@ -1,13 +1,15 @@
 <x-guest-layout>
 
-<div class="h-screen w-full overflow-hidden bg-[#F3F6F5]">
+<div class="min-h-screen w-full overflow-x-hidden bg-[#F3F6F5]">
 
-    <div class="h-screen w-full flex flex-col lg:flex-row">
+    <div class="min-h-screen w-full flex flex-col lg:flex-row">
 
         {{-- =========================================================
              LEFT SIDE - AIRPORT IMAGE
         ========================================================== --}}
-        <div class="relative w-full lg:w-[62%] h-[48vh] lg:h-screen overflow-hidden">
+        <div class="relative w-full lg:w-[62%]
+                    min-h-[430px] lg:min-h-0 lg:h-screen
+                    overflow-hidden">
 
             {{-- Background Image --}}
             <img
@@ -48,9 +50,10 @@
 
 
             {{-- LEFT CONTENT --}}
-            <div class="relative z-10 h-full flex flex-col
-                        px-7 sm:px-10 lg:px-12 xl:px-14
-                        py-7 lg:py-9">
+            <div class="relative z-10 min-h-[430px] lg:h-full
+                        flex flex-col
+                        px-5 sm:px-8 md:px-10 lg:px-12 xl:px-14
+                        py-6 sm:py-8 lg:py-9">
 
                 {{-- TOP --}}
                 <div class="flex items-start justify-between">
@@ -59,7 +62,7 @@
                     <img
                         src="{{ asset('images/aerotrack-logo.png') }}"
                         alt="AeroTrack"
-                        class="w-40 sm:w-44 lg:w-48 h-auto
+                        class="w-32 sm:w-44 lg:w-48 h-auto
                                drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
                     >
 
@@ -105,7 +108,7 @@
 
                     {{-- Heading --}}
                     <h1 class="text-white
-                               text-4xl sm:text-5xl lg:text-[54px]
+                               text-3xl sm:text-4xl md:text-5xl lg:text-[54px]
                                leading-[1.05]
                                font-bold
                                tracking-tight
@@ -267,10 +270,11 @@
              RIGHT SIDE - LOGIN
         ========================================================== --}}
         <div class="relative w-full lg:w-[38%]
-                    h-[52vh] lg:h-screen
+                    min-h-[600px] lg:min-h-0 lg:h-screen
                     bg-[#F8FAF9]
                     flex items-center justify-center
-                    px-7 sm:px-10 lg:px-12
+                    px-5 sm:px-8 md:px-10 lg:px-12
+                    py-12 sm:py-14 lg:py-0
                     overflow-hidden">
 
 
@@ -303,7 +307,7 @@
                         <img
                             src="{{ asset('images/aerotrack-logo.png') }}"
                             alt="AeroTrack"
-                            class="w-36 h-auto"
+                            class="w-28 sm:w-32 md:w-36 h-auto"
                         >
 
                     </div>
@@ -321,7 +325,7 @@
                         </p>
 
                         <h2 class="mt-2
-                                   text-3xl
+                                   text-2xl sm:text-3xl
                                    font-bold
                                    text-[#365F65]">
 
