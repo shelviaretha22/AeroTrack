@@ -329,7 +329,7 @@
                                    font-bold
                                    text-[#365F65]">
 
-                            Sign in to continue
+                            Log in to continue
 
                         </h2>
 
@@ -497,7 +497,7 @@
                                    hover:shadow-[#4F8189]/30"
                         >
 
-                            Sign In
+                            Log In
 
                         </button>
 
