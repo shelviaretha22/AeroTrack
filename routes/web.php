@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TenantController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,9 +32,8 @@ Route::get('/dashboard', function () {
 // ================================
 
 // Tenant
-Route::get('/tenant', function () {
-    return view('tenant.index');
-})->middleware('auth')->name('tenant');
+Route::resource('/tenant', TenantController::class)
+    ->middleware('auth');
 
 
 // Lokasi
