@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\LokasiController;
+use App\Http\Controllers\KontrakController;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,10 +50,22 @@ Route::get('/kerja-sama', function () {
 
 
 // Kontrak
-Route::get('/kontrak', function () {
-    return view('kontrak.index');
-})->middleware('auth')->name('kontrak');
+// Kontrak
+Route::get('/kontrak', [KontrakController::class, 'index'])
+    ->middleware('auth')
+    ->name('kontrak');
 
+Route::get('/kontrak/{id}/acc', [KontrakController::class, 'acc'])
+    ->middleware('auth')
+    ->name('kontrak.acc');
+
+Route::post('/kontrak/{id}/acc', [KontrakController::class, 'storeAcc'])
+    ->middleware('auth')
+    ->name('kontrak.storeAcc');
+
+Route::get('/kontrak/{id}', [KontrakController::class, 'show'])
+    ->middleware('auth')
+    ->name('kontrak.show');
 
 // Aktivasi
 Route::get('/aktivasi', function () {
