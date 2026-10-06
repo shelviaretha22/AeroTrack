@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\LokasiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,9 +38,8 @@ Route::resource('/tenant', TenantController::class)
 
 
 // Lokasi
-Route::get('/lokasi', function () {
-    return view('lokasi.index');
-})->middleware('auth')->name('lokasi');
+Route::resource('/lokasi', LokasiController::class)
+    ->middleware('auth');
 
 
 // Kerja Sama
