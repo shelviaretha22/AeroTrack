@@ -230,7 +230,7 @@
 
                 {{-- TENANT --}}
                 <a
-                    href="#"
+                    href="{{ route('tenant.index') }}"
                     class="group flex items-center gap-3
                            px-4 py-3
                            mb-1
