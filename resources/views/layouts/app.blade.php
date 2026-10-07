@@ -312,17 +312,17 @@
 
                 {{-- KERJA SAMA --}}
                 <a
-                    href="#"
+                    href="{{ route('kerja-sama') }}"
                     class="group flex items-center gap-3
                            px-4 py-3
                            mb-1
                            rounded-xl
                            text-sm
                            font-medium
-                           text-white/75
-                           hover:bg-white/10
-                           hover:text-white
-                           transition"
+                           {{ request()->routeIs('kerja-sama*')
+                                ? 'bg-white/10 text-white'
+                                : 'text-white/75 hover:bg-white/10 hover:text-white' }}
+                            transition"
                 >
 
                     <svg
@@ -350,7 +350,7 @@
 
                 {{-- KONTRAK --}}
                 <a
-                    href="#"
+                    href="{{ route('kontrak') }}"
                     class="group flex items-center gap-3
                            px-4 py-3
                            mb-1

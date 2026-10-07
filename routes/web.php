@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\KontrakController;
+use App\Http\Controllers\KerjaSamaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,12 +46,39 @@ Route::resource('/lokasi', LokasiController::class)
 
 
 // Kerja Sama
-Route::get('/kerja-sama', function () {
-    return view('kerja-sama.index');
-})->middleware('auth')->name('kerja-sama');
+Route::get('/kerja-sama', [KerjaSamaController::class, 'index'])
+    ->middleware('auth')
+    ->name('kerja-sama');
+
+Route::get('/kerja-sama/create', [KerjaSamaController::class, 'create'])
+    ->middleware('auth')
+    ->name('kerja-sama.create');
+
+Route::post('/kerja-sama', [KerjaSamaController::class, 'store'])
+    ->middleware('auth')
+    ->name('kerja-sama.store');
+
+// Detail
+Route::get('/kerja-sama/{id}', [KerjaSamaController::class, 'show'])
+    ->middleware('auth')
+    ->name('kerja-sama.show');
+
+// Edit
+Route::get('/kerja-sama/{id}/edit', [KerjaSamaController::class, 'edit'])
+    ->middleware('auth')
+    ->name('kerja-sama.edit');
+
+// Update
+Route::put('/kerja-sama/{id}', [KerjaSamaController::class, 'update'])
+    ->middleware('auth')
+    ->name('kerja-sama.update');
+
+// Delete
+Route::delete('/kerja-sama/{id}', [KerjaSamaController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('kerja-sama.destroy');
 
 
-// Kontrak
 // Kontrak
 Route::get('/kontrak', [KontrakController::class, 'index'])
     ->middleware('auth')
@@ -66,6 +95,7 @@ Route::post('/kontrak/{id}/acc', [KontrakController::class, 'storeAcc'])
 Route::get('/kontrak/{id}', [KontrakController::class, 'show'])
     ->middleware('auth')
     ->name('kontrak.show');
+
 
 // Aktivasi
 Route::get('/aktivasi', function () {
