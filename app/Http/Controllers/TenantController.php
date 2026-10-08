@@ -3,19 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
+use App\Models\KerjaSama;
 use Illuminate\Http\Request;
 
 class TenantController extends Controller
 {
     /**
-     * Menampilkan daftar tenant.
+     * Menampilkan halaman Tenant.
+     *
+     * Data utama halaman ini berasal dari Kerja Sama.
+     * Setiap data Kerja Sama dapat memiliki satu data Tenant.
      */
     public function index(Request $request)
     {
         // =====================================================
-        // QUERY DASAR
+        // QUERY DASAR KERJA SAMA
         // =====================================================
-        $query = Tenant::query();
+        $query = KerjaSama::query();
 
 
         // =====================================================
@@ -27,15 +31,11 @@ class TenantController extends Controller
 
             $query->where(function ($q) use ($search) {
 
-                $q->where('nama_tenant', 'like', '%' . $search . '%')
-                    ->orWhere('mitra_usaha', 'like', '%' . $search . '%')
+                $q->where('mitra_usaha', 'like', '%' . $search . '%')
+                    ->orWhere('brand', 'like', '%' . $search . '%')
                     ->orWhere('jenis_usaha', 'like', '%' . $search . '%')
                     ->orWhere('bentuk_kerja_sama', 'like', '%' . $search . '%')
-                    ->orWhere('nama_pic', 'like', '%' . $search . '%')
-                    ->orWhere('jabatan_pic', 'like', '%' . $search . '%')
-                    ->orWhere('no_hp_pic', 'like', '%' . $search . '%')
-                    ->orWhere('email_pic', 'like', '%' . $search . '%')
-                    ->orWhere('npwp', 'like', '%' . $search . '%');
+                    ->orWhere('pic_commercial', 'like', '%' . $search . '%');
 
             });
         }
@@ -70,67 +70,21 @@ class TenantController extends Controller
 
 
             // -------------------------------------------------
-            // NAMA TENANT A → Z
+            // MITRA USAHA A → Z
             // -------------------------------------------------
             case 'az':
 
-                $query->orderBy('nama_tenant', 'asc');
+                $query->orderBy('mitra_usaha', 'asc');
 
                 break;
 
 
             // -------------------------------------------------
-            // NAMA TENANT Z → A
+            // MITRA USAHA Z → A
             // -------------------------------------------------
             case 'za':
 
-                $query->orderBy('nama_tenant', 'desc');
-
-                break;
-
-
-            // -------------------------------------------------
-            // BELUM DITAMBAHKAN DETAIL
-            // -------------------------------------------------
-            case 'incomplete':
-
-                $query->where(function ($q) {
-
-                    $q->whereNull('npwp')
-                        ->orWhere('npwp', '')
-                        ->orWhereNull('nama_pic')
-                        ->orWhere('nama_pic', '')
-                        ->orWhereNull('jabatan_pic')
-                        ->orWhere('jabatan_pic', '')
-                        ->orWhereNull('no_hp_pic')
-                        ->orWhere('no_hp_pic', '')
-                        ->orWhereNull('email_pic')
-                        ->orWhere('email_pic', '');
-
-                });
-
-                $query->orderBy('created_at', 'desc');
-
-                break;
-
-
-            // -------------------------------------------------
-            // SUDAH DITAMBAHKAN DETAIL
-            // -------------------------------------------------
-            case 'complete':
-
-                $query->whereNotNull('npwp')
-                    ->where('npwp', '!=', '')
-                    ->whereNotNull('nama_pic')
-                    ->where('nama_pic', '!=', '')
-                    ->whereNotNull('jabatan_pic')
-                    ->where('jabatan_pic', '!=', '')
-                    ->whereNotNull('no_hp_pic')
-                    ->where('no_hp_pic', '!=', '')
-                    ->whereNotNull('email_pic')
-                    ->where('email_pic', '!=', '');
-
-                $query->orderBy('created_at', 'desc');
+                $query->orderBy('mitra_usaha', 'desc');
 
                 break;
 
@@ -147,219 +101,341 @@ class TenantController extends Controller
 
 
         // =====================================================
-        // AMBIL DATA TENANT
+        // AMBIL DATA KERJA SAMA
         // =====================================================
-        $tenants = $query->get();
+        $kerjaSamas = $query->get();
 
 
         // =====================================================
-        // TAMPILKAN HALAMAN
+        // AMBIL DATA TENANT YANG SUDAH TERHUBUNG
+        // DENGAN KERJA SAMA
         // =====================================================
-        return view('tenant.index', compact('tenants'));
+        $tenantByKerjaSama = Tenant::whereNotNull('kerja_sama_id')
+            ->get()
+            ->keyBy('kerja_sama_id');
+
+
+        // =====================================================
+        // TAMPILKAN HALAMAN TENANT
+        // =====================================================
+        return view('tenant.index', compact(
+            'kerjaSamas',
+            'tenantByKerjaSama'
+        ));
     }
 
 
     /**
-     * Menampilkan halaman form tambah tenant.
+     * Menampilkan form input Tenant berdasarkan Kerja Sama.
      *
-     * Route ini tetap dipertahankan karena
-     * kemungkinan masih digunakan oleh CRUD yang sudah ada.
+     * Contoh:
+     * /tenant/create?kerja_sama_id=1
      */
-    public function create()
-    {
-        return view('tenant.create');
-    }
-
-
-    /**
-     * Menyimpan data tenant baru.
-     */
-    public function store(Request $request)
+    public function create(Request $request)
     {
         // =====================================================
-        // VALIDASI
+        // VALIDASI KERJA SAMA ID
         // =====================================================
-        $validated = $request->validate([
-
-            'mitra_usaha' => [
+        $request->validate([
+            'kerja_sama_id' => [
                 'required',
-                'string',
-                'max:255',
+                'integer',
+                'exists:kerja_samas,id',
             ],
-
-            'nama_tenant' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'jenis_usaha' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'bentuk_kerja_sama' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'npwp' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'nama_pic' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'jabatan_pic' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'no_hp_pic' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'email_pic' => [
-                'nullable',
-                'email',
-                'max:255',
-            ],
-
         ]);
 
 
         // =====================================================
-        // SIMPAN DATA
+        // AMBIL DATA KERJA SAMA
         // =====================================================
-        Tenant::create($validated);
+        $kerjaSama = KerjaSama::findOrFail(
+            $request->kerja_sama_id
+        );
 
 
         // =====================================================
-        // REDIRECT
+        // CEK APAKAH KERJA SAMA SUDAH MEMILIKI TENANT
         // =====================================================
-        return redirect()
-            ->route('tenant.index')
-            ->with('success', 'Data tenant berhasil ditambahkan.');
+        $tenant = Tenant::where(
+            'kerja_sama_id',
+            $kerjaSama->id
+        )->first();
+
+
+        // =====================================================
+        // JIKA SUDAH ADA TENANT
+        // =====================================================
+        if ($tenant) {
+
+            return redirect()
+                ->route('tenant.show', $tenant)
+                ->with(
+                    'info',
+                    'Data Tenant untuk Kerja Sama ini sudah diinput.'
+                );
+        }
+
+
+        // =====================================================
+        // TAMPILKAN FORM TENANT
+        // =====================================================
+        return view(
+            'tenant.create',
+            compact('kerjaSama')
+        );
     }
 
 
     /**
-     * Menampilkan detail tenant.
+     * Menyimpan data Tenant baru.
+     */
+    public function store(Request $request)
+{
+    $validated = $request->validate([
+        'kerja_sama_id' => [
+            'required',
+            'integer',
+            'exists:kerja_samas,id',
+        ],
+
+        'mitra_usaha' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'nama_tenant' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'jenis_usaha' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'bentuk_kerja_sama' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'npwp' => [
+            'required',
+            'regex:/^[0-9]+$/',
+            'max:30',
+        ],
+
+        'nib' => [
+            'required',
+            'regex:/^[0-9]+$/',
+            'max:30',
+        ],
+
+        'bentuk_badan_usaha' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'alamat_perusahaan' => [
+            'required',
+            'string',
+        ],
+
+        'nama_pic' => [
+            'required',
+            'regex:/^[A-Za-zÀ-ÿ\s]+$/',
+            'max:255',
+        ],
+
+        'jabatan_pic' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'no_hp_pic' => [
+            'required',
+            'regex:/^[0-9]+$/',
+            'max:20',
+        ],
+
+        'email_pic' => [
+            'required',
+            'email',
+            'max:255',
+        ],
+    ], [
+        'npwp.required' => 'NPWP wajib diisi.',
+        'npwp.regex' => 'NPWP hanya boleh berisi angka.',
+
+        'nib.required' => 'NIB wajib diisi.',
+        'nib.regex' => 'NIB hanya boleh berisi angka.',
+
+        'bentuk_badan_usaha.required' => 'Bentuk badan usaha wajib dipilih.',
+
+        'alamat_perusahaan.required' => 'Alamat perusahaan/usaha wajib diisi.',
+
+        'nama_pic.required' => 'Nama PIC wajib diisi.',
+        'nama_pic.regex' => 'Nama PIC hanya boleh berisi huruf dan spasi.',
+
+        'jabatan_pic.required' => 'Jabatan PIC wajib diisi.',
+
+        'no_hp_pic.required' => 'No. HP wajib diisi.',
+        'no_hp_pic.regex' => 'No. HP hanya boleh berisi angka.',
+
+        'email_pic.required' => 'Email PIC wajib diisi.',
+        'email_pic.email' => 'Format email tidak valid.',
+
+        'kerja_sama_id.required' => 'Data Kerja Sama tidak ditemukan.',
+        'kerja_sama_id.exists' => 'Data Kerja Sama tidak valid.',
+    ]);
+
+    $existingTenant = Tenant::where(
+        'kerja_sama_id',
+        $validated['kerja_sama_id']
+    )->first();
+
+    if ($existingTenant) {
+        return redirect()
+            ->route('tenant.show', $existingTenant)
+            ->with(
+                'info',
+                'Data Tenant untuk Kerja Sama ini sudah tersedia.'
+            );
+    }
+
+    Tenant::create($validated);
+
+    return redirect()
+        ->route('tenant.index')
+        ->with(
+            'success',
+            'Data Tenant berhasil disimpan.'
+        );
+}
+
+
+    /**
+     * Menampilkan detail Tenant.
      */
     public function show(Tenant $tenant)
     {
-        return view('tenant.show', compact('tenant'));
+        return view(
+            'tenant.show',
+            compact('tenant')
+        );
     }
 
 
     /**
-     * Menampilkan halaman edit tenant.
+     * Menampilkan halaman edit Tenant.
      */
     public function edit(Tenant $tenant)
     {
-        return view('tenant.edit', compact('tenant'));
+        return view(
+            'tenant.edit',
+            compact('tenant')
+        );
     }
 
 
     /**
-     * Memperbarui data tenant.
+     * Memperbarui data Tenant.
      */
     public function update(Request $request, Tenant $tenant)
-    {
-        // =====================================================
-        // VALIDASI
-        // =====================================================
-        $validated = $request->validate([
+{
+    $validated = $request->validate([
+        'npwp' => [
+            'required',
+            'regex:/^[0-9]+$/',
+            'max:30',
+        ],
 
-            'mitra_usaha' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+        'nib' => [
+            'required',
+            'regex:/^[0-9]+$/',
+            'max:30',
+        ],
 
-            'nama_tenant' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+        'bentuk_badan_usaha' => [
+            'required',
+            'string',
+            'max:255',
+        ],
 
-            'jenis_usaha' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+        'alamat_perusahaan' => [
+            'required',
+            'string',
+        ],
 
-            'bentuk_kerja_sama' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+        'nama_pic' => [
+            'required',
+            'regex:/^[A-Za-zÀ-ÿ\s]+$/',
+            'max:255',
+        ],
 
-            'npwp' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
+        'jabatan_pic' => [
+            'required',
+            'string',
+            'max:255',
+        ],
 
-            'nama_pic' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+        'no_hp_pic' => [
+            'required',
+            'regex:/^[0-9]+$/',
+            'max:20',
+        ],
 
-            'jabatan_pic' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
+        'email_pic' => [
+            'required',
+            'email',
+            'max:255',
+        ],
+    ], [
+        'npwp.required' => 'NPWP wajib diisi.',
+        'npwp.regex' => 'NPWP hanya boleh berisi angka.',
 
-            'no_hp_pic' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+        'nib.required' => 'NIB wajib diisi.',
+        'nib.regex' => 'NIB hanya boleh berisi angka.',
 
-            'email_pic' => [
-                'nullable',
-                'email',
-                'max:255',
-            ],
+        'bentuk_badan_usaha.required' => 'Bentuk badan usaha wajib dipilih.',
 
-        ]);
+        'alamat_perusahaan.required' => 'Alamat perusahaan/usaha wajib diisi.',
 
+        'nama_pic.required' => 'Nama PIC wajib diisi.',
+        'nama_pic.regex' => 'Nama PIC hanya boleh berisi huruf dan spasi.',
 
-        // =====================================================
-        // UPDATE DATA
-        // =====================================================
-        $tenant->update($validated);
+        'jabatan_pic.required' => 'Jabatan PIC wajib diisi.',
 
+        'no_hp_pic.required' => 'No. HP wajib diisi.',
+        'no_hp_pic.regex' => 'No. HP hanya boleh berisi angka.',
 
-        // =====================================================
-        // REDIRECT
-        // =====================================================
-        return redirect()
-            ->route('tenant.index')
-            ->with('success', 'Data tenant berhasil diperbarui.');
-    }
+        'email_pic.required' => 'Email PIC wajib diisi.',
+        'email_pic.email' => 'Format email tidak valid.',
+    ]);
+
+    $tenant->update($validated);
+
+    return redirect()
+        ->route('tenant.index')
+        ->with(
+            'success',
+            'Data Tenant berhasil diperbarui.'
+        );
+}
 
 
     /**
-     * Menghapus data tenant.
+     * Menghapus data Tenant.
      */
     public function destroy(Tenant $tenant)
     {
         // =====================================================
-        // HAPUS DATA
+        // HAPUS DATA TENANT
         // =====================================================
         $tenant->delete();
 
@@ -369,6 +445,9 @@ class TenantController extends Controller
         // =====================================================
         return redirect()
             ->route('tenant.index')
-            ->with('success', 'Data tenant berhasil dihapus.');
+            ->with(
+                'success',
+                'Data tenant berhasil dihapus.'
+            );
     }
 }
