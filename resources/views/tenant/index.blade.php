@@ -60,7 +60,7 @@
                 </h3>
 
                 <p class="mt-1 text-xs text-[#8BA5A2]">
-                    Daftar tenant yang telah terdaftar dalam sistem.
+                    Daftar kerja sama yang dapat dilengkapi dengan data tenant.
                 </p>
 
             </div>
@@ -124,28 +124,14 @@
                                 value="az"
                                 {{ request('sort') === 'az' ? 'selected' : '' }}
                             >
-                                Nama Tenant A → Z
+                                Mitra Usaha A → Z
                             </option>
 
                             <option
                                 value="za"
                                 {{ request('sort') === 'za' ? 'selected' : '' }}
                             >
-                                Nama Tenant Z → A
-                            </option>
-
-                            <option
-                                value="incomplete"
-                                {{ request('sort') === 'incomplete' ? 'selected' : '' }}
-                            >
-                                Belum Ditambahkan Detail
-                            </option>
-
-                            <option
-                                value="complete"
-                                {{ request('sort') === 'complete' ? 'selected' : '' }}
-                            >
-                                Sudah Ditambahkan Detail
+                                Mitra Usaha Z → A
                             </option>
 
                         </select>
@@ -192,7 +178,7 @@
                             type="text"
                             name="search"
                             value="{{ request('search') }}"
-                            placeholder="Cari tenant..."
+                            placeholder="Cari mitra, brand, PIC..."
                             class="ml-2 w-full
                                    border-0
                                    bg-transparent
@@ -254,19 +240,6 @@
                         </th>
 
 
-                        {{-- TENANT --}}
-                        <th
-                            class="px-5 py-4
-                                   text-[10px]
-                                   font-bold
-                                   uppercase
-                                   tracking-[0.08em]
-                                   text-[#8BA5A2]"
-                        >
-                            Tenant
-                        </th>
-
-
                         {{-- MITRA USAHA --}}
                         <th
                             class="px-5 py-4
@@ -277,6 +250,19 @@
                                    text-[#8BA5A2]"
                         >
                             Mitra Usaha
+                        </th>
+
+
+                        {{-- BRAND --}}
+                        <th
+                            class="px-5 py-4
+                                   text-[10px]
+                                   font-bold
+                                   uppercase
+                                   tracking-[0.08em]
+                                   text-[#8BA5A2]"
+                        >
+                            Brand
                         </th>
 
 
@@ -293,7 +279,7 @@
                         </th>
 
 
-                        {{-- BENTUK KERJA SAMA --}}
+                        {{-- PIC COMMERCIAL --}}
                         <th
                             class="px-5 py-4
                                    text-[10px]
@@ -302,7 +288,21 @@
                                    tracking-[0.08em]
                                    text-[#8BA5A2]"
                         >
-                            Bentuk Kerja Sama
+                            PIC Commercial
+                        </th>
+
+
+                        {{-- DATA TENANT --}}
+                        <th
+                            class="px-5 py-4
+                                   text-center
+                                   text-[10px]
+                                   font-bold
+                                   uppercase
+                                   tracking-[0.08em]
+                                   text-[#8BA5A2]"
+                        >
+                            Data Tenant
                         </th>
 
 
@@ -330,7 +330,12 @@
                 ================================================== --}}
                 <tbody class="divide-y divide-[#EEF3F1]">
 
-                    @forelse ($tenants as $index => $tenant)
+                    @forelse ($kerjaSamas as $index => $kerjaSama)
+
+                        @php
+                            $tenant = $tenantByKerjaSama->get($kerjaSama->id);
+                        @endphp
+
 
                         <tr class="transition hover:bg-[#F8FAF9]">
 
@@ -350,7 +355,7 @@
 
 
                             {{-- =================================================
-                                 TENANT
+                                 MITRA USAHA
                             ================================================== --}}
                             <td class="px-5 py-4">
 
@@ -359,31 +364,35 @@
                                            font-semibold
                                            text-[#365F65]"
                                 >
-                                    {{ $tenant->nama_tenant }}
+                                    {{ $kerjaSama->mitra_usaha }}
                                 </div>
 
-                                <div
-                                    class="mt-1
-                                           text-xs
-                                           text-[#9AAEAB]"
-                                >
-                                    PIC: {{ $tenant->nama_pic }}
-                                </div>
+                                @if ($kerjaSama->tanggal_pengajuan)
+
+                                    <div
+                                        class="mt-1
+                                               text-xs
+                                               text-[#9AAEAB]"
+                                    >
+                                        Pengajuan:
+                                        {{ $kerjaSama->tanggal_pengajuan->format('d M Y') }}
+                                    </div>
+
+                                @endif
 
                             </td>
 
 
 
                             {{-- =================================================
-                                 MITRA USAHA
+                                 BRAND
                             ================================================== --}}
                             <td
-                                class="whitespace-nowrap
-                                       px-5 py-4
+                                class="px-5 py-4
                                        text-sm
                                        text-[#527D82]"
                             >
-                                {{ $tenant->mitra_usaha ?? '-' }}
+                                {{ $kerjaSama->brand ?: '-' }}
                             </td>
 
 
@@ -402,7 +411,7 @@
                                            font-semibold
                                            text-[#527D82]"
                                 >
-                                    {{ $tenant->jenis_usaha }}
+                                    {{ $kerjaSama->jenis_usaha }}
                                 </span>
 
                             </td>
@@ -410,14 +419,138 @@
 
 
                             {{-- =================================================
-                                 BENTUK KERJA SAMA
+                                 PIC COMMERCIAL
                             ================================================== --}}
-                            <td
-                                class="px-5 py-4
-                                       text-sm
-                                       text-[#527D82]"
-                            >
-                                {{ $tenant->bentuk_kerja_sama }}
+                            <td class="px-5 py-4">
+
+                                <div
+                                    class="text-sm
+                                           font-semibold
+                                           text-[#365F65]"
+                                >
+                                    {{ $kerjaSama->pic_commercial }}
+                                </div>
+
+                                @if ($kerjaSama->catatan)
+
+                                    <div
+                                        class="mt-1
+                                               max-w-[220px]
+                                               truncate
+                                               text-xs
+                                               text-[#9AAEAB]"
+                                    >
+                                        {{ $kerjaSama->catatan }}
+                                    </div>
+
+                                @endif
+
+                            </td>
+
+
+
+                            {{-- =================================================
+                                 DATA TENANT
+                            ================================================== --}}
+                            <td class="px-5 py-4">
+
+                                <div
+                                    class="flex
+                                           items-center
+                                           justify-center"
+                                >
+
+                                    @if ($tenant)
+
+                                        {{-- =================================================
+                                             SUDAH ADA TENANT
+                                        ================================================== --}}
+                                        <div
+                                            class="flex
+                                                   flex-col
+                                                   items-center
+                                                   gap-1.5"
+                                        >
+
+                                            <span
+                                                class="inline-flex
+                                                       items-center
+                                                       gap-1.5
+                                                       rounded-lg
+                                                       bg-[#E8F3EE]
+                                                       px-3
+                                                       py-1.5
+                                                       text-xs
+                                                       font-semibold
+                                                       text-[#4D856F]"
+                                            >
+
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-3.5 w-3.5"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                >
+
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        d="m5 12 4 4L19 6"
+                                                    />
+
+                                                </svg>
+
+                                                Sudah Diinput
+
+                                            </span>
+
+
+                                            <a
+                                                href="{{ route('tenant.show', $tenant) }}"
+                                                class="text-[11px]
+                                                       font-medium
+                                                       text-[#527D82]
+                                                       underline
+                                                       decoration-[#B8CBC7]
+                                                       underline-offset-2
+                                                       transition
+                                                       hover:text-[#365F65]"
+                                            >
+                                                Lihat Data
+                                            </a>
+
+                                        </div>
+
+
+                                    @else
+
+                                        {{-- =================================================
+                                             BELUM ADA TENANT
+                                        ================================================== --}}
+                                        <a
+                                            href="{{ route('tenant.create', ['kerja_sama_id' => $kerjaSama->id]) }}"
+                                            class="inline-flex
+                                                   items-center
+                                                   justify-center
+                                                   rounded-lg
+                                                   bg-[#365F65]
+                                                   px-3.5
+                                                   py-2
+                                                   text-xs
+                                                   font-semibold
+                                                   text-white
+                                                   transition
+                                                   hover:bg-[#2F5358]"
+                                        >
+                                            Input Data
+                                        </a>
+
+                                    @endif
+
+                                </div>
+
                             </td>
 
 
@@ -427,113 +560,28 @@
                             ================================================== --}}
                             <td class="px-5 py-4">
 
-                                <div
-                                    class="flex items-center
-                                           justify-center
-                                           gap-2"
-                                >
+                                @if ($tenant)
 
-                                    {{-- =================================================
-                                         DETAIL
-                                    ================================================== --}}
-                                    <a
-                                        href="{{ route('tenant.show', $tenant) }}"
-                                        title="Lihat detail"
-                                        class="flex h-9 w-9
-                                               items-center justify-center
-                                               rounded-lg
-                                               bg-[#F3F6F5]
-                                               text-[#527D82]
-                                               transition
-                                               hover:bg-[#E1EBE8]"
+                                    <div
+                                        class="flex
+                                               items-center
+                                               justify-center
+                                               gap-2"
                                     >
 
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            class="h-4 w-4"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            stroke-width="1.8"
-                                        >
-
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                d="M2.25 12s3.75-6 9.75-6 9.75 6 9.75 6-3.75 6-9.75 6-9.75-6-9.75-6z"
-                                            />
-
-                                            <circle
-                                                cx="12"
-                                                cy="12"
-                                                r="2.5"
-                                            />
-
-                                        </svg>
-
-                                    </a>
-
-
-
-                                    {{-- =================================================
-                                         EDIT
-                                    ================================================== --}}
-                                    <a
-                                        href="{{ route('tenant.edit', $tenant) }}"
-                                        title="Edit"
-                                        class="flex h-9 w-9
-                                               items-center justify-center
-                                               rounded-lg
-                                               bg-[#F3F6F5]
-                                               text-[#527D82]
-                                               transition
-                                               hover:bg-[#E1EBE8]"
-                                    >
-
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            class="h-4 w-4"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            stroke-width="1.8"
-                                        >
-
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                d="M16.862 3.487a2.1 2.1 0 013 3L8.25 18.1l-4.5 1.2 1.2-4.5L16.862 3.487z"
-                                            />
-
-                                        </svg>
-
-                                    </a>
-
-
-
-                                    {{-- =================================================
-                                         DELETE
-                                    ================================================== --}}
-                                    <form
-                                        action="{{ route('tenant.destroy', $tenant) }}"
-                                        method="POST"
-                                        onsubmit="return confirm('Apakah kamu yakin ingin menghapus data tenant ini?')"
-                                    >
-
-                                        @csrf
-
-                                        @method('DELETE')
-
-                                        <button
-                                            type="submit"
-                                            title="Hapus"
+                                        {{-- =================================================
+                                             DETAIL
+                                        ================================================== --}}
+                                        <a
+                                            href="{{ route('tenant.show', $tenant) }}"
+                                            title="Lihat detail"
                                             class="flex h-9 w-9
                                                    items-center justify-center
                                                    rounded-lg
-                                                   bg-[#FFF4F2]
-                                                   text-[#B96B60]
+                                                   bg-[#F3F6F5]
+                                                   text-[#527D82]
                                                    transition
-                                                   hover:bg-[#FDE5E1]"
+                                                   hover:bg-[#E1EBE8]"
                                         >
 
                                             <svg
@@ -548,16 +596,115 @@
                                                 <path
                                                     stroke-linecap="round"
                                                     stroke-linejoin="round"
-                                                    d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2m-8 0l.75 13h8.5L17 7"
+                                                    d="M2.25 12s3.75-6 9.75-6 9.75 6 9.75 6-3.75 6-9.75 6-9.75-6-9.75-6z"
+                                                />
+
+                                                <circle
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="2.5"
                                                 />
 
                                             </svg>
 
-                                        </button>
+                                        </a>
 
-                                    </form>
 
-                                </div>
+
+                                        {{-- =================================================
+                                             EDIT
+                                        ================================================== --}}
+                                        <a
+                                            href="{{ route('tenant.edit', $tenant) }}"
+                                            title="Edit"
+                                            class="flex h-9 w-9
+                                                   items-center justify-center
+                                                   rounded-lg
+                                                   bg-[#F3F6F5]
+                                                   text-[#527D82]
+                                                   transition
+                                                   hover:bg-[#E1EBE8]"
+                                        >
+
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                class="h-4 w-4"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                stroke-width="1.8"
+                                            >
+
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M16.862 3.487a2.1 2.1 0 013 3L8.25 18.1l-4.5 1.2-4.5 1.2 1.2-4.5L16.862 3.487z"
+                                                />
+
+                                            </svg>
+
+                                        </a>
+
+
+
+                                        {{-- =================================================
+                                             DELETE
+                                        ================================================== --}}
+                                        <form
+                                            action="{{ route('tenant.destroy', $tenant) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('Apakah kamu yakin ingin menghapus data tenant ini?')"
+                                        >
+
+                                            @csrf
+
+                                            @method('DELETE')
+
+                                            <button
+                                                type="submit"
+                                                title="Hapus"
+                                                class="flex h-9 w-9
+                                                       items-center justify-center
+                                                       rounded-lg
+                                                       bg-[#FFF4F2]
+                                                       text-[#B96B60]
+                                                       transition
+                                                       hover:bg-[#FDE5E1]"
+                                            >
+
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-4 w-4"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.8"
+                                                >
+
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2m-8 0l.75 13h8.5L17 7"
+                                                    />
+
+                                                </svg>
+
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
+                                @else
+
+                                    <span
+                                        class="text-xs
+                                               text-[#B1BFBD]"
+                                    >
+                                        Belum ada data
+                                    </span>
+
+                                @endif
 
                             </td>
 
@@ -572,7 +719,7 @@
                         <tr>
 
                             <td
-                                colspan="6"
+                                colspan="7"
                                 class="px-5 py-16 text-center"
                             >
 
@@ -612,7 +759,7 @@
                                                font-bold
                                                text-[#365F65]"
                                     >
-                                        Belum ada data tenant
+                                        Belum ada data kerja sama
                                     </h4>
 
 
@@ -622,7 +769,7 @@
                                                text-xs
                                                text-[#8BA5A2]"
                                     >
-                                        Data tenant yang telah ditambahkan
+                                        Data kerja sama yang telah ditambahkan
                                         akan ditampilkan di tabel ini.
                                     </p>
 
@@ -645,7 +792,7 @@
         {{-- =====================================================
              JUMLAH DATA
         ====================================================== --}}
-        @if ($tenants->count() > 0)
+        @if ($kerjaSamas->count() > 0)
 
             <div
                 class="border-t
@@ -658,10 +805,10 @@
                     Menampilkan
 
                     <span class="font-semibold text-[#527D82]">
-                        {{ $tenants->count() }}
+                        {{ $kerjaSamas->count() }}
                     </span>
 
-                    tenant
+                    kerja sama
 
                 </p>
 

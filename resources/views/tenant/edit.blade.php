@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('page-title', 'Input Tenant')
+@section('page-title', 'Edit Data Tenant')
 
 @section('content')
 
@@ -69,18 +69,19 @@
                         color: #365F65;
                     "
                 >
-                    Input Data Tenant
+                    Edit Data Tenant
                 </h2>
 
                 <p
                     style="
                         margin: 6px 0 0;
                         font-size: 14px;
+                        line-height: 1.5;
                         font-weight: 400;
                         color: #8BA5A2;
                     "
                 >
-                    Lengkapi informasi tenant berdasarkan data kerja sama yang telah dibuat.
+                    Perbarui informasi tenant yang telah tersimpan sebelumnya.
                 </p>
 
             </div>
@@ -91,46 +92,15 @@
 
 
     {{-- =========================================================
-         FORM
+         FORM EDIT
     ========================================================== --}}
     <form
-        action="{{ route('tenant.store') }}"
+        action="{{ route('tenant.update', $tenant) }}"
         method="POST"
     >
 
         @csrf
-
-        {{-- ID KERJA SAMA --}}
-        <input
-            type="hidden"
-            name="kerja_sama_id"
-            value="{{ $kerjaSama->id }}"
-        >
-
-        {{-- DATA OTOMATIS DARI KERJA SAMA --}}
-        <input
-            type="hidden"
-            name="mitra_usaha"
-            value="{{ $kerjaSama->mitra_usaha }}"
-        >
-
-        <input
-            type="hidden"
-            name="nama_tenant"
-            value="{{ $kerjaSama->brand }}"
-        >
-
-        <input
-            type="hidden"
-            name="jenis_usaha"
-            value="{{ $kerjaSama->jenis_usaha }}"
-        >
-
-        <input
-            type="hidden"
-            name="bentuk_kerja_sama"
-            value="{{ $kerjaSama->bentuk_kerja_sama }}"
-        >
+        @method('PUT')
 
 
         {{-- =====================================================
@@ -171,22 +141,19 @@
                     style="
                         margin: 6px 0 0;
                         font-size: 14px;
+                        line-height: 1.5;
                         font-weight: 400;
                         color: #8BA5A2;
                     "
                 >
-                    Informasi berikut diambil otomatis dari data Kerja Sama.
+                    Informasi berikut berasal dari data Kerja Sama dan tidak dapat diubah dari halaman ini.
                 </p>
 
             </div>
 
 
             {{-- DATA KERJA SAMA --}}
-            <div
-                style="
-                    padding: 8px 36px 16px;
-                "
-            >
+            <div style="padding: 8px 36px 16px;">
 
                 {{-- MITRA USAHA --}}
                 <div
@@ -216,13 +183,13 @@
                             color: #365F65;
                         "
                     >
-                        {{ $kerjaSama->mitra_usaha ?: '-' }}
+                        {{ $tenant->kerjaSama->mitra_usaha ?? $tenant->mitra_usaha ?? '-' }}
                     </div>
 
                 </div>
 
 
-                {{-- NAMA BRAND / TENANT --}}
+                {{-- NAMA BRAND --}}
                 <div
                     style="
                         display: grid;
@@ -250,7 +217,7 @@
                             color: #365F65;
                         "
                     >
-                        {{ $kerjaSama->brand ?: '-' }}
+                        {{ $tenant->kerjaSama->brand ?? $tenant->nama_tenant ?? '-' }}
                     </div>
 
                 </div>
@@ -284,7 +251,7 @@
                             color: #365F65;
                         "
                     >
-                        {{ $kerjaSama->jenis_usaha ?: '-' }}
+                        {{ $tenant->kerjaSama->jenis_usaha ?? $tenant->jenis_usaha ?? '-' }}
                     </div>
 
                 </div>
@@ -318,7 +285,7 @@
                             color: #365F65;
                         "
                     >
-                        {{ $kerjaSama->bentuk_kerja_sama ?: '-' }}
+                        {{ $tenant->kerjaSama->bentuk_kerja_sama ?? $tenant->bentuk_kerja_sama ?? '-' }}
                     </div>
 
                 </div>
@@ -351,7 +318,7 @@
                             color: #365F65;
                         "
                     >
-                        {{ $kerjaSama->pic_commercial ?: '-' }}
+                        {{ $tenant->kerjaSama->pic_commercial ?? '-' }}
                     </div>
 
                 </div>
@@ -403,22 +370,15 @@
                         color: #8BA5A2;
                     "
                 >
-                    Masukkan informasi legalitas perusahaan atau usaha tenant.
+                    Perbarui informasi legalitas perusahaan atau usaha tenant.
                 </p>
 
             </div>
 
 
-            {{-- FORM FIELDS --}}
-            <div
-                style="
-                    padding: 28px 36px 32px;
-                "
-            >
+            <div style="padding: 28px 36px 32px;">
 
-                {{-- =================================================
-                     NPWP
-                ================================================== --}}
+                {{-- NPWP --}}
                 <div style="margin-bottom: 24px;">
 
                     <label
@@ -447,7 +407,7 @@
                         type="text"
                         id="npwp"
                         name="npwp"
-                        value="{{ old('npwp') }}"
+                        value="{{ old('npwp', $tenant->npwp) }}"
                         placeholder="Masukkan nomor NPWP"
                         inputmode="numeric"
                         autocomplete="off"
@@ -485,9 +445,7 @@
                 </div>
 
 
-                {{-- =================================================
-                     NIB
-                ================================================== --}}
+                {{-- NIB --}}
                 <div style="margin-bottom: 24px;">
 
                     <label
@@ -516,7 +474,7 @@
                         type="text"
                         id="nib"
                         name="nib"
-                        value="{{ old('nib') }}"
+                        value="{{ old('nib', $tenant->nib) }}"
                         placeholder="Masukkan nomor NIB"
                         inputmode="numeric"
                         autocomplete="off"
@@ -554,9 +512,7 @@
                 </div>
 
 
-                {{-- =================================================
-                     BENTUK BADAN USAHA
-                ================================================== --}}
+                {{-- BENTUK BADAN USAHA --}}
                 <div style="margin-bottom: 24px;">
 
                     <label
@@ -614,50 +570,48 @@
 
                             <option
                                 value="PT"
-                                {{ old('bentuk_badan_usaha') == 'PT' ? 'selected' : '' }}
+                                {{ old('bentuk_badan_usaha', $tenant->bentuk_badan_usaha) == 'PT' ? 'selected' : '' }}
                             >
                                 Perseroan Terbatas (PT)
                             </option>
 
                             <option
                                 value="CV"
-                                {{ old('bentuk_badan_usaha') == 'CV' ? 'selected' : '' }}
+                                {{ old('bentuk_badan_usaha', $tenant->bentuk_badan_usaha) == 'CV' ? 'selected' : '' }}
                             >
                                 Commanditaire Vennootschap (CV)
                             </option>
 
                             <option
                                 value="Firma"
-                                {{ old('bentuk_badan_usaha') == 'Firma' ? 'selected' : '' }}
+                                {{ old('bentuk_badan_usaha', $tenant->bentuk_badan_usaha) == 'Firma' ? 'selected' : '' }}
                             >
                                 Firma
                             </option>
 
                             <option
                                 value="Koperasi"
-                                {{ old('bentuk_badan_usaha') == 'Koperasi' ? 'selected' : '' }}
+                                {{ old('bentuk_badan_usaha', $tenant->bentuk_badan_usaha) == 'Koperasi' ? 'selected' : '' }}
                             >
                                 Koperasi
                             </option>
 
                             <option
                                 value="Perorangan"
-                                {{ old('bentuk_badan_usaha') == 'Perorangan' ? 'selected' : '' }}
+                                {{ old('bentuk_badan_usaha', $tenant->bentuk_badan_usaha) == 'Perorangan' ? 'selected' : '' }}
                             >
                                 Usaha Perorangan
                             </option>
 
                             <option
                                 value="Lainnya"
-                                {{ old('bentuk_badan_usaha') == 'Lainnya' ? 'selected' : '' }}
+                                {{ old('bentuk_badan_usaha', $tenant->bentuk_badan_usaha) == 'Lainnya' ? 'selected' : '' }}
                             >
                                 Lainnya
                             </option>
 
                         </select>
 
-
-                        {{-- ICON DROPDOWN --}}
                         <span
                             style="
                                 position: absolute;
@@ -692,9 +646,7 @@
                 </div>
 
 
-                {{-- =================================================
-                     ALAMAT PERUSAHAAN / USAHA
-                ================================================== --}}
+                {{-- ALAMAT --}}
                 <div>
 
                     <label
@@ -741,7 +693,7 @@
                             outline: none;
                             resize: vertical;
                         "
-                    >{{ old('alamat_perusahaan') }}</textarea>
+                    >{{ old('alamat_perusahaan', $tenant->alamat_perusahaan) }}</textarea>
 
                     @error('alamat_perusahaan')
                         <p
@@ -806,22 +758,15 @@
                         color: #8BA5A2;
                     "
                 >
-                    Masukkan informasi PIC yang bertanggung jawab dari pihak tenant.
+                    Perbarui informasi PIC yang bertanggung jawab dari pihak tenant.
                 </p>
 
             </div>
 
 
-            {{-- FORM FIELDS --}}
-            <div
-                style="
-                    padding: 28px 36px 32px;
-                "
-            >
+            <div style="padding: 28px 36px 32px;">
 
-                {{-- =================================================
-                     NAMA PIC
-                ================================================== --}}
+                {{-- NAMA PIC --}}
                 <div style="margin-bottom: 24px;">
 
                     <label
@@ -850,7 +795,7 @@
                         type="text"
                         id="nama_pic"
                         name="nama_pic"
-                        value="{{ old('nama_pic') }}"
+                        value="{{ old('nama_pic', $tenant->nama_pic) }}"
                         placeholder="Masukkan nama PIC tenant"
                         autocomplete="off"
                         style="
@@ -887,9 +832,7 @@
                 </div>
 
 
-                {{-- =================================================
-                     JABATAN
-                ================================================== --}}
+                {{-- JABATAN --}}
                 <div style="margin-bottom: 24px;">
 
                     <label
@@ -918,7 +861,7 @@
                         type="text"
                         id="jabatan_pic"
                         name="jabatan_pic"
-                        value="{{ old('jabatan_pic') }}"
+                        value="{{ old('jabatan_pic', $tenant->jabatan_pic) }}"
                         placeholder="Masukkan jabatan PIC"
                         autocomplete="off"
                         style="
@@ -955,9 +898,7 @@
                 </div>
 
 
-                {{-- =================================================
-                     NO. HP
-                ================================================== --}}
+                {{-- NO. HP --}}
                 <div style="margin-bottom: 24px;">
 
                     <label
@@ -986,7 +927,7 @@
                         type="text"
                         id="no_hp_pic"
                         name="no_hp_pic"
-                        value="{{ old('no_hp_pic') }}"
+                        value="{{ old('no_hp_pic', $tenant->no_hp_pic) }}"
                         placeholder="Masukkan nomor HP PIC"
                         inputmode="numeric"
                         autocomplete="off"
@@ -1024,9 +965,7 @@
                 </div>
 
 
-                {{-- =================================================
-                     EMAIL
-                ================================================== --}}
+                {{-- EMAIL --}}
                 <div>
 
                     <label
@@ -1055,7 +994,7 @@
                         type="email"
                         id="email_pic"
                         name="email_pic"
-                        value="{{ old('email_pic') }}"
+                        value="{{ old('email_pic', $tenant->email_pic) }}"
                         placeholder="Masukkan email PIC"
                         autocomplete="email"
                         style="
@@ -1095,7 +1034,8 @@
 
         </div>
 
-                {{-- =====================================================
+
+        {{-- =====================================================
              TOMBOL AKSI
         ====================================================== --}}
         <div
@@ -1125,14 +1065,13 @@
                     font-size: 14px;
                     font-weight: 600;
                     text-decoration: none;
-                    cursor: pointer;
                 "
             >
                 Batal
             </a>
 
 
-            {{-- SIMPAN DATA TENANT --}}
+            {{-- SIMPAN PERUBAHAN --}}
             <button
                 type="submit"
                 style="
@@ -1167,7 +1106,7 @@
                     <path d="M5 12l4 4L19 6"/>
                 </svg>
 
-                Simpan Data Tenant
+                Simpan Perubahan
 
             </button>
 
