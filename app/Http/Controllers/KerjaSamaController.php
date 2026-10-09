@@ -6,6 +6,7 @@ use App\Models\KerjaSama;
 use App\Models\Tenant;
 use App\Models\Lokasi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class KerjaSamaController extends Controller
 {
@@ -165,14 +166,35 @@ class KerjaSamaController extends Controller
     /**
      * Menghapus Kerja Sama.
      */
-    public function destroy($id)
-    {
-        $kerjaSama = KerjaSama::findOrFail($id);
+  
+public function destroy($id)
+{
+    $kerjaSama = KerjaSama::with('tenant')->findOrFail($id);
+
+    DB::transaction(function () use ($kerjaSama) {
+        $tenant = $kerjaSama->tenant;
+
+        if (!$tenant) {
+            $tenant = Tenant::where(
+                'kerja_sama_id',
+                $kerjaSama->id
+            )->first();
+        }
+
+        if ($tenant) {
+            Lokasi::where('tenant_id', $tenant->id)->update([
+                'tenant_id' => null,
+                'status' => 'Kosong',
+            ]);
+
+            $tenant->delete();
+        }
 
         $kerjaSama->delete();
+    });
 
-        return redirect()
-            ->route('kerja-sama')
-            ->with('success', 'Data kerja sama berhasil dihapus.');
-    }
+    return redirect()
+        ->route('kerja-sama')
+        ->with('success', 'Data kerja sama berhasil dihapus.');
+}
 }

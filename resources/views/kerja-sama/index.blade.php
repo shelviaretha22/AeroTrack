@@ -361,7 +361,7 @@
 
                                     @if ($tenantLengkap)
                                         <a
-                                            href="{{ route('lokasi.create', ['tenant_id' => $tenant->id]) }}"
+                                            href="{{ route('kerja-sama.lokasi.pilih', $kerjaSama->id) }}"
                                             class="inline-flex px-3 py-2 rounded-lg
                                                    bg-[#365F65] text-white
                                                    text-xs font-semibold hover:bg-[#2D5055]"
