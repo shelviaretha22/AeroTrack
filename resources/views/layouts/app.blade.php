@@ -355,8 +355,8 @@
 
                     {{-- PROFILE --}}
                     <a
-                        href="#"
-                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white/70 hover:bg-white/10 hover:text-white transition"
+                        href="{{ route('profile.index') }}"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition {{ request()->routeIs('profile.*') ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white' }}"
                     >
                         <div
                             class="w-8 h-8 rounded-lg bg-[#B8CECA]/20 flex items-center justify-center"
