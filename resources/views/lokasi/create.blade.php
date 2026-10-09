@@ -3,69 +3,60 @@
 @section('page-title', 'Tambah Lokasi')
 
 @section('content')
+<div class="w-full max-w-none space-y-6">
 
-<div class="max-w-4xl space-y-6">
-
-    {{-- HEADER --}}
-
+    {{-- Header --}}
     <div>
+        <p class="text-sm text-[#8BA5A2]">Management / Lokasi</p>
 
-        <p class="text-sm text-[#8BA5A2]">
-            Management / Lokasi
-        </p>
-
-        <h2 class="mt-1 text-2xl font-bold text-[#365F65]">
-            Tambah Lokasi
-        </h2>
+        <h1 class="mt-1 text-2xl font-bold text-[#365F65]">
+            Tambah Lokasi Baru
+        </h1>
 
         <p class="mt-1 text-sm text-[#7A9290]">
-            Tambahkan data lokasi fisik yang tersedia di area bandara.
+            Daftarkan ruangan fisik yang tersedia di area bandara.
         </p>
-
     </div>
 
+    {{-- Pesan validasi --}}
+    @if ($errors->any())
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4">
+            <p class="mb-2 font-semibold text-red-700">
+                Periksa kembali data yang kamu isi.
+            </p>
 
-    {{-- FORM --}}
+            @foreach ($errors->all() as $error)
+                <p class="text-sm text-red-600">{{ $error }}</p>
+            @endforeach
+        </div>
+    @endif
 
-    <div class="rounded-2xl border border-[#E2EBE9] bg-white p-6 sm:p-8">
+    {{-- Form --}}
+    <div class="w-full rounded-2xl border border-[#E2EBE9] bg-white p-5 sm:p-8 lg:p-10">
 
         <form
             method="POST"
             action="{{ route('lokasi.store') }}"
             class="space-y-6"
         >
-
             @csrf
 
-
-            {{-- INFORMASI LOKASI --}}
-
             <div>
-
-                <h3 class="text-base font-bold text-[#365F65]">
-                    Informasi Lokasi
-                </h3>
+                <h2 class="text-base font-bold text-[#365F65]">
+                    Informasi Ruangan
+                </h2>
 
                 <p class="mt-1 text-xs text-[#8BA5A2]">
-                    Isi informasi mengenai lokasi fisik yang tersedia.
+                    Kode lokasi dibuat otomatis oleh sistem.
                 </p>
-
             </div>
 
+            <div class="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
 
-            {{-- GRID --}}
-
-            <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-
-
-                {{-- TERMINAL --}}
-
+                {{-- Terminal --}}
                 <div>
-
-                    <label
-                        for="terminal"
-                        class="mb-1.5 block text-sm font-semibold text-[#527D82]"
-                    >
+                    <label for="terminal"
+                           class="mb-1.5 block text-sm font-semibold text-[#527D82]">
                         Terminal <span class="text-red-500">*</span>
                     </label>
 
@@ -73,54 +64,88 @@
                         id="terminal"
                         name="terminal"
                         required
-                        class="w-full rounded-xl
-                               border border-[#DCE6E4]
-                               bg-[#F8FAF9]
-                               px-4 py-3
-                               text-sm text-[#365F65]
-                               outline-none
-                               focus:border-[#527D82]
-                               focus:ring-2
-                               focus:ring-[#527D82]/10"
+                        class="w-full rounded-xl border border-[#DCE6E4] bg-[#F8FAF9] px-4 py-3 text-sm text-[#365F65] outline-none focus:border-[#527D82] focus:ring-2 focus:ring-[#527D82]/10"
                     >
-
-                        <option value="">
-                            Pilih Terminal
-                        </option>
-
-                        <option
-                            value="T1"
-                            {{ old('terminal') == 'T1' ? 'selected' : '' }}
-                        >
+                        <option value="">Pilih terminal</option>
+                        <option value="T1" {{ old('terminal') == 'T1' ? 'selected' : '' }}>
                             Terminal 1
                         </option>
-
-                        <option
-                            value="T2"
-                            {{ old('terminal') == 'T2' ? 'selected' : '' }}
-                        >
+                        <option value="T2" {{ old('terminal') == 'T2' ? 'selected' : '' }}>
                             Terminal 2
                         </option>
-
                     </select>
 
                     @error('terminal')
-                        <p class="mt-1 text-xs text-red-500">
-                            {{ $message }}
-                        </p>
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
-
                 </div>
 
-
-                {{-- NOMOR RO --}}
-
+                {{-- Lantai --}}
                 <div>
+                    <label for="lantai"
+                           class="mb-1.5 block text-sm font-semibold text-[#527D82]">
+                        Lantai <span class="text-red-500">*</span>
+                    </label>
 
-                    <label
-                        for="nomor_ro"
-                        class="mb-1.5 block text-sm font-semibold text-[#527D82]"
+                    <select
+                        id="lantai"
+                        name="lantai"
+                        required
+                        class="w-full rounded-xl border border-[#DCE6E4] bg-[#F8FAF9] px-4 py-3 text-sm text-[#365F65] outline-none focus:border-[#527D82] focus:ring-2 focus:ring-[#527D82]/10"
                     >
+                        <option value="">Pilih lantai</option>
+
+                        @foreach (['1', '2', '3', '4'] as $lantai)
+                            <option value="{{ $lantai }}" {{ old('lantai') == $lantai ? 'selected' : '' }}>
+                                Lantai {{ $lantai }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    @error('lantai')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Jenis ruangan --}}
+                <div>
+                    <label for="jenis_ruangan"
+                           class="mb-1.5 block text-sm font-semibold text-[#527D82]">
+                        Jenis Ruangan <span class="text-red-500">*</span>
+                    </label>
+
+                    <select
+                        id="jenis_ruangan"
+                        name="jenis_ruangan"
+                        required
+                        class="w-full rounded-xl border border-[#DCE6E4] bg-[#F8FAF9] px-4 py-3 text-sm text-[#365F65] outline-none focus:border-[#527D82] focus:ring-2 focus:ring-[#527D82]/10"
+                    >
+                        <option value="">Pilih jenis ruangan</option>
+
+                        @foreach ([
+                            'Store',
+                            'Counter',
+                            'Customer Service',
+                            'Lounge',
+                            'Antena',
+                            'Gudang',
+                            'Lainnya'
+                        ] as $jenis)
+                            <option value="{{ $jenis }}" {{ old('jenis_ruangan') == $jenis ? 'selected' : '' }}>
+                                {{ $jenis }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    @error('jenis_ruangan')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Nomor RO --}}
+                <div>
+                    <label for="nomor_ro"
+                           class="mb-1.5 block text-sm font-semibold text-[#527D82]">
                         Nomor RO
                     </label>
 
@@ -129,112 +154,38 @@
                         id="nomor_ro"
                         name="nomor_ro"
                         value="{{ old('nomor_ro') }}"
-                        placeholder="Contoh: 30001293"
-                        class="w-full rounded-xl
-                               border border-[#DCE6E4]
-                               bg-[#F8FAF9]
-                               px-4 py-3
-                               text-sm text-[#365F65]
-                               outline-none
-                               focus:border-[#527D82]
-                               focus:ring-2
-                               focus:ring-[#527D82]/10"
+                        placeholder="Masukkan nomor RO jika ada"
+                        class="w-full rounded-xl border border-[#DCE6E4] bg-[#F8FAF9] px-4 py-3 text-sm text-[#365F65] outline-none focus:border-[#527D82] focus:ring-2 focus:ring-[#527D82]/10"
                     >
 
                     @error('nomor_ro')
-                        <p class="mt-1 text-xs text-red-500">
-                            {{ $message }}
-                        </p>
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
-
                 </div>
 
-
-                {{-- KODE RUANG --}}
-
-                <div>
-
-                    <label
-                        for="kode_ruang"
-                        class="mb-1.5 block text-sm font-semibold text-[#527D82]"
-                    >
-                        Kode Ruang <span class="text-red-500">*</span>
-                    </label>
-
-                    <input
-                        type="text"
-                        id="kode_ruang"
-                        name="kode_ruang"
-                        value="{{ old('kode_ruang') }}"
-                        placeholder="Contoh: EP-02-24"
-                        required
-                        class="w-full rounded-xl
-                               border border-[#DCE6E4]
-                               bg-[#F8FAF9]
-                               px-4 py-3
-                               text-sm text-[#365F65]
-                               outline-none
-                               focus:border-[#527D82]
-                               focus:ring-2
-                               focus:ring-[#527D82]/10"
-                    >
-
-                    @error('kode_ruang')
-                        <p class="mt-1 text-xs text-red-500">
-                            {{ $message }}
-                        </p>
-                    @enderror
-
-                </div>
-
-
-                {{-- LUAS AREA --}}
-
-                <div>
-
-                    <label
-                        for="luas_area"
-                        class="mb-1.5 block text-sm font-semibold text-[#527D82]"
-                    >
-                        Luas Area (m²)
-                    </label>
-
-                    <input
-                        type="number"
-                        id="luas_area"
-                        name="luas_area"
-                        value="{{ old('luas_area') }}"
-                        placeholder="Contoh: 49"
-                        min="0"
-                        step="0.01"
-                        class="w-full rounded-xl
-                               border border-[#DCE6E4]
-                               bg-[#F8FAF9]
-                               px-4 py-3
-                               text-sm text-[#365F65]
-                               outline-none
-                               focus:border-[#527D82]
-                               focus:ring-2
-                               focus:ring-[#527D82]/10"
-                    >
-
-                    @error('luas_area')
-                        <p class="mt-1 text-xs text-red-500">
-                            {{ $message }}
-                        </p>
-                    @enderror
-
-                </div>
-
-
-                {{-- LOKASI --}}
-
+                {{-- Kode lokasi otomatis --}}
                 <div class="md:col-span-2">
+                    <label for="kode_preview"
+                           class="mb-1.5 block text-sm font-semibold text-[#527D82]">
+                        Kode Lokasi
+                    </label>
 
-                    <label
-                        for="lokasi"
-                        class="mb-1.5 block text-sm font-semibold text-[#527D82]"
-                    >
+                    <div class="rounded-xl border border-[#DCE6E4] bg-[#EAF1F0] px-4 py-4">
+                        <p id="kode_preview"
+                           class="break-words text-lg font-bold text-[#365F65]">
+                            Pilih terminal dan lantai
+                        </p>
+
+                        <p class="mt-1 text-xs text-[#7A9290]">
+                            Nomor ruang ditentukan oleh sistem ketika data disimpan.
+                        </p>
+                    </div>
+                </div>
+
+                {{-- Nama / area lokasi --}}
+                <div class="md:col-span-2">
+                    <label for="lokasi"
+                           class="mb-1.5 block text-sm font-semibold text-[#527D82]">
                         Nama / Area Lokasi <span class="text-red-500">*</span>
                     </label>
 
@@ -243,36 +194,62 @@
                         id="lokasi"
                         name="lokasi"
                         value="{{ old('lokasi') }}"
-                        placeholder="Contoh: Area Keberangkatan"
                         required
-                        class="w-full rounded-xl
-                               border border-[#DCE6E4]
-                               bg-[#F8FAF9]
-                               px-4 py-3
-                               text-sm text-[#365F65]
-                               outline-none
-                               focus:border-[#527D82]
-                               focus:ring-2
-                               focus:ring-[#527D82]/10"
+                        maxlength="255"
+                        placeholder="Contoh: Area Keberangkatan"
+                        class="w-full rounded-xl border border-[#DCE6E4] bg-[#F8FAF9] px-4 py-3 text-sm text-[#365F65] outline-none focus:border-[#527D82] focus:ring-2 focus:ring-[#527D82]/10"
                     >
 
                     @error('lokasi')
-                        <p class="mt-1 text-xs text-red-500">
-                            {{ $message }}
-                        </p>
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
-
                 </div>
 
+                {{-- Luas area --}}
+                <div>
+                    <label for="luas_area"
+                           class="mb-1.5 block text-sm font-semibold text-[#527D82]">
+                        Luas Area (m²)
+                    </label>
 
-                {{-- CATATAN --}}
-
-                <div class="md:col-span-2">
-
-                    <label
-                        for="catatan"
-                        class="mb-1.5 block text-sm font-semibold text-[#527D82]"
+                    <input
+                        type="number"
+                        id="luas_area"
+                        name="luas_area"
+                        value="{{ old('luas_area') }}"
+                        min="0"
+                        step="0.01"
+                        placeholder="Contoh: 20"
+                        class="w-full rounded-xl border border-[#DCE6E4] bg-[#F8FAF9] px-4 py-3 text-sm text-[#365F65] outline-none focus:border-[#527D82] focus:ring-2 focus:ring-[#527D82]/10"
                     >
+
+                    @error('luas_area')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Status --}}
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-[#527D82]">
+                        Status Awal
+                    </label>
+
+                    <div class="flex items-center gap-2 rounded-xl border border-[#DCE6E4] bg-[#F8FAF9] px-4 py-3">
+                        <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-sm font-semibold text-[#365F65]">
+                            Kosong
+                        </span>
+                    </div>
+
+                    <p class="mt-1 text-xs text-[#8BA5A2]">
+                        Berubah menjadi Terisi ketika dihubungkan dengan tenant.
+                    </p>
+                </div>
+
+                {{-- Catatan --}}
+                <div class="md:col-span-2">
+                    <label for="catatan"
+                           class="mb-1.5 block text-sm font-semibold text-[#527D82]">
                         Keterangan
                     </label>
 
@@ -280,85 +257,56 @@
                         id="catatan"
                         name="catatan"
                         rows="4"
-                        placeholder="Tambahkan keterangan jika diperlukan..."
-                        class="w-full rounded-xl
-                               border border-[#DCE6E4]
-                               bg-[#F8FAF9]
-                               px-4 py-3
-                               text-sm text-[#365F65]
-                               outline-none
-                               resize-none
-                               focus:border-[#527D82]
-                               focus:ring-2
-                               focus:ring-[#527D82]/10"
+                        placeholder="Tambahkan informasi lokasi jika diperlukan..."
+                        class="w-full resize-y rounded-xl border border-[#DCE6E4] bg-[#F8FAF9] px-4 py-3 text-sm text-[#365F65] outline-none focus:border-[#527D82] focus:ring-2 focus:ring-[#527D82]/10"
                     >{{ old('catatan') }}</textarea>
 
                     @error('catatan')
-                        <p class="mt-1 text-xs text-red-500">
-                            {{ $message }}
-                        </p>
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
-
                 </div>
-
             </div>
 
-
-            {{-- INFO STATUS --}}
-
-            <div class="rounded-xl border border-[#DCE6E4] bg-[#F3F6F5] p-4">
-
-                <p class="text-sm font-semibold text-[#365F65]">
-                    Status awal lokasi
-                </p>
-
-                <p class="mt-1 text-xs leading-5 text-[#7A9290]">
-                    Lokasi baru akan otomatis memiliki status
-                    <strong>Kosong</strong>.
-                    Tenant akan dikaitkan kemudian melalui proses
-                    Kerja Sama.
-                </p>
-
-            </div>
-
-
-            {{-- BUTTON --}}
-
-            <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            {{-- Tombol --}}
+            <div class="flex flex-col-reverse gap-3 border-t border-[#E2EBE9] pt-5 sm:flex-row sm:justify-end">
 
                 <a
                     href="{{ route('lokasi.index') }}"
-                    class="inline-flex items-center justify-center rounded-xl
-                           border border-[#DCE6E4]
-                           bg-white
-                           px-5 py-3
-                           text-sm font-semibold
-                           text-[#527D82]
-                           hover:bg-[#F5F8F7]
-                           transition"
+                    class="inline-flex items-center justify-center rounded-xl border border-[#DCE6E4] bg-white px-5 py-3 text-sm font-semibold text-[#527D82] transition hover:bg-[#F5F8F7]"
                 >
                     Batal
                 </a>
 
                 <button
                     type="submit"
-                    class="inline-flex items-center justify-center rounded-xl
-                           bg-[#365F65]
-                           px-5 py-3
-                           text-sm font-semibold
-                           text-white
-                           hover:bg-[#294F55]
-                           transition"
+                    class="inline-flex items-center justify-center rounded-xl bg-[#365F65] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#294F55] focus:outline-none focus:ring-2 focus:ring-[#527D82] focus:ring-offset-2"
                 >
                     Simpan Lokasi
                 </button>
-
             </div>
-
         </form>
-
     </div>
-
 </div>
 
+{{-- Pratinjau kode --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const terminal = document.getElementById('terminal');
+        const lantai = document.getElementById('lantai');
+        const preview = document.getElementById('kode_preview');
+
+        function updateKodePreview() {
+            if (terminal.value && lantai.value) {
+                preview.textContent = `${terminal.value}-L${lantai.value}-XXX`;
+            } else {
+                preview.textContent = 'Pilih terminal dan lantai';
+            }
+        }
+
+        terminal.addEventListener('change', updateKodePreview);
+        lantai.addEventListener('change', updateKodePreview);
+
+        updateKodePreview();
+    });
+</script>
 @endsection

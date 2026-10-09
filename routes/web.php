@@ -44,6 +44,17 @@ Route::resource('/tenant', TenantController::class)
 Route::resource('/lokasi', LokasiController::class)
     ->middleware('auth');
 
+// Lokasi - Kerja Sama
+Route::get(
+    '/kerja-sama/{kerjaSama}/pilih-lokasi',
+    [LokasiController::class, 'pilihUntukKerjaSama']
+)->middleware('auth')->name('kerja-sama.lokasi.pilih');
+
+Route::post(
+    '/kerja-sama/{kerjaSama}/pilih-lokasi',
+    [LokasiController::class, 'simpanPilihan']
+)->middleware('auth')->name('lokasi.simpan-pilihan');
+
 
 // Kerja Sama
 Route::get('/kerja-sama', [KerjaSamaController::class, 'index'])
