@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Tenant;
+use App\Models\Lokasi;
 
 class KerjaSama extends Model
 {
@@ -24,4 +26,27 @@ class KerjaSama extends Model
         'tanggal_mulai' => 'date',
         'tanggal_berakhir' => 'date',
     ];
+
+    /**
+     * Satu data Kerja Sama memiliki satu Tenant.
+     */
+    public function tenant()
+    {
+        return $this->hasOne(Tenant::class);
+    }
+
+    /**
+     * Mengakses lokasi melalui Tenant milik Kerja Sama.
+     */
+    public function lokasi()
+    {
+        return $this->hasOneThrough(
+            Lokasi::class,
+            Tenant::class,
+            'kerja_sama_id',
+            'tenant_id',
+            'id',
+            'id'
+        );
+    }
 }
