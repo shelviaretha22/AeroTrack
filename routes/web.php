@@ -6,6 +6,7 @@ use App\Http\Controllers\TenantController;
 use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\KontrakController;
 use App\Http\Controllers\KerjaSamaController;
+use App\Http\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -136,10 +137,28 @@ Route::get('/laporan', function () {
 // PROFILE
 // ================================
 
-Route::get('/profile', function () {
-    return view('profile.index');
-})->middleware('auth')->name('profile');
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'index'])
+        ->name('profile.index');
 
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
+
+    Route::put('/profile/password', [
+        ProfileController::class,
+        'updatePassword',
+    ])->name('profile.password.update');
+
+    Route::patch('/profile/photo', [
+        ProfileController::class,
+        'updatePhoto',
+    ])->name('profile.photo.update');
+
+    Route::patch('/profile/preferences', [
+        ProfileController::class,
+        'updatePreferences',
+    ])->name('profile.preferences.update');
+});
 
 // ================================
 // AUTHENTICATION

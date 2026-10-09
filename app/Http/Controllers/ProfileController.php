@@ -2,59 +2,127 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
-    public function edit(Request $request): View
+    public function index()
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
+        return view('profile.index');
     }
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request)
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+        ]);
+
+        $user->fill($validated);
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return back()->with(
+            'success',
+            'Informasi akun berhasil diperbarui.'
+        );
     }
 
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
+    public function updatePassword(Request $request)
     {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8),
+            ],
+        ]);
+
+        $request->user()->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return back()->with(
+            'success',
+            'Password berhasil diperbarui.'
+        );
+    }
+
+    public function updatePhoto(Request $request)
+    {
+        $validated = $request->validate([
+            'avatar' => [
+                'required',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
+            ],
         ]);
 
         $user = $request->user();
 
-        Auth::logout();
+        $oldPhoto = $user->avatar_path;
 
-        $user->delete();
+        $path = $request->file('avatar')->store(
+            'profile-photos',
+            'public'
+        );
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $user->update([
+            'avatar_path' => $path,
+        ]);
 
-        return Redirect::to('/');
+        if ($oldPhoto) {
+            Storage::disk('public')->delete($oldPhoto);
+        }
+
+        return back()->with(
+            'success',
+            'Foto profil berhasil diperbarui.'
+        );
+    }
+
+    public function updatePreferences(Request $request)
+    {
+        $validated = $request->validate([
+            'theme_preference' => [
+                'required',
+                Rule::in(['light', 'dark']),
+            ],
+            'email_notifications' => [
+                'sometimes',
+                'boolean',
+            ],
+        ]);
+
+        $request->user()->update([
+            'theme_preference' => $validated['theme_preference'],
+            'email_notifications' => $request->boolean(
+                'email_notifications'
+            ),
+        ]);
+
+        return back()->with(
+            'success',
+            'Preferensi berhasil disimpan.'
+        );
     }
 }
