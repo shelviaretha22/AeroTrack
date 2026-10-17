@@ -45,6 +45,16 @@
 
     @endif
 
+    
+    @if(session('error'))
+        <div
+            class="rounded-xl border border-[#F0D5C9]
+                bg-[#FFF4EF] px-4 py-3
+                text-sm text-[#9A4F35]"
+        >
+            {{ session('error') }}
+        </div>
+    @endif
 
     {{-- =========================================================
          SEARCH & SORT
@@ -288,47 +298,32 @@
 
                     @forelse($kontraks ?? [] as $index => $kontrak)
 
-                        @php
+                        
+@php
+    $kerjaSama = $kontrak->kerjaSama;
+    $tenant = $kontrak->tenant;
+    $lokasi = $kontrak->lokasi;
 
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Status Kontrak
-                            |--------------------------------------------------------------------------
-                            |
-                            | Untuk sementara logika ini disiapkan di View.
-                            | Nanti setelah struktur Kerja Sama tersedia,
-                            | sebaiknya perhitungan dipindahkan ke Controller.
-                            |
-                            */
+    $tanggalAwal = $kerjaSama?->tanggal_mulai;
+    $tanggalAkhir = $kerjaSama?->tanggal_berakhir;
 
-                            $tanggalAkhir = $kontrak->tanggal_akhir ?? null;
+    $isExpired = $tanggalAkhir
+        ? \Carbon\Carbon::parse($tanggalAkhir)->startOfDay()->lt(now()->startOfDay())
+        : false;
 
-                            $isExpired = false;
-                            $akanHabis = false;
+    $akanHabis = $tanggalAkhir
+        ? (
+            !$isExpired &&
+            now()->startOfDay()->diffInDays(
+                \Carbon\Carbon::parse($tanggalAkhir)->startOfDay()
+            ) <= 30
+        )
+        : false;
 
-                            if ($tanggalAkhir) {
+    $statusAktif = !$isExpired;
 
-                                $tanggalAkhirCarbon = \Carbon\Carbon::parse($tanggalAkhir);
-
-                                $isExpired = $tanggalAkhirCarbon->isPast();
-
-                                $akanHabis =
-                                    !$isExpired &&
-                                    now()->diffInDays($tanggalAkhirCarbon, false) <= 30;
-
-                            }
-
-                            $statusAktif = !$isExpired;
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | ACC
-                            |--------------------------------------------------------------------------
-                            */
-
-                            $sudahAcc = $kontrak->sudah_acc ?? false;
-
-                        @endphp
+    $sudahSelesai = $kontrak->status === 'Selesai';
+@endphp
 
 
                         {{-- ROW KONTRAK --}}
@@ -362,7 +357,7 @@
                                                 ? 'text-[#9AA6A4]'
                                                 : 'text-[#365F65]' }}"
                                 >
-                                    {{ $kontrak->nomor_kerja_sama ?? '-' }}
+                                    {{ $kerjaSama?->nomor_kerja_sama ?? '-' }}
                                 </span>
 
                             </td>
@@ -378,7 +373,7 @@
                                                 ? 'text-[#9AA6A4]'
                                                 : 'text-[#365F65]' }}"
                                 >
-                                    {{ $kontrak->nama_brand ?? '-' }}
+                                    {{ $kerjaSama?->brand ?? $tenant?->nama_tenant ?? '-' }}
                                 </span>
 
                             </td>
@@ -392,7 +387,7 @@
                                             ? 'text-[#9AA6A4]'
                                             : 'text-[#527D82]' }}"
                             >
-                                {{ $kontrak->lokasi ?? '-' }}
+                                {{ $lokasi?->lokasi ?? '-' }}
                             </td>
 
 
@@ -406,16 +401,11 @@
                                             : 'text-[#527D82]' }}"
                             >
 
-                                @if(!empty($kontrak->tanggal_awal))
-
-                                    {{ \Carbon\Carbon::parse($kontrak->tanggal_awal)->format('d/m/Y') }}
-
-                                @else
-
-                                    -
-
-                                @endif
-
+                            @if($tanggalAkhir)
+                                {{ \Carbon\Carbon::parse($tanggalAkhir)->format('d/m/Y') }}
+                            @else
+                                -
+                            @endif
                             </td>
 
 
