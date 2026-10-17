@@ -96,6 +96,13 @@ Route::get('/kontrak', [KontrakController::class, 'index'])
     ->middleware('auth')
     ->name('kontrak');
 
+
+Route::post('/kontrak/buat/{kerjaSamaId}', [
+    KontrakController::class,
+    'store',
+])->middleware('auth')->name('kontrak.store');
+
+
 Route::get('/kontrak/{id}/acc', [KontrakController::class, 'acc'])
     ->middleware('auth')
     ->name('kontrak.acc');
@@ -108,6 +115,10 @@ Route::get('/kontrak/{id}', [KontrakController::class, 'show'])
     ->middleware('auth')
     ->name('kontrak.show');
 
+Route::get('/kerja-sama/{kerjaSamaId}/pratinjau-kontrak', [
+    KontrakController::class,
+    'previewDocument'
+])->middleware('auth')->name('kontrak.preview');
 
 // Aktivasi
 Route::get('/aktivasi', function () {
