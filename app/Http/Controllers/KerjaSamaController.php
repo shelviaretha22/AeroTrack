@@ -5,19 +5,26 @@ namespace App\Http\Controllers;
 use App\Models\KerjaSama;
 use App\Models\Tenant;
 use App\Models\Lokasi;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class KerjaSamaController extends Controller
 {
     /**
-     * Menentukan status berdasarkan kelengkapan data.
-     *
-     * Penanda pengajuan BA akan disambungkan setelah
-     * fitur Berita Acara diperiksa.
+     * Menentukan status berdasarkan kelengkapan data
+     * dan keberadaan file Berita Acara.
      */
     private function tentukanStatus(KerjaSama $kerjaSama): string
     {
+        if (
+            $kerjaSama->berita_acara_path &&
+            Storage::disk('local')->exists($kerjaSama->berita_acara_path)
+        ) {
+            return 'Aktivasi';
+        }
+
         $tenant = Tenant::where(
             'kerja_sama_id',
             $kerjaSama->id
@@ -87,13 +94,17 @@ class KerjaSamaController extends Controller
                 'after_or_equal:tanggal_mulai',
             ],
             'pic_commercial' => ['required', 'string', 'max:255'],
+
+            // Jabatan PIC Commercial boleh dikosongkan.
+            'jabatan_pic_commercial' => ['nullable', 'string', 'max:255'],
+
             'catatan' => ['nullable', 'string'],
         ]);
 
-        // Status tidak diambil dari input pengguna.
+        // Status dikelola oleh sistem.
         $validated['status'] = 'Draft';
 
-        $kerjaSama = KerjaSama::create($validated);
+        KerjaSama::create($validated);
 
         return redirect()
             ->route('kerja-sama')
@@ -150,11 +161,18 @@ class KerjaSamaController extends Controller
                 'after_or_equal:tanggal_mulai',
             ],
             'pic_commercial' => ['required', 'string', 'max:255'],
+
+            // Jabatan PIC Commercial boleh dikosongkan.
+            'jabatan_pic_commercial' => ['nullable', 'string', 'max:255'],
+
             'catatan' => ['nullable', 'string'],
         ]);
 
-        // Status tetap dikelola sistem.
-        unset($validated['status']);
+        // Status dan path BA tidak boleh diubah dari form edit.
+        unset(
+            $validated['status'],
+            $validated['berita_acara_path']
+        );
 
         $kerjaSama->update($validated);
 
@@ -164,37 +182,169 @@ class KerjaSamaController extends Controller
     }
 
     /**
-     * Menghapus Kerja Sama.
+     * Membuat dan menyimpan PDF BA jika belum tersedia,
+     * kemudian menampilkan halaman preview.
      */
-  
-public function destroy($id)
-{
-    $kerjaSama = KerjaSama::with('tenant')->findOrFail($id);
+    public function beritaAcara($id)
+    {
+        $kerjaSama = KerjaSama::with(['tenant', 'lokasi'])
+            ->findOrFail($id);
 
-    DB::transaction(function () use ($kerjaSama) {
         $tenant = $kerjaSama->tenant;
+        $lokasi = $kerjaSama->lokasi;
 
-        if (!$tenant) {
-            $tenant = Tenant::where(
-                'kerja_sama_id',
-                $kerjaSama->id
-            )->first();
+        if (!$tenant || !$lokasi) {
+            return redirect()
+                ->route('kerja-sama')
+                ->with(
+                    'error',
+                    'Data Tenant dan Lokasi harus lengkap sebelum BA dibuat.'
+                );
         }
 
-        if ($tenant) {
-            Lokasi::where('tenant_id', $tenant->id)->update([
-                'tenant_id' => null,
-                'status' => 'Kosong',
-            ]);
+        $path = $kerjaSama->berita_acara_path;
 
-            $tenant->delete();
+        // Buat ulang PDF jika file belum ada.
+        if (
+            !$path ||
+            !Storage::disk('local')->exists($path)
+        ) {
+            $pdf = Pdf::loadView(
+                'kerja-sama.berita-acara-pdf',
+                [
+                    'kerjaSama' => $kerjaSama,
+                    'tenant' => $tenant,
+                    'lokasi' => $lokasi,
+                    'tanggalCetak' => now(),
+                ]
+            )->setPaper('a4', 'portrait');
+
+            $path = 'berita-acara/BA-KS-'
+                . $kerjaSama->id
+                . '.pdf';
+
+            $tersimpan = Storage::disk('local')->put(
+                $path,
+                $pdf->output()
+            );
+
+            if (
+                !$tersimpan ||
+                !Storage::disk('local')->exists($path)
+            ) {
+                return redirect()
+                    ->route('kerja-sama')
+                    ->with(
+                        'error',
+                        'PDF BA gagal disimpan. Status belum diubah.'
+                    );
+            }
+
+            // Status baru diubah setelah file berhasil disimpan.
+            $kerjaSama->berita_acara_path = $path;
+            $kerjaSama->status = 'Aktivasi';
+            $kerjaSama->save();
+        } elseif ($kerjaSama->status !== 'Aktivasi') {
+            // Sinkronkan status jika file sudah ada.
+            $kerjaSama->status = 'Aktivasi';
+            $kerjaSama->save();
         }
 
-        $kerjaSama->delete();
-    });
+        return view(
+            'kerja-sama.berita-acara-preview',
+            compact('kerjaSama')
+        );
+    }
 
-    return redirect()
-        ->route('kerja-sama')
-        ->with('success', 'Data kerja sama berhasil dihapus.');
-}
+    /**
+     * Menampilkan file PDF BA di browser.
+     */
+    public function lihatPdfBeritaAcara($id)
+    {
+        $kerjaSama = KerjaSama::findOrFail($id);
+        $path = $kerjaSama->berita_acara_path;
+
+        abort_unless(
+            $path && Storage::disk('local')->exists($path),
+            404,
+            'File Berita Acara tidak ditemukan.'
+        );
+
+        return response()->file(
+            Storage::disk('local')->path($path),
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="Berita-Acara-KS-'
+                    . $kerjaSama->id
+                    . '.pdf"',
+            ]
+        );
+    }
+
+    /**
+     * Mengunduh PDF BA.
+     */
+    public function downloadBeritaAcara($id)
+    {
+        $kerjaSama = KerjaSama::findOrFail($id);
+        $path = $kerjaSama->berita_acara_path;
+
+        abort_unless(
+            $path && Storage::disk('local')->exists($path),
+            404,
+            'File Berita Acara tidak ditemukan.'
+        );
+
+        return Storage::disk('local')->download(
+            $path,
+            'Berita-Acara-KS-' . $kerjaSama->id . '.pdf'
+        );
+    }
+
+    /**
+     * Menghapus Kerja Sama dan melepaskan lokasi dari Tenant.
+     */
+    public function destroy($id)
+    {
+        $kerjaSama = KerjaSama::with('tenant')->findOrFail($id);
+
+        DB::transaction(function () use ($kerjaSama) {
+            $tenant = $kerjaSama->tenant;
+
+            if (!$tenant) {
+                $tenant = Tenant::where(
+                    'kerja_sama_id',
+                    $kerjaSama->id
+                )->first();
+            }
+
+            if ($tenant) {
+                Lokasi::where('tenant_id', $tenant->id)
+                    ->update([
+                        'tenant_id' => null,
+                        'status' => 'Kosong',
+                    ]);
+
+                $tenant->delete();
+            }
+
+            $kerjaSama->delete();
+        });
+
+        // Hapus file BA setelah data berhasil dihapus.
+        if (
+            $kerjaSama->berita_acara_path &&
+            Storage::disk('local')->exists(
+                $kerjaSama->berita_acara_path
+            )
+        ) {
+            Storage::disk('local')->delete(
+                $kerjaSama->berita_acara_path
+            );
+        }
+
+        return redirect()
+            ->route('kerja-sama')
+            ->with('success', 'Data kerja sama berhasil dihapus.');
+    }
 }
