@@ -245,18 +245,22 @@
                     @foreach ($kerjaSamas as $index => $kerjaSama)
 
                         @php
-                            $tenant = $kerjaSama->tenant;
-                            $lokasi = $kerjaSama->lokasi;
+    $tenant = $kerjaSama->tenant
+        ?? \App\Models\Tenant::where('kerja_sama_id', $kerjaSama->id)->first();
 
-                            $tenantLengkap = $tenant !== null;
-                            $lokasiLengkap = $lokasi !== null;
+    $lokasi = $tenant
+        ? \App\Models\Lokasi::where('tenant_id', $tenant->id)->first()
+        : null;
 
-                            $statusTampil = $kerjaSama->status_otomatis
-                                ?? $kerjaSama->status
-                                ?? 'Draft';
+    $tenantLengkap = $tenant !== null;
+    $lokasiLengkap = $lokasi !== null;
 
-                            $dataSiapBA = $tenantLengkap && $lokasiLengkap;
-                        @endphp
+    $statusTampil = $kerjaSama->status_otomatis
+        ?? $kerjaSama->status
+        ?? 'Draft';
+
+    $dataSiapBA = $tenantLengkap && $lokasiLengkap;
+@endphp
 
                         <tr class="hover:bg-[#F8FAF9] transition align-top">
 
@@ -385,29 +389,18 @@
 
                             {{-- BERITA ACARA --}}
                             <td class="px-5 py-4 min-w-[140px]">
-                                @if ($dataSiapBA)
-                                    {{-- Tombol pengajuan BA akan disambungkan
-                                         ke route BA setelah route/controller diperiksa. --}}
-                                    <span
-                                        class="inline-flex px-3 py-2 rounded-lg
-                                               bg-[#E8F0EF] text-[#365F65]
-                                               text-xs font-semibold"
-                                        title="Data siap untuk pengajuan BA"
-                                    >
-                                        Siap Pengajuan
-                                    </span>
-                                @else
-                                    <button
-                                        type="button"
-                                        disabled
-                                        title="Lengkapi data kerja sama, tenant, dan lokasi terlebih dahulu"
-                                        class="inline-flex px-3 py-2 rounded-lg
-                                               bg-gray-100 text-gray-400
-                                               text-xs font-semibold cursor-not-allowed"
-                                    >
-                                        Pengajuan BA
-                                    </button>
-                                @endif
+                                
+@if ($dataSiapBA)
+    <a href="{{ route('kerja-sama.berita-acara', $kerjaSama->id) }}"
+       style="display: inline-block; padding: 8px 12px; background: #365f65; color: white; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">
+        {{ $kerjaSama->berita_acara_path ? 'Berita Acara' : 'Cetak Berita Acara' }}
+    </a>
+@else
+    <span style="display: inline-block; padding: 8px 12px; background: #e5e7eb; color: #6b7280; border-radius: 6px; font-size: 12px;">
+        Belum Siap
+    </span>
+@endif
+
                             </td>
 
                             {{-- STATUS --}}

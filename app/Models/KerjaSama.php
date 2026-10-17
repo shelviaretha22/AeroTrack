@@ -18,7 +18,9 @@ class KerjaSama extends Model
         'tanggal_mulai',
         'tanggal_berakhir',
         'pic_commercial',
+        'jabatan_pic_commercial',
         'catatan',
+        'berita_acara_path',
     ];
 
     protected $casts = [

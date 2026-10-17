@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -14,161 +15,229 @@ use App\Http\Controllers\ProfileController;
 |--------------------------------------------------------------------------
 */
 
-// ================================
 // ROOT → LOGIN
-// ================================
-
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-
-// ================================
 // DASHBOARD
-// ================================
-
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware('auth')->name('dashboard');
-
 
 // ================================
 // MANAGEMENT MENU
 // ================================
 
-// Tenant
+// TENANT
 Route::resource('/tenant', TenantController::class)
     ->middleware('auth');
 
-
-// Lokasi
+// LOKASI
 Route::resource('/lokasi', LokasiController::class)
     ->middleware('auth');
 
-// Lokasi - Kerja Sama
+// LOKASI - KERJA SAMA
 Route::get(
     '/kerja-sama/{kerjaSama}/pilih-lokasi',
     [LokasiController::class, 'pilihUntukKerjaSama']
-)->middleware('auth')->name('kerja-sama.lokasi.pilih');
+)->middleware('auth')
+    ->name('kerja-sama.lokasi.pilih');
 
 Route::post(
     '/kerja-sama/{kerjaSama}/pilih-lokasi',
     [LokasiController::class, 'simpanPilihan']
-)->middleware('auth')->name('lokasi.simpan-pilihan');
+)->middleware('auth')
+    ->name('lokasi.simpan-pilihan');
 
+// ================================
+// KERJA SAMA
+// ================================
 
-// Kerja Sama
-Route::get('/kerja-sama', [KerjaSamaController::class, 'index'])
-    ->middleware('auth')
+// Daftar Kerja Sama
+Route::get(
+    '/kerja-sama',
+    [KerjaSamaController::class, 'index']
+)->middleware('auth')
     ->name('kerja-sama');
 
-Route::get('/kerja-sama/create', [KerjaSamaController::class, 'create'])
-    ->middleware('auth')
+// Form tambah
+Route::get(
+    '/kerja-sama/create',
+    [KerjaSamaController::class, 'create']
+)->middleware('auth')
     ->name('kerja-sama.create');
 
-Route::post('/kerja-sama', [KerjaSamaController::class, 'store'])
-    ->middleware('auth')
+// Simpan data baru
+Route::post(
+    '/kerja-sama',
+    [KerjaSamaController::class, 'store']
+)->middleware('auth')
     ->name('kerja-sama.store');
 
-// Detail
-Route::get('/kerja-sama/{id}', [KerjaSamaController::class, 'show'])
-    ->middleware('auth')
+// ================================
+// BERITA ACARA
+// Letakkan sebelum route detail /kerja-sama/{id}
+// ================================
+
+// Buat/generate BA dan tampilkan halaman preview
+Route::get(
+    '/kerja-sama/{id}/berita-acara',
+    [KerjaSamaController::class, 'beritaAcara']
+)->middleware('auth')
+    ->name('kerja-sama.berita-acara');
+
+// Tampilkan file PDF BA di browser
+Route::get(
+    '/kerja-sama/{id}/berita-acara/pdf',
+    [KerjaSamaController::class, 'lihatPdfBeritaAcara']
+)->middleware('auth')
+    ->name('kerja-sama.berita-acara.pdf');
+
+// Unduh file PDF BA
+Route::get(
+    '/kerja-sama/{id}/berita-acara/download',
+    [KerjaSamaController::class, 'downloadBeritaAcara']
+)->middleware('auth')
+    ->name('kerja-sama.berita-acara.download');
+
+// ================================
+// DETAIL, EDIT, UPDATE, DELETE
+// ================================
+
+// Detail Kerja Sama
+Route::get(
+    '/kerja-sama/{id}',
+    [KerjaSamaController::class, 'show']
+)->middleware('auth')
     ->name('kerja-sama.show');
 
-// Edit
-Route::get('/kerja-sama/{id}/edit', [KerjaSamaController::class, 'edit'])
-    ->middleware('auth')
+// Form edit
+Route::get(
+    '/kerja-sama/{id}/edit',
+    [KerjaSamaController::class, 'edit']
+)->middleware('auth')
     ->name('kerja-sama.edit');
 
-// Update
-Route::put('/kerja-sama/{id}', [KerjaSamaController::class, 'update'])
-    ->middleware('auth')
+// Update data
+Route::put(
+    '/kerja-sama/{id}',
+    [KerjaSamaController::class, 'update']
+)->middleware('auth')
     ->name('kerja-sama.update');
 
-// Delete
-Route::delete('/kerja-sama/{id}', [KerjaSamaController::class, 'destroy'])
-    ->middleware('auth')
+// Hapus data
+Route::delete(
+    '/kerja-sama/{id}',
+    [KerjaSamaController::class, 'destroy']
+)->middleware('auth')
     ->name('kerja-sama.destroy');
 
+// ================================
+// KONTRAK
+// ================================
 
-// Kontrak
-Route::get('/kontrak', [KontrakController::class, 'index'])
-    ->middleware('auth')
+Route::get(
+    '/kontrak',
+    [KontrakController::class, 'index']
+)->middleware('auth')
     ->name('kontrak');
 
+Route::post(
+    '/kontrak/buat/{kerjaSamaId}',
+    [KontrakController::class, 'store']
+)->middleware('auth')
+    ->name('kontrak.store');
 
-Route::post('/kontrak/buat/{kerjaSamaId}', [
-    KontrakController::class,
-    'store',
-])->middleware('auth')->name('kontrak.store');
-
-
-Route::get('/kontrak/{id}/acc', [KontrakController::class, 'acc'])
-    ->middleware('auth')
+Route::get(
+    '/kontrak/{id}/acc',
+    [KontrakController::class, 'acc']
+)->middleware('auth')
     ->name('kontrak.acc');
 
-Route::post('/kontrak/{id}/acc', [KontrakController::class, 'storeAcc'])
-    ->middleware('auth')
+Route::post(
+    '/kontrak/{id}/acc',
+    [KontrakController::class, 'storeAcc']
+)->middleware('auth')
     ->name('kontrak.storeAcc');
 
-Route::get('/kontrak/{id}', [KontrakController::class, 'show'])
-    ->middleware('auth')
+Route::get(
+    '/kontrak/{id}',
+    [KontrakController::class, 'show']
+)->middleware('auth')
     ->name('kontrak.show');
 
-Route::get('/kerja-sama/{kerjaSamaId}/pratinjau-kontrak', [
-    KontrakController::class,
-    'previewDocument'
-])->middleware('auth')->name('kontrak.preview');
+Route::get(
+    '/kerja-sama/{kerjaSamaId}/pratinjau-kontrak',
+    [KontrakController::class, 'previewDocument']
+)->middleware('auth')
+    ->name('kontrak.preview');
 
-// Aktivasi
+// ================================
+// AKTIVASI
+// ================================
+
 Route::get('/aktivasi', function () {
     return view('aktivasi.index');
-})->middleware('auth')->name('aktivasi');
+})->middleware('auth')
+    ->name('aktivasi');
 
+// ================================
+// PENDAPATAN
+// ================================
 
-// Pendapatan
 Route::get('/pendapatan', function () {
     return view('pendapatan.index');
-})->middleware('auth')->name('pendapatan');
+})->middleware('auth')
+    ->name('pendapatan');
 
+// ================================
+// MONITORING
+// ================================
 
-// Monitoring
 Route::get('/monitoring', function () {
     return view('monitoring.index');
-})->middleware('auth')->name('monitoring');
+})->middleware('auth')
+    ->name('monitoring');
 
+// ================================
+// LAPORAN
+// ================================
 
-// Laporan
 Route::get('/laporan', function () {
     return view('laporan.index');
-})->middleware('auth')->name('laporan');
-
+})->middleware('auth')
+    ->name('laporan');
 
 // ================================
 // PROFILE
 // ================================
 
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'index'])
-        ->name('profile.index');
+    Route::get(
+        '/profile',
+        [ProfileController::class, 'index']
+    )->name('profile.index');
 
-    Route::patch('/profile', [ProfileController::class, 'update'])
-        ->name('profile.update');
+    Route::patch(
+        '/profile',
+        [ProfileController::class, 'update']
+    )->name('profile.update');
 
-    Route::put('/profile/password', [
-        ProfileController::class,
-        'updatePassword',
-    ])->name('profile.password.update');
+    Route::put(
+        '/profile/password',
+        [ProfileController::class, 'updatePassword']
+    )->name('profile.password.update');
 
-    Route::patch('/profile/photo', [
-        ProfileController::class,
-        'updatePhoto',
-    ])->name('profile.photo.update');
+    Route::patch(
+        '/profile/photo',
+        [ProfileController::class, 'updatePhoto']
+    )->name('profile.photo.update');
 
-    Route::patch('/profile/preferences', [
-        ProfileController::class,
-        'updatePreferences',
-    ])->name('profile.preferences.update');
+    Route::patch(
+        '/profile/preferences',
+        [ProfileController::class, 'updatePreferences']
+    )->name('profile.preferences.update');
 });
 
 // ================================

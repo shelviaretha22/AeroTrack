@@ -1,4 +1,4 @@
-```blade
+
 @extends('layouts.app')
 
 @section('page-title', 'Input Data Kerja Sama')
@@ -253,6 +253,20 @@
                                class="w-full rounded-xl border border-[#DCE6E4] bg-[#F9FBFA] px-4 py-3 text-sm text-[#365F65] placeholder:text-[#A7B9B7] focus:border-[#365F65] focus:ring-2 focus:ring-[#B8CECA]/50 outline-none transition">
                     </div>
 
+                    {{-- JABATAN PIC COMMERCIAL --}}
+                    <div>
+                        <label for="jabatan_pic_commercial"
+                               class="block text-sm font-semibold text-[#365F65] mb-2">
+                            Jabatan PIC Commercial
+                        </label>
+                        <input type="text"
+                               id="jabatan_pic_commercial"
+                               name="jabatan_pic_commercial"
+                               value="{{ old('jabatan_pic_commercial') }}"
+                               placeholder="Contoh: Manager Commercial"
+                               class="w-full rounded-xl border border-[#DCE6E4] bg-[#F9FBFA] px-4 py-3 text-sm text-[#365F65] placeholder:text-[#A7B9B7] focus:border-[#365F65] focus:ring-2 focus:ring-[#B8CECA]/50 outline-none transition">
+                    </div>
+
                     {{-- CATATAN --}}
                     <div>
                         <label for="catatan"
@@ -284,4 +298,3 @@
     </div>
 </div>
 @endsection
-```
