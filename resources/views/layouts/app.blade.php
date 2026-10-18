@@ -118,8 +118,9 @@
                     {{-- DASHBOARD --}}
                     <a
                         href="{{ route('dashboard') }}"
-                        class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition"
-                    >
+                        @click="sidebarOpen = false"
+                        class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white' }} transition"
+                            >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             class="w-[19px] h-[19px] shrink-0"
@@ -150,8 +151,9 @@
                     {{-- TENANT --}}
                     <a
                         href="{{ route('tenant.index') }}"
-                        class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition"
-                    >
+                        @click="sidebarOpen = false"
+                        class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium {{ request()->routeIs('tenant.*') ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white' }} transition"
+                        >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             class="w-[19px] h-[19px] shrink-0"
@@ -219,9 +221,10 @@
 
                     {{-- KONTRAK --}}
                     <a
-                        href="{{ route('kontrak') }}"
-                        class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition"
-                    >
+                         href="{{ route('kontrak') }}"
+                         @click="sidebarOpen = false"
+                         class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium {{ request()->routeIs('kontrak*') ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white' }} transition"
+                        >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             class="w-[19px] h-[19px] shrink-0"
@@ -247,8 +250,9 @@
 
                     {{-- AKTIVASI --}}
                     <a
-                        href="#"
-                        class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition"
+                     href="{{ route('aktivasi') }}"
+                     @click="sidebarOpen = false"
+                     class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium {{ request()->routeIs('aktivasi*') ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white' }} transition"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"

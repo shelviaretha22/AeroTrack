@@ -8,6 +8,7 @@ use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\KontrakController;
 use App\Http\Controllers\KerjaSamaController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AktivasiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -173,14 +174,43 @@ Route::get(
 )->middleware('auth')
     ->name('kontrak.preview');
 
-// ================================
+
+ // ================================
 // AKTIVASI
 // ================================
 
-Route::get('/aktivasi', function () {
-    return view('aktivasi.index');
-})->middleware('auth')
-    ->name('aktivasi');
+Route::middleware('auth')->group(function () {
+    // Halaman daftar aktivasi
+    Route::get(
+        '/aktivasi',
+        [AktivasiController::class, 'index']
+    )->name('aktivasi');
+
+    // Membuat pengajuan aktivasi baru
+    Route::post(
+        '/aktivasi/{kerjaSamaId}/request',
+        [AktivasiController::class, 'requestAktivasi']
+    )->name('aktivasi.request');
+
+    // Mencatat keputusan dari kantor pusat
+    Route::post(
+        '/aktivasi/{aktivasi}/keputusan',
+        [AktivasiController::class, 'catatKeputusan']
+    )->name('aktivasi.keputusan');
+
+    // Membuka surat pengajuan PDF
+    Route::get(
+        '/aktivasi/{aktivasi}/surat',
+        [AktivasiController::class, 'lihatSurat']
+    )->name('aktivasi.surat');
+
+    // Mengunduh dokumen keputusan
+    Route::get(
+        '/aktivasi/{aktivasi}/dokumen-keputusan',
+        [AktivasiController::class, 'lihatDokumenKeputusan']
+    )->name('aktivasi.dokumen-keputusan');
+});
+
 
 // ================================
 // PENDAPATAN

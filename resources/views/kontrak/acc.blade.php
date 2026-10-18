@@ -8,7 +8,6 @@
 
     {{-- HEADER --}}
     <div>
-
         <p class="text-sm text-[#8BA5A2]">
             Management / Kontrak / Beri ACC
         </p>
@@ -20,15 +19,12 @@
         <p class="mt-1 text-sm text-[#7A9290]">
             Periksa informasi kerja sama, lokasi, dan berita acara sebelum memberikan persetujuan.
         </p>
-
     </div>
-
 
     {{-- INFORMASI KERJA SAMA --}}
     <div class="rounded-2xl border border-[#E2EBE9] bg-white p-6 sm:p-8">
 
         <div class="mb-6">
-
             <h3 class="text-base font-bold text-[#365F65]">
                 Informasi Kerja Sama
             </h3>
@@ -36,9 +32,7 @@
             <p class="mt-1 text-xs text-[#8BA5A2]">
                 Informasi ini berasal dari data Kerja Sama.
             </p>
-
         </div>
-
 
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 
@@ -49,10 +43,9 @@
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->kerjaSama?->nomor_kerja_sama ?? '-' }}
                 </p>
             </div>
-
 
             {{-- NAMA BRAND --}}
             <div>
@@ -61,10 +54,9 @@
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->kerjaSama?->brand ?? '-' }}
                 </p>
             </div>
-
 
             {{-- JENIS USAHA --}}
             <div>
@@ -73,10 +65,9 @@
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->kerjaSama?->jenis_usaha ?? '-' }}
                 </p>
             </div>
-
 
             {{-- BENTUK KERJA SAMA --}}
             <div>
@@ -85,10 +76,9 @@
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->kerjaSama?->bentuk_kerja_sama ?? '-' }}
                 </p>
             </div>
-
 
             {{-- TANGGAL AWAL --}}
             <div>
@@ -97,10 +87,9 @@
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->kerjaSama?->tanggal_mulai?->format('d/m/Y') ?? '-' }}
                 </p>
             </div>
-
 
             {{-- TANGGAL AKHIR --}}
             <div>
@@ -109,20 +98,17 @@
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->kerjaSama?->tanggal_berakhir?->format('d/m/Y') ?? '-' }}
                 </p>
             </div>
 
         </div>
-
     </div>
-
 
     {{-- INFORMASI LOKASI --}}
     <div class="rounded-2xl border border-[#E2EBE9] bg-white p-6 sm:p-8">
 
         <div class="mb-6">
-
             <h3 class="text-base font-bold text-[#365F65]">
                 Informasi Lokasi
             </h3>
@@ -130,9 +116,7 @@
             <p class="mt-1 text-xs text-[#8BA5A2]">
                 Informasi lokasi yang berkaitan dengan kerja sama.
             </p>
-
         </div>
-
 
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 
@@ -143,10 +127,9 @@
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->lokasi?->terminal ?? '-' }}
                 </p>
             </div>
-
 
             {{-- NOMOR RO --}}
             <div>
@@ -155,10 +138,9 @@
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->lokasi?->nomor_ro ?? '-' }}
                 </p>
             </div>
-
 
             {{-- KODE RUANG --}}
             <div>
@@ -167,10 +149,9 @@
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->lokasi?->kode_ruang ?? '-' }}
                 </p>
             </div>
-
 
             {{-- LUAS --}}
             <div>
@@ -179,34 +160,28 @@
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->lokasi?->luas_area ?? '-' }}
                 </p>
             </div>
 
-
             {{-- LOKASI --}}
             <div class="md:col-span-2">
-
                 <p class="text-xs font-semibold text-[#8BA5A2]">
                     Nama / Area Lokasi
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-[#365F65]">
-                    -
+                    {{ $kontrak->lokasi?->lokasi ?? '-' }}
                 </p>
-
             </div>
 
         </div>
-
     </div>
-
 
     {{-- BERITA ACARA --}}
     <div class="rounded-2xl border border-[#E2EBE9] bg-white p-6 sm:p-8">
 
         <div class="mb-6">
-
             <h3 class="text-base font-bold text-[#365F65]">
                 Berita Acara
             </h3>
@@ -214,9 +189,7 @@
             <p class="mt-1 text-xs text-[#8BA5A2]">
                 Berita Acara yang telah dibuat pada proses kerja sama.
             </p>
-
         </div>
-
 
         <div
             class="flex flex-col gap-4 rounded-xl
@@ -227,9 +200,7 @@
                    sm:items-center
                    sm:justify-between"
         >
-
             <div class="flex items-center gap-3">
-
                 <div
                     class="flex h-11 w-11 items-center justify-center
                            rounded-xl bg-[#E8F0EE]"
@@ -240,19 +211,15 @@
                 </div>
 
                 <div>
-
                     <p class="text-sm font-semibold text-[#365F65]">
                         Berita Acara Kerja Sama
                     </p>
 
                     <p class="mt-0.5 text-xs text-[#8BA5A2]">
-                        Belum ada dokumen
+                        {{ $kontrak->kerjaSama?->berita_acara_path ? 'Dokumen tersedia' : 'Belum ada dokumen' }}
                     </p>
-
                 </div>
-
             </div>
-
 
             <button
                 type="button"
@@ -267,210 +234,209 @@
             >
                 Lihat Dokumen
             </button>
-
         </div>
-
     </div>
 
+    {{-- FORM ACC --}}
+    <form
+        action="{{ route('kontrak.storeAcc', $kontrak->id) }}"
+        method="POST"
+        enctype="multipart/form-data"
+    >
+        @csrf
 
-    {{-- TANDA TANGAN COMMERCIAL --}}
-    <div class="rounded-2xl border border-[#E2EBE9] bg-white p-6 sm:p-8">
+        {{-- TANDA TANGAN COMMERCIAL --}}
+        <div class="rounded-2xl border border-[#E2EBE9] bg-white p-6 sm:p-8">
 
-        <div class="mb-6">
+            <div class="mb-6">
+                <h3 class="text-base font-bold text-[#365F65]">
+                    Tanda Tangan Commercial
+                </h3>
 
-            <h3 class="text-base font-bold text-[#365F65]">
-                Tanda Tangan Commercial
-            </h3>
-
-            <p class="mt-1 text-xs leading-5 text-[#8BA5A2]">
-                Masukkan identitas Commercial dan tanda tangan sebagai persetujuan kontrak.
-            </p>
-
-        </div>
-
-
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-
-            {{-- NAMA --}}
-            <div>
-
-                <label
-                    for="nama_commercial"
-                    class="mb-1.5 block text-sm font-semibold text-[#527D82]"
-                >
-                    Nama
-                    <span class="text-red-500">*</span>
-                </label>
-
-                <input
-                    type="text"
-                    id="nama_commercial"
-                    name="nama_commercial"
-                    placeholder="Masukkan nama Commercial"
-                    class="w-full rounded-xl
-                           border border-[#DCE6E4]
-                           bg-[#F8FAF9]
-                           px-4 py-3
-                           text-sm text-[#365F65]
-                           outline-none
-                           focus:border-[#527D82]
-                           focus:ring-2
-                           focus:ring-[#527D82]/10"
-                >
-
+                <p class="mt-1 text-xs leading-5 text-[#8BA5A2]">
+                    Masukkan identitas Commercial dan tanda tangan sebagai persetujuan kontrak.
+                </p>
             </div>
 
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 
-            {{-- JABATAN --}}
-            <div>
+                {{-- NAMA --}}
+                <div>
+                    <label
+                        for="nama_commercial"
+                        class="mb-1.5 block text-sm font-semibold text-[#527D82]"
+                    >
+                        Nama
+                        <span class="text-red-500">*</span>
+                    </label>
 
-                <label
-                    for="jabatan_commercial"
-                    class="mb-1.5 block text-sm font-semibold text-[#527D82]"
-                >
-                    Jabatan
-                    <span class="text-red-500">*</span>
-                </label>
+                    <input
+                        type="text"
+                        id="nama_commercial"
+                        name="nama_commercial"
+                        value="{{ old('nama_commercial', $kontrak->nama_commercial) }}"
+                        placeholder="Masukkan nama Commercial"
+                        required
+                        class="w-full rounded-xl
+                               border border-[#DCE6E4]
+                               bg-[#F8FAF9]
+                               px-4 py-3
+                               text-sm text-[#365F65]
+                               outline-none
+                               focus:border-[#527D82]
+                               focus:ring-2
+                               focus:ring-[#527D82]/10"
+                    >
 
-                <input
-                    type="text"
-                    id="jabatan_commercial"
-                    name="jabatan_commercial"
-                    placeholder="Masukkan jabatan Commercial"
-                    class="w-full rounded-xl
-                           border border-[#DCE6E4]
-                           bg-[#F8FAF9]
-                           px-4 py-3
-                           text-sm text-[#365F65]
-                           outline-none
-                           focus:border-[#527D82]
-                           focus:ring-2
-                           focus:ring-[#527D82]/10"
-                >
+                    @error('nama_commercial')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
 
-            </div>
+                {{-- JABATAN --}}
+                <div>
+                    <label
+                        for="jabatan_commercial"
+                        class="mb-1.5 block text-sm font-semibold text-[#527D82]"
+                    >
+                        Jabatan
+                        <span class="text-red-500">*</span>
+                    </label>
 
-        </div>
+                    <input
+                        type="text"
+                        id="jabatan_commercial"
+                        name="jabatan_commercial"
+                        value="{{ old('jabatan_commercial', $kontrak->jabatan_commercial) }}"
+                        placeholder="Masukkan jabatan Commercial"
+                        required
+                        class="w-full rounded-xl
+                               border border-[#DCE6E4]
+                               bg-[#F8FAF9]
+                               px-4 py-3
+                               text-sm text-[#365F65]
+                               outline-none
+                               focus:border-[#527D82]
+                               focus:ring-2
+                               focus:ring-[#527D82]/10"
+                    >
 
-
-        {{-- SIGNATURE --}}
-        <div class="mt-6">
-
-            <label
-                class="mb-1.5 block text-sm font-semibold text-[#527D82]"
-            >
-                Tanda Tangan
-                <span class="text-red-500">*</span>
-            </label>
-
-
-            <div
-                class="flex min-h-[220px]
-                       items-center justify-center
-                       rounded-xl
-                       border-2 border-dashed border-[#CFE0DC]
-                       bg-[#F8FAF9]
-                       p-6"
-            >
-
-                <div class="text-center">
-
-                    <p class="text-sm font-semibold text-[#527D82]">
-                        Belum ada tanda tangan
-                    </p>
-
-                    <p class="mt-1 text-xs text-[#8BA5A2]">
-                        Upload tanda tangan dalam format JPG.
-                    </p>
-
+                    @error('jabatan_commercial')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
             </div>
 
-
-            {{-- UPLOAD & RESET --}}
-            <div class="mt-3 flex flex-wrap gap-3">
-
+            {{-- SIGNATURE --}}
+            <div class="mt-6">
                 <label
                     for="signature"
-                    class="inline-flex cursor-pointer
-                           items-center justify-center
-                           rounded-xl
-                           border border-[#DCE6E4]
-                           bg-white
-                           px-4 py-2.5
-                           text-xs font-semibold
-                           text-[#527D82]
-                           hover:bg-[#F5F8F7]
-                           transition"
+                    class="mb-1.5 block text-sm font-semibold text-[#527D82]"
                 >
-                    Upload JPG
+                    Tanda Tangan
+                    <span class="text-red-500">*</span>
                 </label>
 
-                <input
-                    type="file"
-                    id="signature"
-                    name="signature"
-                    accept=".jpg,.jpeg,image/jpeg"
-                    class="hidden"
+                <div
+                    class="flex min-h-[220px]
+                           items-center justify-center
+                           rounded-xl
+                           border-2 border-dashed border-[#CFE0DC]
+                           bg-[#F8FAF9]
+                           p-6"
                 >
+                    <div class="text-center">
+                        <p class="text-sm font-semibold text-[#527D82]">
+                            Belum ada tanda tangan
+                        </p>
 
+                        <p class="mt-1 text-xs text-[#8BA5A2]">
+                            Upload tanda tangan dalam format JPG.
+                        </p>
+                    </div>
+                </div>
 
-                <button
-                    type="button"
-                    class="rounded-xl
-                           border border-[#DCE6E4]
-                           bg-white
-                           px-4 py-2.5
-                           text-xs font-semibold
-                           text-[#7A9290]
-                           hover:bg-[#F5F8F7]
-                           transition"
-                >
-                    Reset
-                </button>
+                {{-- UPLOAD & RESET --}}
+                <div class="mt-3 flex flex-wrap gap-3">
+                    <label
+                        for="signature"
+                        class="inline-flex cursor-pointer
+                               items-center justify-center
+                               rounded-xl
+                               border border-[#DCE6E4]
+                               bg-white
+                               px-4 py-2.5
+                               text-xs font-semibold
+                               text-[#527D82]
+                               hover:bg-[#F5F8F7]
+                               transition"
+                    >
+                        Upload JPG
+                    </label>
 
+                    <input
+                        type="file"
+                        id="signature"
+                        name="signature"
+                        accept=".jpg,.jpeg,image/jpeg"
+                        required
+                        class="hidden"
+                    >
+
+                    <button
+                        type="button"
+                        onclick="document.getElementById('signature').value = ''"
+                        class="rounded-xl
+                               border border-[#DCE6E4]
+                               bg-white
+                               px-4 py-2.5
+                               text-xs font-semibold
+                               text-[#7A9290]
+                               hover:bg-[#F5F8F7]
+                               transition"
+                    >
+                        Reset
+                    </button>
+                </div>
+
+                @error('signature')
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                @enderror
             </div>
 
         </div>
 
-    </div>
+        {{-- ACTION --}}
+        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 
+            <a
+                href="{{ route('kontrak') }}"
+                class="inline-flex items-center justify-center
+                       rounded-xl
+                       border border-[#DCE6E4]
+                       bg-white
+                       px-5 py-3
+                       text-sm font-semibold
+                       text-[#527D82]
+                       hover:bg-[#F5F8F7]
+                       transition"
+            >
+                Batal
+            </a>
 
-    {{-- ACTION --}}
-    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+                type="submit"
+                class="inline-flex items-center justify-center
+                       rounded-xl bg-[#365F65]
+                       px-5 py-3 text-sm font-semibold text-white
+                       transition hover:bg-[#294F55]"
+            >
+                ACC Kontrak
+            </button>
 
-        <a
-            href="{{ route('kontrak') }}"
-            class="inline-flex items-center justify-center
-                   rounded-xl
-                   border border-[#DCE6E4]
-                   bg-white
-                   px-5 py-3
-                   text-sm font-semibold
-                   text-[#527D82]
-                   hover:bg-[#F5F8F7]
-                   transition"
-        >
-            Batal
-        </a>
-
-
-        <button
-            type="button"
-            class="inline-flex items-center justify-center
-                   rounded-xl
-                   bg-[#365F65]
-                   px-5 py-3
-                   text-sm font-semibold
-                   text-white
-                   hover:bg-[#294F55]
-                   transition"
-        >
-            ACC Kontrak
-        </button>
-
-    </div>
+        </div>
+    </form>
 
 </div>
 
