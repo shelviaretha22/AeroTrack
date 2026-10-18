@@ -194,6 +194,90 @@
 
     </div>
 
+    {{-- =========================================================
+     KANDIDAT KONTRAK DARI AKTIVASI YANG DISETUJUI
+========================================================== --}}
+
+<div class="overflow-hidden rounded-2xl border border-[#DCE6E4] bg-white">
+
+    <div class="border-b border-[#E2EBE9] bg-[#F3F6F5] px-5 py-4">
+        <h3 class="text-base font-bold text-[#365F65]">
+            Kandidat Kontrak
+        </h3>
+
+        <p class="mt-1 text-sm text-[#7A9290]">
+            Kerja sama dengan aktivasi terbaru yang telah disetujui
+            dan siap diproses menjadi kontrak.
+        </p>
+    </div>
+
+    @forelse($kandidatKontrak ?? [] as $kandidat)
+
+        <div class="flex flex-col gap-4 border-b border-[#EEF2F1] p-5 last:border-b-0 md:flex-row md:items-center md:justify-between">
+
+            <div class="space-y-1">
+                <p class="font-semibold text-[#365F65]">
+                    {{ $kandidat->brand ?? $kandidat->tenant?->nama_tenant ?? '-' }}
+                </p>
+
+                <p class="text-sm text-[#527D82]">
+                    Mitra: {{ $kandidat->mitra_usaha ?? '-' }}
+                </p>
+
+                <p class="text-sm text-[#7A9290]">
+                    Nomor Kerja Sama:
+                    {{ $kandidat->nomor_kerja_sama ?? '-' }}
+                </p>
+
+                <p class="text-sm text-[#7A9290]">
+                    Lokasi: {{ $kandidat->lokasi?->lokasi ?? '-' }}
+                </p>
+
+                <p class="text-xs text-[#527D82]">
+                    Pengajuan Aktivasi:
+                    {{ $kandidat->aktivasi?->nomor_pengajuan ?? '-' }}
+                </p>
+            </div>
+
+            <div class="flex flex-col items-start gap-3 md:items-end">
+                <span class="inline-flex rounded-full bg-[#E8F0EE] px-3 py-1 text-xs font-semibold text-[#365F65]">
+                    Aktivasi Disetujui
+                </span>
+
+                <form
+                    method="POST"
+                    action="{{ route('kontrak.store', $kandidat->id) }}"
+                    onsubmit="return confirm('Buat kontrak untuk kerja sama ini?')"
+                >
+                    @csrf
+
+                    <button
+                        type="submit"
+                        class="rounded-xl bg-[#365F65] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#294F55]"
+                    >
+                        + Buat Kontrak
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+    @empty
+
+        <div class="px-5 py-8 text-center">
+            <p class="text-sm font-semibold text-[#527D82]">
+                Belum ada kandidat kontrak
+            </p>
+
+            <p class="mt-1 text-xs leading-5 text-[#8BA5A2]">
+                Kandidat akan muncul setelah aktivasi disetujui,
+                dokumen BA tersedia, dan data tenant serta lokasi lengkap.
+            </p>
+        </div>
+
+    @endforelse
+
+</div>
 
     {{-- =========================================================
          TABLE
@@ -323,6 +407,7 @@
     $statusAktif = !$isExpired;
 
     $sudahSelesai = $kontrak->status === 'Selesai';
+    $sudahAcc = !is_null($kontrak->tanggal_acc) || $sudahSelesai;
 @endphp
 
 
@@ -401,10 +486,10 @@
                                             : 'text-[#527D82]' }}"
                             >
 
-                            @if($tanggalAkhir)
-                                {{ \Carbon\Carbon::parse($tanggalAkhir)->format('d/m/Y') }}
+                            @if($tanggalAwal)
+                            {{ \Carbon\Carbon::parse($tanggalAwal)->format('d/m/Y') }}
                             @else
-                                -
+    -
                             @endif
                             </td>
 
@@ -421,11 +506,11 @@
 
                                 @if($tanggalAkhir)
 
-                                    {{ $tanggalAkhirCarbon->format('d/m/Y') }}
+                                {{ \Carbon\Carbon::parse($tanggalAkhir)->format('d/m/Y') }}
 
                                 @else
 
-                                    -
+                                  -
 
                                 @endif
 

@@ -70,46 +70,72 @@ class KerjaSamaController extends Controller
         return view('kerja-sama.create');
     }
 
-    /**
-     * Menyimpan Kerja Sama baru.
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'mitra_usaha' => ['required', 'string', 'max:255'],
-            'brand' => ['nullable', 'string', 'max:255'],
-            'jenis_usaha' => [
-                'required',
-                'in:F&B,Retail,Service,Lounge,Duty Free,UMKM',
-            ],
-            'bentuk_kerja_sama' => [
-                'required',
-                'in:Revenue Sharing,MGRS',
-            ],
-            'tanggal_pengajuan' => ['required', 'date'],
-            'tanggal_mulai' => ['nullable', 'date'],
-            'tanggal_berakhir' => [
-                'nullable',
-                'date',
-                'after_or_equal:tanggal_mulai',
-            ],
-            'pic_commercial' => ['required', 'string', 'max:255'],
 
-            // Jabatan PIC Commercial boleh dikosongkan.
-            'jabatan_pic_commercial' => ['nullable', 'string', 'max:255'],
+/**
+ * Menyimpan Kerja Sama baru.
+ */
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'mitra_usaha' => ['required', 'string', 'max:255'],
+        'brand' => ['nullable', 'string', 'max:255'],
+        'jenis_usaha' => [
+            'required',
+            'in:F&B,Retail,Service,Lounge,Duty Free,UMKM',
+        ],
+        'bentuk_kerja_sama' => [
+            'required',
+            'in:Revenue Sharing,MGRS',
+        ],
+        'tanggal_pengajuan' => ['required', 'date'],
+        'tanggal_mulai' => ['nullable', 'date'],
+        'tanggal_berakhir' => [
+            'nullable',
+            'date',
+            'after_or_equal:tanggal_mulai',
+        ],
+        'pic_commercial' => ['required', 'string', 'max:255'],
+        'jabatan_pic_commercial' => ['nullable', 'string', 'max:255'],
+        'catatan' => ['nullable', 'string'],
+    ]);
 
-            'catatan' => ['nullable', 'string'],
-        ]);
+    DB::transaction(function () use ($validated) {
+        // Cari nomor kerja sama terbesar yang sudah digunakan.
+        $nomorTerakhir = KerjaSama::whereNotNull('nomor_kerja_sama')
+            ->pluck('nomor_kerja_sama')
+            ->map(function ($nomor) {
+                if (preg_match('/^KS-(\d+)$/', $nomor, $matches)) {
+                    return (int) $matches[1];
+                }
 
-        // Status dikelola oleh sistem.
-        $validated['status'] = 'Draft';
+                return 0;
+            })
+            ->max() ?? 0;
 
-        KerjaSama::create($validated);
+        // Buat nomor berikutnya secara otomatis.
+        $nomorBaru = 'KS-' . str_pad(
+            $nomorTerakhir + 1,
+            3,
+            '0',
+            STR_PAD_LEFT
+        );
 
-        return redirect()
-            ->route('kerja-sama')
-            ->with('success', 'Data kerja sama berhasil disimpan.');
-    }
+        // Simpan data kerja sama baru.
+        $kerjaSama = new KerjaSama();
+        $kerjaSama->fill($validated);
+
+        // Nomor dan status ditentukan oleh sistem.
+        $kerjaSama->nomor_kerja_sama = $nomorBaru;
+        $kerjaSama->status = 'Draft';
+
+        $kerjaSama->save();
+    });
+
+    return redirect()
+        ->route('kerja-sama')
+        ->with('success', 'Data kerja sama berhasil disimpan.');
+}
+
 
     /**
      * Detail Kerja Sama.

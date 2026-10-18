@@ -3,8 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Tenant;
 use App\Models\Lokasi;
+use App\Models\Aktivasi;
 
 class KerjaSama extends Model
 {
@@ -50,5 +53,21 @@ class KerjaSama extends Model
             'id',
             'id'
         );
+    }
+
+    /**
+     * Mengambil satu pengajuan aktivasi terbaru.
+     */
+    public function aktivasi(): HasOne
+    {
+        return $this->hasOne(Aktivasi::class)->latestOfMany();
+    }
+
+    /**
+     * Mengambil seluruh riwayat pengajuan aktivasi.
+     */
+    public function aktivasis(): HasMany
+    {
+        return $this->hasMany(Aktivasi::class);
     }
 }
