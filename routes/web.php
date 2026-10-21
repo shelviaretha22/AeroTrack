@@ -144,6 +144,11 @@ Route::get(
 )->middleware('auth')
     ->name('kontrak');
 
+Route::put('/kontrak/{id}/dokumen', [
+    KontrakController::class,
+    'updateDokumen',
+])->middleware('auth')->name('kontrak.dokumen.update');
+
 Route::post(
     '/kontrak/buat/{kerjaSamaId}',
     [KontrakController::class, 'store']
@@ -161,6 +166,39 @@ Route::post(
     [KontrakController::class, 'storeAcc']
 )->middleware('auth')
     ->name('kontrak.storeAcc');
+
+Route::post(
+    '/kontrak/{id}/preview-pdf',
+    [KontrakController::class, 'previewPdf']
+)->middleware('auth')->name('kontrak.previewPdf');
+
+Route::get('/kontrak/{id}/final-pdf', [KontrakController::class, 'finalPdf'])
+    ->middleware('auth')
+    ->name('kontrak.finalPdf');
+
+// ================================
+// UPLOAD DOKUMEN KONTRAK FINAL
+// ================================
+
+// Menampilkan halaman upload dokumen final
+Route::get(
+    '/kontrak/{id}/upload-final',
+    [KontrakController::class, 'formUploadFinal']
+)->middleware('auth')
+    ->name('kontrak.uploadFinal');
+
+// Memproses upload dokumen final
+Route::post(
+    '/kontrak/{id}/upload-final',
+    [KontrakController::class, 'storeUploadFinal']
+)->middleware('auth')
+    ->name('kontrak.storeUploadFinal');
+
+Route::post(
+    '/kontrak/{id}/konfirmasi-perpanjangan',
+    [KontrakController::class, 'storeKonfirmasiPerpanjangan']
+)->middleware('auth')
+    ->name('kontrak.konfirmasi-perpanjangan');
 
 Route::get(
     '/kontrak/{id}',
