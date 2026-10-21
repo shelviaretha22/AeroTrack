@@ -27,6 +27,9 @@ class Kontrak extends Model
         'final_uploaded_at',
         'final_signature_confirmed',
         'status',
+        'status_perpanjangan',
+        'tanggal_konfirmasi',
+        'klausul_tambahan',
     ];
 
     protected $casts = [
@@ -34,6 +37,7 @@ class Kontrak extends Model
         'tanggal_acc' => 'date',
         'final_uploaded_at' => 'datetime',
         'final_signature_confirmed' => 'boolean',
+        'tanggal_konfirmasi' => 'date',
     ];
 
     public function kerjaSama()
