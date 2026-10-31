@@ -16,6 +16,10 @@ class Tenant extends Model
         'jenis_usaha',
         'bentuk_kerja_sama',
 
+        // Informasi Komersial
+        'gto',
+        'revenue_sharing',
+
         // Legalitas Tenant
         'npwp',
         'nib',

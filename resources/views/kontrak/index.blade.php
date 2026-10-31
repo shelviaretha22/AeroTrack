@@ -620,7 +620,9 @@
                             
 {{-- AKSI --}}
 <td class="px-4 py-4">
-    @if ($sudahSelesai && filled($kontrak->final_pdf_path))
+
+    @if (filled($kontrak->final_pdf_path))
+
         <a
             href="{{ route('kontrak.finalPdf', $kontrak->id) }}"
             target="_blank"
@@ -631,26 +633,31 @@
         </a>
 
     @elseif ($sudahSelesai)
+
         <span class="text-xs text-[#8BA5A2]">
             PDF final belum tersedia
         </span>
 
     @elseif (blank($kontrak->nama_commercial) || blank($kontrak->jabatan_commercial))
+
         <a
-            href="{{ route('kontrak.acc', $kontrak->id) }}"
+            href="{{ route('kontrak.show', $kontrak->id) }}"
             class="inline-flex items-center justify-center whitespace-nowrap rounded-lg bg-[#365F65] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#294F55]"
         >
             Lanjutkan
         </a>
 
     @else
+
         <a
             href="{{ route('kontrak.uploadFinal', $kontrak->id) }}"
             class="inline-flex items-center justify-center whitespace-nowrap rounded-lg bg-[#365F65] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#294F55]"
         >
             Lanjutkan
         </a>
+
     @endif
+
 </td>
 
 

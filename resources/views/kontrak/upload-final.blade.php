@@ -1,42 +1,59 @@
 
 @extends('layouts.app')
 
-@section('page-title', 'Upload Kontrak Final')
+
+@section('page-title', 'Upload Dokumen Kontrak')
 
 @section('content')
+
 <div class="min-h-full space-y-5 bg-[#F4F8FA] p-4 lg:p-6">
 
     {{-- HEADER DAN PROGRESS --}}
     <div class="mx-auto max-w-[1600px]">
 
+        {{-- STEPPER 2 TAHAP --}}
         <div class="mx-auto mb-5 flex max-w-3xl items-center">
+
+            {{-- TAHAP 1: SELESAI --}}
             <div class="flex flex-1 flex-col items-center gap-2">
-                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#087F73] text-white">✓</div>
-                <span class="text-center text-xs font-medium text-[#365F65] sm:text-sm">Dokumen Kontrak</span>
+
+                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#087F73] text-white">
+                    ✓
+                </div>
+
+                <span class="text-center text-xs font-medium text-[#365F65] sm:text-sm">
+                    Isi Dokumen<br>Kontrak
+                </span>
+
             </div>
 
+            {{-- GARIS PROGRESS --}}
             <div class="mb-6 h-0.5 flex-1 bg-[#087F73]"></div>
 
+            {{-- TAHAP 2: AKTIF --}}
             <div class="flex flex-1 flex-col items-center gap-2">
-                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#087F73] text-white">✓</div>
-                <span class="text-center text-xs font-medium text-[#365F65] sm:text-sm">ACC Kontrak</span>
+
+                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#2563EB] font-semibold text-white">
+                    2
+                </div>
+
+                <span class="text-center text-xs font-semibold text-[#2563EB] sm:text-sm">
+                    Upload Dokumen<br>Kontrak
+                </span>
+
             </div>
 
-            <div class="mb-6 h-0.5 flex-1 bg-[#087F73]"></div>
-
-            <div class="flex flex-1 flex-col items-center gap-2">
-                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#087F73] font-semibold text-white">3</div>
-                <span class="text-center text-xs font-semibold text-[#087F73] sm:text-sm">Upload Kontrak Final</span>
-            </div>
         </div>
 
+        {{-- JUDUL HALAMAN --}}
         <h1 class="text-2xl font-bold text-[#142344] sm:text-3xl">
-            Upload Kontrak Final
+            Upload Dokumen Kontrak
         </h1>
 
         <p class="mt-1 text-sm text-[#60718A] sm:text-base">
             Unggah dokumen kontrak final yang telah ditandatangani oleh kedua pihak.
         </p>
+
     </div>
 
     {{-- NOTIFIKASI --}}

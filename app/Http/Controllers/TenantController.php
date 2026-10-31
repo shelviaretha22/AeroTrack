@@ -18,14 +18,10 @@ class TenantController extends Controller
      */
     public function index(Request $request)
     {
-        // =====================================================
         // QUERY DASAR KERJA SAMA
-        // =====================================================
         $query = KerjaSama::query();
 
-        // =====================================================
         // SEARCH
-        // =====================================================
         if ($request->filled('search')) {
             $search = trim($request->search);
 
@@ -38,64 +34,39 @@ class TenantController extends Controller
             });
         }
 
-        // =====================================================
         // SORTING
-        // =====================================================
         $sort = $request->get('sort', 'newest');
 
         switch ($sort) {
-            // -------------------------------------------------
-            // TERBARU → TERLAMA
-            // -------------------------------------------------
             case 'newest':
                 $query->orderBy('created_at', 'desc');
                 break;
 
-            // -------------------------------------------------
-            // TERLAMA → TERBARU
-            // -------------------------------------------------
             case 'oldest':
                 $query->orderBy('created_at', 'asc');
                 break;
 
-            // -------------------------------------------------
-            // MITRA USAHA A → Z
-            // -------------------------------------------------
             case 'az':
                 $query->orderBy('mitra_usaha', 'asc');
                 break;
 
-            // -------------------------------------------------
-            // MITRA USAHA Z → A
-            // -------------------------------------------------
             case 'za':
                 $query->orderBy('mitra_usaha', 'desc');
                 break;
 
-            // -------------------------------------------------
-            // DEFAULT
-            // -------------------------------------------------
             default:
                 $query->orderBy('created_at', 'desc');
                 break;
         }
 
-        // =====================================================
         // AMBIL DATA KERJA SAMA
-        // =====================================================
         $kerjaSamas = $query->get();
 
-        // =====================================================
         // AMBIL DATA TENANT YANG SUDAH TERHUBUNG
-        // DENGAN KERJA SAMA
-        // =====================================================
         $tenantByKerjaSama = Tenant::whereNotNull('kerja_sama_id')
             ->get()
             ->keyBy('kerja_sama_id');
 
-        // =====================================================
-        // TAMPILKAN HALAMAN TENANT
-        // =====================================================
         return view('tenant.index', compact(
             'kerjaSamas',
             'tenantByKerjaSama'
@@ -104,15 +75,10 @@ class TenantController extends Controller
 
     /**
      * Menampilkan form input Tenant berdasarkan Kerja Sama.
-     *
-     * Contoh:
-     * /tenant/create?kerja_sama_id=1
      */
     public function create(Request $request)
     {
-        // =====================================================
         // VALIDASI KERJA SAMA ID
-        // =====================================================
         $request->validate([
             'kerja_sama_id' => [
                 'required',
@@ -121,24 +87,17 @@ class TenantController extends Controller
             ],
         ]);
 
-        // =====================================================
         // AMBIL DATA KERJA SAMA
-        // =====================================================
         $kerjaSama = KerjaSama::findOrFail(
             $request->kerja_sama_id
         );
 
-        // =====================================================
         // CEK APAKAH KERJA SAMA SUDAH MEMILIKI TENANT
-        // =====================================================
         $tenant = Tenant::where(
             'kerja_sama_id',
             $kerjaSama->id
         )->first();
 
-        // =====================================================
-        // JIKA SUDAH ADA TENANT
-        // =====================================================
         if ($tenant) {
             return redirect()
                 ->route('tenant.show', $tenant)
@@ -148,9 +107,6 @@ class TenantController extends Controller
                 );
         }
 
-        // =====================================================
-        // TAMPILKAN FORM TENANT
-        // =====================================================
         return view(
             'tenant.create',
             compact('kerjaSama')
@@ -193,6 +149,20 @@ class TenantController extends Controller
                 'max:255',
             ],
 
+            // INFORMASI KOMERSIAL TENANT
+            'gto' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'revenue_sharing' => [
+                'required',
+                'numeric',
+                'between:0,100',
+            ],
+
+            // LEGALITAS TENANT
             'npwp' => [
                 'required',
                 'regex:/^[0-9]+$/',
@@ -216,6 +186,7 @@ class TenantController extends Controller
                 'string',
             ],
 
+            // PIC TENANT
             'nama_pic' => [
                 'required',
                 'regex:/^[A-Za-zÀ-ÿ\s]+$/',
@@ -240,6 +211,20 @@ class TenantController extends Controller
                 'max:255',
             ],
         ], [
+            // PESAN VALIDASI KERJA SAMA
+            'kerja_sama_id.required' => 'Data Kerja Sama tidak ditemukan.',
+            'kerja_sama_id.exists' => 'Data Kerja Sama tidak valid.',
+
+            // PESAN VALIDASI INFORMASI KOMERSIAL
+            'gto.required' => 'GTO wajib diisi.',
+            'gto.numeric' => 'GTO harus berupa angka.',
+            'gto.min' => 'GTO tidak boleh bernilai negatif.',
+
+            'revenue_sharing.required' => 'Revenue Sharing wajib diisi.',
+            'revenue_sharing.numeric' => 'Revenue Sharing harus berupa angka.',
+            'revenue_sharing.between' => 'Revenue Sharing harus antara 0 sampai 100.',
+
+            // PESAN VALIDASI LEGALITAS
             'npwp.required' => 'NPWP wajib diisi.',
             'npwp.regex' => 'NPWP hanya boleh berisi angka.',
 
@@ -250,6 +235,7 @@ class TenantController extends Controller
 
             'alamat_perusahaan.required' => 'Alamat perusahaan/usaha wajib diisi.',
 
+            // PESAN VALIDASI PIC
             'nama_pic.required' => 'Nama PIC wajib diisi.',
             'nama_pic.regex' => 'Nama PIC hanya boleh berisi huruf dan spasi.',
 
@@ -260,11 +246,9 @@ class TenantController extends Controller
 
             'email_pic.required' => 'Email PIC wajib diisi.',
             'email_pic.email' => 'Format email tidak valid.',
-
-            'kerja_sama_id.required' => 'Data Kerja Sama tidak ditemukan.',
-            'kerja_sama_id.exists' => 'Data Kerja Sama tidak valid.',
         ]);
 
+        // CEK APAKAH KERJA SAMA SUDAH MEMILIKI TENANT
         $existingTenant = Tenant::where(
             'kerja_sama_id',
             $validated['kerja_sama_id']
@@ -279,6 +263,7 @@ class TenantController extends Controller
                 );
         }
 
+        // SIMPAN DATA TENANT
         Tenant::create($validated);
 
         return redirect()
@@ -317,6 +302,20 @@ class TenantController extends Controller
     public function update(Request $request, Tenant $tenant)
     {
         $validated = $request->validate([
+            // INFORMASI KOMERSIAL TENANT
+            'gto' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'revenue_sharing' => [
+                'required',
+                'numeric',
+                'between:0,100',
+            ],
+
+            // LEGALITAS TENANT
             'npwp' => [
                 'required',
                 'regex:/^[0-9]+$/',
@@ -340,6 +339,7 @@ class TenantController extends Controller
                 'string',
             ],
 
+            // PIC TENANT
             'nama_pic' => [
                 'required',
                 'regex:/^[A-Za-zÀ-ÿ\s]+$/',
@@ -364,6 +364,16 @@ class TenantController extends Controller
                 'max:255',
             ],
         ], [
+            // PESAN VALIDASI INFORMASI KOMERSIAL
+            'gto.required' => 'GTO wajib diisi.',
+            'gto.numeric' => 'GTO harus berupa angka.',
+            'gto.min' => 'GTO tidak boleh bernilai negatif.',
+
+            'revenue_sharing.required' => 'Revenue Sharing wajib diisi.',
+            'revenue_sharing.numeric' => 'Revenue Sharing harus berupa angka.',
+            'revenue_sharing.between' => 'Revenue Sharing harus antara 0 sampai 100.',
+
+            // PESAN VALIDASI LEGALITAS
             'npwp.required' => 'NPWP wajib diisi.',
             'npwp.regex' => 'NPWP hanya boleh berisi angka.',
 
@@ -374,6 +384,7 @@ class TenantController extends Controller
 
             'alamat_perusahaan.required' => 'Alamat perusahaan/usaha wajib diisi.',
 
+            // PESAN VALIDASI PIC
             'nama_pic.required' => 'Nama PIC wajib diisi.',
             'nama_pic.regex' => 'Nama PIC hanya boleh berisi huruf dan spasi.',
 
@@ -386,6 +397,7 @@ class TenantController extends Controller
             'email_pic.email' => 'Format email tidak valid.',
         ]);
 
+        // UPDATE DATA TENANT
         $tenant->update($validated);
 
         return redirect()

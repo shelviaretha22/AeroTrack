@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use App\Models\MasterPerusahaan;
 
 class ProfileController extends Controller
 {
@@ -124,5 +125,35 @@ class ProfileController extends Controller
             'success',
             'Preferensi berhasil disimpan.'
         );
+    }
+
+        // MENAMPILKAN HALAMAN MASTER PERUSAHAAN
+    public function editPerusahaan()
+    {
+        $perusahaan = MasterPerusahaan::firstOrFail();
+
+        return view('profile.perusahaan', compact('perusahaan'));
+    }
+
+    // MENYIMPAN PERUBAHAN MASTER PERUSAHAAN
+    public function updatePerusahaan(Request $request)
+    {
+        $perusahaan = MasterPerusahaan::firstOrFail();
+
+        $validated = $request->validate([
+            'nama_perusahaan' => ['required', 'string', 'max:255'],
+            'domisili' => ['nullable', 'string', 'max:255'],
+            'alamat' => ['nullable', 'string'],
+            'nama_penandatangan' => ['nullable', 'string', 'max:255'],
+            'jabatan_penandatangan' => ['nullable', 'string', 'max:255'],
+            'telepon' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255'],
+        ]);
+
+        $perusahaan->update($validated);
+
+        return redirect()
+            ->route('profile.perusahaan.edit')
+            ->with('success', 'Identitas perusahaan berhasil diperbarui.');
     }
 }

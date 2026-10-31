@@ -38,7 +38,10 @@ Route::resource('/tenant', TenantController::class)
 Route::resource('/lokasi', LokasiController::class)
     ->middleware('auth');
 
+// ================================
 // LOKASI - KERJA SAMA
+// ================================
+
 Route::get(
     '/kerja-sama/{kerjaSama}/pilih-lokasi',
     [LokasiController::class, 'pilihUntukKerjaSama']
@@ -78,7 +81,6 @@ Route::post(
 
 // ================================
 // BERITA ACARA
-// Letakkan sebelum route detail /kerja-sama/{id}
 // ================================
 
 // Buat/generate BA dan tampilkan halaman preview
@@ -138,86 +140,115 @@ Route::delete(
 // KONTRAK
 // ================================
 
-Route::get(
-    '/kontrak',
-    [KontrakController::class, 'index']
-)->middleware('auth')
-    ->name('kontrak');
+Route::middleware('auth')->group(function () {
 
-Route::put('/kontrak/{id}/dokumen', [
-    KontrakController::class,
-    'updateDokumen',
-])->middleware('auth')->name('kontrak.dokumen.update');
+    // Dashboard kontrak
+    Route::get(
+        '/kontrak',
+        [KontrakController::class, 'index']
+    )->name('kontrak');
 
-Route::post(
-    '/kontrak/buat/{kerjaSamaId}',
-    [KontrakController::class, 'store']
-)->middleware('auth')
-    ->name('kontrak.store');
+    // Membuat kontrak dari Kerja Sama
+    Route::post(
+        '/kontrak/buat/{kerjaSamaId}',
+        [KontrakController::class, 'store']
+    )->name('kontrak.store');
 
-Route::get(
-    '/kontrak/{id}/acc',
-    [KontrakController::class, 'acc']
-)->middleware('auth')
-    ->name('kontrak.acc');
+    // Menyimpan perubahan formulir kontrak
+    Route::put(
+        '/kontrak/{id}/dokumen',
+        [KontrakController::class, 'updateDokumen']
+    )->name('kontrak.dokumen.update');
 
-Route::post(
-    '/kontrak/{id}/acc',
-    [KontrakController::class, 'storeAcc']
-)->middleware('auth')
-    ->name('kontrak.storeAcc');
+    // Mengunduh dokumen kontrak Word
+    Route::get(
+        '/kontrak/{id}/download-word',
+        [KontrakController::class, 'downloadWord']
+    )->name('kontrak.word');
 
-Route::post(
-    '/kontrak/{id}/preview-pdf',
-    [KontrakController::class, 'previewPdf']
-)->middleware('auth')->name('kontrak.previewPdf');
+    // Pratinjau / cetak dokumen kontrak PDF
+    Route::get(
+        '/kontrak/{id}/preview-pdf',
+        [KontrakController::class, 'downloadPdf']
+    )->name('kontrak.pdf');
 
-Route::get('/kontrak/{id}/final-pdf', [KontrakController::class, 'finalPdf'])
-    ->middleware('auth')
-    ->name('kontrak.finalPdf');
+    // =================================
+    // ROUTE ACC LAMA
+    // Sementara dipertahankan
+    // =================================
+
+    Route::get(
+        '/kontrak/{id}/acc',
+        [KontrakController::class, 'acc']
+    )->name('kontrak.acc');
+
+    Route::post(
+        '/kontrak/{id}/acc',
+        [KontrakController::class, 'storeAcc']
+    )->name('kontrak.storeAcc');
+
+    Route::post(
+        '/kontrak/{id}/preview-pdf',
+        [KontrakController::class, 'previewPdf']
+    )->name('kontrak.previewPdf');
+
+    // =================================
+    // UPLOAD DOKUMEN KONTRAK FINAL
+    // =================================
+
+    // Menampilkan halaman upload dokumen final
+    Route::get(
+        '/kontrak/{id}/upload-final',
+        [KontrakController::class, 'formUploadFinal']
+    )->name('kontrak.uploadFinal');
+
+    // Memproses upload dokumen final
+    Route::post(
+        '/kontrak/{id}/upload-final',
+        [KontrakController::class, 'storeUploadFinal']
+    )->name('kontrak.storeUploadFinal');
+
+    // =================================
+    // PDF FINAL
+    // =================================
+
+    Route::get(
+        '/kontrak/{id}/final-pdf',
+        [KontrakController::class, 'finalPdf']
+    )->name('kontrak.finalPdf');
+
+    // =================================
+    // PERPANJANGAN KONTRAK
+    // =================================
+
+    Route::post(
+        '/kontrak/{id}/konfirmasi-perpanjangan',
+        [KontrakController::class, 'storeKonfirmasiPerpanjangan']
+    )->name('kontrak.konfirmasi-perpanjangan');
+
+    // =================================
+    // DETAIL KONTRAK
+    // =================================
+
+    Route::get(
+        '/kontrak/{id}',
+        [KontrakController::class, 'show']
+    )->name('kontrak.show');
+
+    // Pratinjau kontrak sebelum dibuat
+    Route::get(
+        '/kerja-sama/{kerjaSamaId}/pratinjau-kontrak',
+        [KontrakController::class, 'previewDocument']
+    )->name('kontrak.preview');
+
+});
 
 // ================================
-// UPLOAD DOKUMEN KONTRAK FINAL
-// ================================
-
-// Menampilkan halaman upload dokumen final
-Route::get(
-    '/kontrak/{id}/upload-final',
-    [KontrakController::class, 'formUploadFinal']
-)->middleware('auth')
-    ->name('kontrak.uploadFinal');
-
-// Memproses upload dokumen final
-Route::post(
-    '/kontrak/{id}/upload-final',
-    [KontrakController::class, 'storeUploadFinal']
-)->middleware('auth')
-    ->name('kontrak.storeUploadFinal');
-
-Route::post(
-    '/kontrak/{id}/konfirmasi-perpanjangan',
-    [KontrakController::class, 'storeKonfirmasiPerpanjangan']
-)->middleware('auth')
-    ->name('kontrak.konfirmasi-perpanjangan');
-
-Route::get(
-    '/kontrak/{id}',
-    [KontrakController::class, 'show']
-)->middleware('auth')
-    ->name('kontrak.show');
-
-Route::get(
-    '/kerja-sama/{kerjaSamaId}/pratinjau-kontrak',
-    [KontrakController::class, 'previewDocument']
-)->middleware('auth')
-    ->name('kontrak.preview');
-
-
- // ================================
 // AKTIVASI
 // ================================
 
 Route::middleware('auth')->group(function () {
+
     // Halaman daftar aktivasi
     Route::get(
         '/aktivasi',
@@ -247,8 +278,8 @@ Route::middleware('auth')->group(function () {
         '/aktivasi/{aktivasi}/dokumen-keputusan',
         [AktivasiController::class, 'lihatDokumenKeputusan']
     )->name('aktivasi.dokumen-keputusan');
-});
 
+});
 
 // ================================
 // PENDAPATAN
@@ -282,6 +313,7 @@ Route::get('/laporan', function () {
 // ================================
 
 Route::middleware('auth')->group(function () {
+
     Route::get(
         '/profile',
         [ProfileController::class, 'index']
@@ -302,10 +334,22 @@ Route::middleware('auth')->group(function () {
         [ProfileController::class, 'updatePhoto']
     )->name('profile.photo.update');
 
-    Route::patch(
+        Route::patch(
         '/profile/preferences',
         [ProfileController::class, 'updatePreferences']
     )->name('profile.preferences.update');
+
+       // MASTER PERUSAHAAN
+    Route::get(
+        '/profile/perusahaan',
+        [ProfileController::class, 'editPerusahaan']
+    )->name('profile.perusahaan.edit');
+
+    Route::put(
+        '/profile/perusahaan',
+        [ProfileController::class, 'updatePerusahaan']
+    )->name('profile.perusahaan.update');
+
 });
 
 // ================================
