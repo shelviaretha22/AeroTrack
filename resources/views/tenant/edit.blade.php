@@ -327,6 +327,164 @@
 
         </div>
 
+        
+{{-- =====================================================
+     INFORMASI KOMERSIAL TENANT
+====================================================== --}}
+<div style="
+    margin-bottom: 24px;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid #DCE6E4;
+    background: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(54, 95, 101, 0.05);
+">
+    {{-- HEADER CARD --}}
+    <div style="padding: 24px 36px; border-bottom: 1px solid #E4EBE9;">
+        <h3 style="
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.4;
+            font-weight: 700;
+            color: #365F65;
+        ">
+            Informasi Komersial Tenant
+        </h3>
+
+        <p style="
+            margin: 6px 0 0;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #8BA5A2;
+        ">
+            Perbarui GTO dan persentase revenue sharing sesuai kesepakatan kerja sama.
+        </p>
+    </div>
+
+    <div style="padding: 28px 36px 32px;">
+        {{-- GTO --}}
+        <div style="margin-bottom: 24px;">
+            <label for="gto" style="
+                display: block;
+                margin-bottom: 10px;
+                font-size: 15px;
+                font-weight: 600;
+                color: #527D82;
+            ">
+                GTO (Guaranteed Turnover)
+                <span style="color: #B96B60;">*</span>
+            </label>
+
+            <div style="position: relative;">
+                <span style="
+                    position: absolute;
+                    left: 22px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: #527D82;
+                    font-size: 15px;
+                ">Rp</span>
+
+                <input
+                    type="number"
+                    id="gto"
+                    name="gto"
+                    value="{{ old('gto', $tenant->gto) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                    placeholder="Contoh: 20000000"
+                    style="
+                        display: block;
+                        width: 100%;
+                        height: 56px;
+                        box-sizing: border-box;
+                        padding: 0 22px 0 52px;
+                        border: 1px solid #DCE6E4;
+                        border-radius: 14px;
+                        background: #F7F9F8;
+                        color: #365F65;
+                        font-family: inherit;
+                        font-size: 15px;
+                        outline: none;
+                    "
+                >
+            </div>
+
+            <p style="margin: 7px 0 0; color: #8BA5A2; font-size: 13px;">
+                Nilai minimum omzet yang disepakati untuk setiap bulan.
+            </p>
+
+            @error('gto')
+                <p style="margin: 7px 0 0; color: #B96B60; font-size: 13px;">
+                    {{ $message }}
+                </p>
+            @enderror
+        </div>
+
+        {{-- REVENUE SHARING --}}
+        <div>
+            <label for="revenue_sharing" style="
+                display: block;
+                margin-bottom: 10px;
+                font-size: 15px;
+                font-weight: 600;
+                color: #527D82;
+            ">
+                Revenue Sharing
+                <span style="color: #B96B60;">*</span>
+            </label>
+
+            <div style="position: relative;">
+                <input
+                    type="number"
+                    id="revenue_sharing"
+                    name="revenue_sharing"
+                    value="{{ old('revenue_sharing', $tenant->revenue_sharing) }}"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    required
+                    placeholder="Contoh: 10"
+                    style="
+                        display: block;
+                        width: 100%;
+                        height: 56px;
+                        box-sizing: border-box;
+                        padding: 0 52px 0 22px;
+                        border: 1px solid #DCE6E4;
+                        border-radius: 14px;
+                        background: #F7F9F8;
+                        color: #365F65;
+                        font-family: inherit;
+                        font-size: 15px;
+                        outline: none;
+                    "
+                >
+
+                <span style="
+                    position: absolute;
+                    right: 22px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: #527D82;
+                    font-size: 15px;
+                ">%</span>
+            </div>
+
+            <p style="margin: 7px 0 0; color: #8BA5A2; font-size: 13px;">
+                Persentase bagi hasil sesuai kesepakatan mitra dan AP/Komersil.
+            </p>
+
+            @error('revenue_sharing')
+                <p style="margin: 7px 0 0; color: #B96B60; font-size: 13px;">
+                    {{ $message }}
+                </p>
+            @enderror
+        </div>
+    </div>
+</div>
+
                 {{-- =====================================================
              INFORMASI LEGALITAS TENANT
         ====================================================== --}}

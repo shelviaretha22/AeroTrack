@@ -286,6 +286,33 @@
         </form>
     </section>
 
+       </section>
+
+    {{-- IDENTITAS PERUSAHAAN --}}
+    <section class="profile-card">
+        <div class="section-heading">
+            <div class="section-icon">🏢</div>
+            <div>
+                <h2>Identitas Perusahaan</h2>
+                <p>Kelola informasi perusahaan yang digunakan dalam dokumen kontrak AeroTrack.</p>
+            </div>
+        </div>
+
+        <div class="preference-row">
+            <div class="preference-description">
+                <h3>Master Perusahaan</h3>
+                <p>
+                    Atur nama perusahaan, alamat, domisili, serta informasi
+                    penandatangan sebagai Pihak Pertama dalam dokumen kontrak.
+                </p>
+            </div>
+
+            <a href="{{ route('profile.perusahaan.edit') }}" class="btn-primary">
+                Kelola Identitas
+            </a>
+        </div>
+    </section>
+
     {{-- INFORMASI SISTEM --}}
     <section class="profile-card system-info">
         <div class="system-info-icon">i</div>

@@ -7,17 +7,39 @@ use App\Models\Kontrak;
 use App\Models\KerjaSama;
 use App\Models\Tenant;
 use App\Models\Lokasi;
+use App\Models\MasterPerusahaan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\IOFactory;
 
 class KontrakController extends Controller
 {
+/**
+ * Mengambil identitas perusahaan dari master perusahaan.
+ */
+private function getDataPerusahaan()
+{
+    $perusahaan = MasterPerusahaan::first();
+
+    return [
+        'nama' => $perusahaan?->nama_perusahaan ?? '',
+        'domisili' => $perusahaan?->domisili ?? '',
+        'alamat' => $perusahaan?->alamat ?? '',
+        'penandatangan' => $perusahaan?->nama_penandatangan ?? '',
+        'jabatan' => $perusahaan?->jabatan_penandatangan ?? '',
+        'telepon' => $perusahaan?->telepon ?? '',
+        'fax' => '',
+        'email' => $perusahaan?->email ?? '',
+    ];
+}
+
     /**
      * Menampilkan dashboard, statistik, grafik,
-     * dan tabel gabungan kontrak serta kandidat kontrak.
+     * daftar kontrak, dan kandidat kontrak.
      */
     public function index(Request $request)
     {
@@ -25,7 +47,7 @@ class KontrakController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | DATA SEMUA KONTRAK UNTUK SUMMARY DAN GRAFIK
+        | 1. DATA SELURUH KONTRAK
         |--------------------------------------------------------------------------
         */
 
@@ -62,7 +84,7 @@ class KontrakController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | DATA GRAFIK DONAT: KOMPOSISI STATUS KONTRAK
+        | 2. DATA GRAFIK STATUS KONTRAK
         |--------------------------------------------------------------------------
         */
 
@@ -74,7 +96,7 @@ class KontrakController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | DATA GRAFIK BATANG: KONTRAK PER TAHUN
+        | 3. DATA GRAFIK KONTRAK PER TAHUN
         |--------------------------------------------------------------------------
         */
 
@@ -91,7 +113,7 @@ class KontrakController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | QUERY TABEL KONTRAK
+        | 4. QUERY DAFTAR KONTRAK
         |--------------------------------------------------------------------------
         */
 
@@ -101,7 +123,8 @@ class KontrakController extends Controller
             'lokasi',
         ]);
 
-        // Pencarian.
+        // Pencarian berdasarkan nomor kontrak, kerja sama,
+        // mitra, tenant, dan lokasi.
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
 
@@ -149,7 +172,7 @@ class KontrakController extends Controller
             );
         }
 
-        // Pengurutan.
+        // Pengurutan daftar kontrak.
         switch ($request->input('sort', 'newest')) {
             case 'oldest':
                 $query->orderBy('created_at', 'asc');
@@ -184,8 +207,15 @@ class KontrakController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | KANDIDAT KONTRAK
+        | 5. KANDIDAT KONTRAK
         |--------------------------------------------------------------------------
+        |
+        | Kerja sama dapat menjadi kandidat kontrak jika:
+        | - Dokumen Berita Acara tersedia.
+        | - Aktivasi berstatus Disetujui.
+        | - Data tenant dan lokasi tersedia.
+        | - Belum memiliki kontrak.
+        |
         */
 
         $kerjaSamaSudahAdaKontrak = Kontrak::pluck('kerja_sama_id');
@@ -210,7 +240,7 @@ class KontrakController extends Controller
                     && !$kerjaSamaSudahAdaKontrak->contains($kerjaSama->id);
             });
 
-        // Pencarian kandidat.
+        // Pencarian kandidat kontrak.
         if ($request->filled('search')) {
             $keyword = strtolower(trim($request->input('search')));
 
@@ -242,11 +272,12 @@ class KontrakController extends Controller
             );
         }
 
-        // Filter status untuk kandidat.
-        if ($request->filled('status')) {
-            if ($request->input('status') !== 'Belum Kontrak') {
-                $kandidatKontrak = collect();
-            }
+        // Filter status kandidat.
+        if (
+            $request->filled('status')
+            && $request->input('status') !== 'Belum Kontrak'
+        ) {
+            $kandidatKontrak = collect();
         }
 
         // Filter tahun kandidat berdasarkan tanggal pengajuan kerja sama.
@@ -262,7 +293,7 @@ class KontrakController extends Controller
             );
         }
 
-        // Urutkan kandidat.
+        // Pengurutan kandidat kontrak.
         switch ($request->input('sort', 'newest')) {
             case 'oldest':
                 $kandidatKontrak = $kandidatKontrak
@@ -289,6 +320,12 @@ class KontrakController extends Controller
                 break;
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | 6. KIRIM DATA KE VIEW
+        |--------------------------------------------------------------------------
+        */
+
         return view('kontrak.index', compact(
             'kontraks',
             'kandidatKontrak',
@@ -305,290 +342,416 @@ class KontrakController extends Controller
     /**
      * Membuat kontrak dari kerja sama yang aktivasi terbarunya disetujui.
      */
-    
-public function store(Request $request, $kerjaSamaId)
-{
-    try {
-        $kontrak = DB::transaction(function () use ($kerjaSamaId) {
-            $kerjaSama = KerjaSama::with([
-                'tenant',
-                'lokasi',
-                'aktivasi',
-            ])
-                ->lockForUpdate()
-                ->findOrFail($kerjaSamaId);
+    public function store(Request $request, $kerjaSamaId)
+    {
+        try {
+            $kontrak = DB::transaction(function () use ($kerjaSamaId) {
 
-            // Pastikan aktivasi terbaru sudah disetujui.
-            if ($kerjaSama->aktivasi?->status !== 'Disetujui') {
-                throw new \RuntimeException(
-                    'Kontrak hanya dapat dibuat jika aktivasi terbaru telah disetujui.'
-                );
-            }
+                // Ambil data kerja sama beserta relasinya.
+                $kerjaSama = KerjaSama::with([
+                    'tenant',
+                    'lokasi',
+                    'aktivasi',
+                ])
+                    ->lockForUpdate()
+                    ->findOrFail($kerjaSamaId);
 
-            // Pastikan dokumen Berita Acara tersedia.
-            if (
-                !$kerjaSama->berita_acara_path
-                || !Storage::disk('local')->exists(
-                    $kerjaSama->berita_acara_path
-                )
-            ) {
-                throw new \RuntimeException(
-                    'Kontrak belum dapat dibuat karena dokumen BA tidak tersedia.'
-                );
-            }
+                // Pastikan aktivasi terbaru sudah disetujui.
+                if ($kerjaSama->aktivasi?->status !== 'Disetujui') {
+                    throw new \RuntimeException(
+                        'Kontrak hanya dapat dibuat jika aktivasi terbaru telah disetujui.'
+                    );
+                }
 
-            // Ambil data tenant dan lokasi.
-            $tenant = $kerjaSama->tenant
-                ?? Tenant::where(
+                // Pastikan dokumen Berita Acara tersedia.
+                if (
+                    !$kerjaSama->berita_acara_path ||
+                    !Storage::disk('local')->exists(
+                        $kerjaSama->berita_acara_path
+                    )
+                ) {
+                    throw new \RuntimeException(
+                        'Kontrak belum dapat dibuat karena dokumen Berita Acara tidak tersedia.'
+                    );
+                }
+
+                // Ambil data tenant.
+                $tenant = $kerjaSama->tenant
+                    ?? Tenant::where(
+                        'kerja_sama_id',
+                        $kerjaSama->id
+                    )->first();
+
+                // Ambil data lokasi.
+                $lokasi = $kerjaSama->lokasi;
+
+                // Pastikan data utama tersedia.
+                if (!$tenant || !$lokasi) {
+                    throw new \RuntimeException(
+                        'Data tenant atau lokasi belum lengkap.'
+                    );
+                }
+
+                // Cegah pembuatan kontrak ganda.
+                $sudahAda = Kontrak::where(
                     'kerja_sama_id',
                     $kerjaSama->id
-                )->first();
+                )->exists();
 
-            $lokasi = $kerjaSama->lokasi;
+                if ($sudahAda) {
+                    throw new \RuntimeException(
+                        'Kontrak untuk kerja sama ini sudah pernah dibuat.'
+                    );
+                }
 
-            if (!$tenant || !$lokasi) {
-                throw new \RuntimeException(
-                    'Data tenant atau lokasi belum lengkap.'
+                // Buat kontrak dengan status Draft.
+                return Kontrak::create([
+                    'nomor_kontrak' => sprintf(
+                        'KTR/JUANDA/%s/%04d',
+                        now()->format('Y'),
+                        $kerjaSama->id
+                    ),
+
+                    'kerja_sama_id' => $kerjaSama->id,
+                    'tenant_id' => $tenant->id,
+                    'lokasi_id' => $lokasi->id,
+
+                    'tanggal_pengajuan' => now()->toDateString(),
+                    'status' => 'Draft',
+                ]);
+            });
+
+            if ($request->expectsJson()) {
+    return response()->json([
+        'success' => true,
+        'message' => 'Data dokumen kontrak berhasil disimpan.'
+    ]);
+}
+
+if ($request->expectsJson()) {
+    return response()->json([
+        'success' => true,
+        'message' => 'Data dokumen kontrak berhasil disimpan.'
+    ]);
+}
+
+return redirect()
+    ->route('kontrak.show', $kontrak->id)
+    ->with(
+        'success',
+        'Data dokumen kontrak berhasil disimpan.'
+    );
+        } catch (\RuntimeException $e) {
+
+            return redirect()
+                ->route('kontrak')
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Menampilkan detail kontrak dan halaman dokumen kontrak.
+     */
+    public function show($id)
+    {
+        $kontrak = Kontrak::with([
+            'kerjaSama.tenant',
+            'kerjaSama.lokasi',
+            'tenant',
+            'lokasi',
+        ])->findOrFail($id);
+
+        $apIndonesia = $this->getDataPerusahaan();
+
+return view('kontrak.dokumen', compact('kontrak', 'apIndonesia'));
+    }
+
+    /**
+     * Menampilkan halaman pengisian dokumen kontrak.
+     */
+    public function document($id)
+    {
+        $kontrak = Kontrak::with([
+            'kerjaSama.tenant',
+            'kerjaSama.lokasi',
+            'tenant',
+            'lokasi',
+        ])->findOrFail($id);
+
+        if ($kontrak->status === 'Selesai') {
+            return redirect()
+                ->route('kontrak.show', $kontrak->id)
+                ->with(
+                    'error',
+                    'Dokumen kontrak yang sudah selesai tidak dapat diubah.'
                 );
+        }
+
+        $apIndonesia = $this->getDataPerusahaan();
+
+return view('kontrak.dokumen', compact('kontrak', 'apIndonesia'));
+    }
+    /**
+     * Menyimpan data dokumen kontrak.
+     */
+    public function updateDokumen(Request $request, $id)
+    {
+        $kontrak = Kontrak::with([
+            'kerjaSama.tenant',
+            'kerjaSama.lokasi',
+            'tenant',
+            'lokasi',
+        ])->findOrFail($id);
+
+        // Kontrak yang sudah selesai tidak dapat diubah.
+        if ($kontrak->status === 'Selesai') {
+            return redirect()
+                ->route('kontrak.show', $kontrak->id)
+                ->with(
+                    'error',
+                    'Dokumen kontrak yang sudah selesai tidak dapat diubah.'
+                );
+        }
+
+        // Validasi data formulir.
+        $validated = $request->validate([
+            'nomor_kontrak_mitra' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'logo_mitra' => [
+                $kontrak->logo_mitra_path ? 'nullable' : 'required',
+                'image',
+                'mimes:jpg,jpeg,png',
+                'max:2048',
+            ],
+            'periode_evaluasi_tarif' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
+            'satuan_evaluasi_tarif' => [
+                'required',
+                'in:bulan,tahun',
+            ],
+            'klausul_kepemilikan_fasilitas' => [
+                'required',
+                'in:mitra,ap_indonesia',
+            ],
+            'nama_pic_mitra_snapshot' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'jabatan_pic_mitra_snapshot' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'alamat_mitra_snapshot' => [
+                'required',
+                'string',
+                'max:5000',
+            ],
+            'telepon_mitra_snapshot' => [
+                'required',
+                'string',
+                'max:50',
+            ],
+            'fax_mitra_snapshot' => [
+                'nullable',
+                'string',
+                'max:50',
+            ],
+            'email_mitra_snapshot' => [
+                'required',
+                'email',
+                'max:255',
+            ],
+            'nama_penandatangan_mitra' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'jabatan_penandatangan_mitra' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'lampiran_perjanjian' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+            'lampiran_perjanjian.*' => [
+                'required',
+                'string',
+                'distinct',
+                'in:SUP,BAK,Denah Fasilitas Komersial,Perjanjian Tingkat Layanan',
+            ],
+        ], [
+            'logo_mitra.required' => 'Logo Mitra wajib diunggah.',
+            'logo_mitra.image' => 'Logo Mitra harus berupa gambar.',
+            'logo_mitra.mimes' => 'Logo Mitra harus berformat JPG, JPEG, atau PNG.',
+            'logo_mitra.max' => 'Ukuran logo Mitra maksimal 2 MB.',
+            'periode_evaluasi_tarif.required' => 'Periode evaluasi tarif wajib diisi.',
+            'periode_evaluasi_tarif.min' => 'Periode evaluasi tarif minimal 1.',
+            'klausul_kepemilikan_fasilitas.required' => 'Silakan pilih klausul kepemilikan fasilitas.',
+            'nama_pic_mitra_snapshot.required' => 'Nama PIC Mitra wajib diisi.',
+            'jabatan_pic_mitra_snapshot.required' => 'Jabatan PIC Mitra wajib diisi.',
+            'alamat_mitra_snapshot.required' => 'Alamat Mitra wajib diisi.',
+            'telepon_mitra_snapshot.required' => 'Nomor telepon Mitra wajib diisi.',
+            'email_mitra_snapshot.required' => 'Email Mitra wajib diisi.',
+            'email_mitra_snapshot.email' => 'Format email Mitra tidak valid.',
+            'nama_penandatangan_mitra.required' => 'Nama penandatangan Mitra wajib diisi.',
+            'jabatan_penandatangan_mitra.required' => 'Jabatan penandatangan Mitra wajib diisi.',
+            'lampiran_perjanjian.required' => 'Lampiran perjanjian wajib dipilih.',
+        ]);
+
+        // SUP dan BAK merupakan lampiran wajib.
+        $lampiran = $validated['lampiran_perjanjian'];
+
+        if (
+            !in_array('SUP', $lampiran, true) ||
+            !in_array('BAK', $lampiran, true)
+        ) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Lampiran SUP dan BAK wajib disertakan.'
+                );
+        }
+
+        // Pastikan data utama tersedia.
+        $kerjaSama = $kontrak->kerjaSama;
+        $tenant = $kontrak->tenant;
+        $lokasi = $kontrak->lokasi;
+
+        if (!$kerjaSama || !$tenant || !$lokasi) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Data Kerja Sama, Tenant, atau Lokasi tidak ditemukan.'
+                );
+        }
+
+        // Simpan lokasi logo lama sebelum diperbarui.
+        $logoPathLama = $kontrak->logo_mitra_path;
+
+        // Simpan logo baru jika pengguna mengunggahnya.
+        $logoPath = $logoPathLama;
+
+        if ($request->hasFile('logo_mitra')) {
+            $logoPathBaru = $request->file('logo_mitra')->store(
+                'kontrak-logo-mitra',
+                'local'
+            );
+
+            if (!$logoPathBaru) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Logo Mitra gagal disimpan.');
             }
 
-            // Cegah pembuatan kontrak ganda.
-            $sudahAda = Kontrak::where(
-                'kerja_sama_id',
-                $kerjaSama->id
-            )->exists();
+            $logoPath = $logoPathBaru;
+        }
 
-            if ($sudahAda) {
-                throw new \RuntimeException(
-                    'Kontrak untuk kerja sama ini sudah pernah dibuat.'
-                );
-            }
+        // Simpan snapshot agar perubahan data master
+        // tidak mengubah isi dokumen kontrak yang sudah dibuat.
+        $dataKerjaSama = [
+            'nomor_kerja_sama' => $kerjaSama->nomor_kerja_sama,
+            'mitra_usaha' => $kerjaSama->mitra_usaha,
+            'brand' => $kerjaSama->brand,
+            'jenis_usaha' => $kerjaSama->jenis_usaha,
+            'bentuk_kerja_sama' => $kerjaSama->bentuk_kerja_sama,
+            'tanggal_mulai' => $kerjaSama->tanggal_mulai,
+            'tanggal_berakhir' => $kerjaSama->tanggal_berakhir,
+        ];
 
-            // Buat data kontrak dengan status Draft.
-            return Kontrak::create([
-                'nomor_kontrak' => sprintf(
-                    'KTR/JUANDA/%s/%04d',
-                    now()->format('Y'),
-                    $kerjaSama->id
-                ),
-                'kerja_sama_id' => $kerjaSama->id,
-                'tenant_id' => $tenant->id,
-                'lokasi_id' => $lokasi->id,
-                'tanggal_pengajuan' => now()->toDateString(),
-                'status' => 'Draft',
-            ]);
-        });
+        $dataLokasi = [
+            'terminal' => $lokasi->terminal,
+            'lantai' => $lokasi->lantai,
+            'jenis_ruangan' => $lokasi->jenis_ruangan,
+            'nomor_ro' => $lokasi->nomor_ro,
+            'kode_ruang' => $lokasi->kode_ruang,
+            'lokasi' => $lokasi->lokasi,
+            'luas_area' => $lokasi->luas_area,
+        ];
 
-        // Jika berhasil, buka halaman Dokumen Kontrak.
+        // Simpan seluruh data dokumen ke tabel kontraks.
+        $kontrak->update([
+            'nomor_kontrak_mitra' => $validated['nomor_kontrak_mitra'] ?? null,
+            'logo_mitra_path' => $logoPath,
+            'tanggal_dokumen' => now()->toDateString(),
+
+            'periode_evaluasi_tarif' => $validated['periode_evaluasi_tarif'],
+            'satuan_evaluasi_tarif' => $validated['satuan_evaluasi_tarif'],
+            'klausul_kepemilikan_fasilitas' => $validated['klausul_kepemilikan_fasilitas'],
+
+            'nama_mitra_snapshot' => $tenant->mitra_usaha
+                ?: $kerjaSama->mitra_usaha,
+
+            'nama_pic_mitra_snapshot' => $validated['nama_pic_mitra_snapshot'],
+            'jabatan_pic_mitra_snapshot' => $validated['jabatan_pic_mitra_snapshot'],
+            'alamat_mitra_snapshot' => $validated['alamat_mitra_snapshot'],
+            'telepon_mitra_snapshot' => $validated['telepon_mitra_snapshot'],
+            'fax_mitra_snapshot' => $validated['fax_mitra_snapshot'] ?? null,
+            'email_mitra_snapshot' => $validated['email_mitra_snapshot'],
+
+            'nama_penandatangan_mitra' => $validated['nama_penandatangan_mitra'],
+            'jabatan_penandatangan_mitra' => $validated['jabatan_penandatangan_mitra'],
+
+            'data_kerja_sama_snapshot' => $dataKerjaSama,
+            'data_lokasi_snapshot' => $dataLokasi,
+
+            'lampiran_perjanjian' => array_values(
+                array_unique($lampiran)
+            ),
+        ]);
+
+        // Hapus logo lama setelah data baru berhasil diperbarui.
+        if (
+            isset($logoPathBaru) &&
+            $logoPathLama &&
+            $logoPathLama !== $logoPathBaru &&
+            Storage::disk('local')->exists($logoPathLama)
+        ) {
+            Storage::disk('local')->delete($logoPathLama);
+        }
+
         return redirect()
             ->route('kontrak.show', $kontrak->id)
             ->with(
                 'success',
-                'Kontrak berhasil dibuat. Silakan periksa Dokumen Kontrak.'
+                'Data dokumen kontrak berhasil disimpan.'
             );
-
-    } catch (\RuntimeException $e) {
-        // Jika gagal, kembali ke tabel kontrak dengan pesan error.
-        return redirect()
-            ->route('kontrak')
-            ->with('error', $e->getMessage());
     }
-}
 
-    /**
-     * Menampilkan halaman ACC kontrak.
-     */
     
-public function acc($id)
-{
-    $kontrak = Kontrak::with([
-        'kerjaSama',
-        'tenant',
-        'lokasi',
-    ])->findOrFail($id);
+    /**
+     * Menampilkan halaman upload dokumen kontrak final.
+     */
+    public function formUploadFinal($id)
+    {
+        $kontrak = Kontrak::findOrFail($id);
 
-    return view('kontrak.acc', compact('kontrak'));
-}
-
-public function previewPdf(Request $request, $id)
-{
-    $kontrak = Kontrak::with([
-        'kerjaSama.tenant',
-        'kerjaSama.lokasi',
-        'tenant',
-        'lokasi',
-    ])->findOrFail($id);
-
-    $request->validate([
-        'ttd_method' => ['required', 'in:online,offline'],
-        'signature_data' => ['nullable', 'string', 'max:4000000'],
-        'signature' => [
-            'nullable',
-            'image',
-            'mimes:jpg,jpeg',
-            'max:2048',
-        ],
-    ]);
-
-    $signatureData = null;
-
-    if ($request->input('ttd_method') === 'online') {
-        
-if ($request->hasFile('signature')) {
-    $path = $request->file('signature')->store(
-        'ttd-commercial',
-        'local'
-    );
-
-    $data['ttd_commercial_path'] = $path;
-    $data['ttd_type'] = 'upload';
-} else {
-    // Tanda tangan tidak diunggah sebagai file.
-    // Gunakan nilai yang diizinkan oleh ENUM database.
-    $data['ttd_type'] = 'draw';
-}
-
+        return view('kontrak.upload-final', [
+            'kontrak' => $kontrak,
+        ]);
     }
 
-    $pdf = Pdf::loadView('kontrak.dokumen', [
-        'kontrak' => $kontrak,
-        'isPreview' => false,
-        'isPdf' => true,
-        'signatureData' => $signatureData,
-    ])->setPaper('a4', 'portrait');
-
-    return $pdf->stream(
-        'pratinjau-kontrak-' . $kontrak->id . '.pdf'
-    );
-}
-
-
-public function storeAcc(Request $request, $id)
-{
-    $kontrak = Kontrak::with('kerjaSama')->findOrFail($id);
-
-    if ($kontrak->tanggal_acc !== null || $kontrak->status === 'Selesai') {
-        return redirect()
-            ->route('kontrak')
-            ->with('error', 'Kontrak ini sudah diberikan ACC.');
-    }
-
-    $namaCommercial = $kontrak->kerjaSama?->pic_commercial;
-    $jabatanCommercial = $kontrak->kerjaSama?->jabatan_pic_commercial;
-
-    if (blank($namaCommercial) || blank($jabatanCommercial)) {
-        return back()
-            ->withInput()
-            ->with('error', 'Nama dan jabatan PIC Commercial harus tersedia pada data Kerja Sama.');
-    }
-
-    $request->validate([
-        'ttd_method' => ['required', 'in:online,offline'],
-        'signature' => ['nullable', 'image', 'mimes:jpg,jpeg', 'max:2048'],
-        'signature_data' => ['nullable', 'string', 'max:4000000'],
-    ], [
-        'ttd_method.required' => 'Silakan pilih metode tanda tangan.',
-        'signature.image' => 'File tanda tangan harus berupa gambar.',
-        'signature.mimes' => 'Tanda tangan yang diunggah harus berformat JPG/JPEG.',
-        'signature.max' => 'Ukuran tanda tangan maksimal 2 MB.',
-    ]);
-
-    $data = [
-        'nama_commercial' => $namaCommercial,
-        'jabatan_commercial' => $jabatanCommercial,
-    ];
-
-    if ($request->input('ttd_method') === 'online') {
-        if ($request->hasFile('signature')) {
-            // Metode upload JPG/JPEG.
-            $path = $request->file('signature')->store(
-                'ttd-commercial',
-                'local'
-            );
-
-            $data['ttd_commercial_path'] = $path;
-            $data['ttd_type'] = 'upload';
-        } else {
-            // Metode menggambar tanda tangan pada canvas.
-            $dataUrl = $request->input('signature_data', '');
-
-            if (!preg_match(
-                '/^data:image\/png;base64,([A-Za-z0-9+\/=\r\n]+)$/',
-                $dataUrl,
-                $matches
-            )) {
-                return back()
-                    ->withInput()
-                    ->with('error', 'Silakan gambar tanda tangan atau unggah file JPG/JPEG terlebih dahulu.');
-            }
-
-            $imageData = base64_decode($matches[1], true);
-
-            if (
-                $imageData === false
-                || !str_starts_with($imageData, "\x89PNG\r\n\x1a\n")
-            ) {
-                return back()
-                    ->withInput()
-                    ->with('error', 'Data gambar tanda tangan tidak valid. Silakan gambar ulang.');
-            }
-
-            $path = 'ttd-commercial/ttd-' . $kontrak->id . '-' . now()->format('YmdHis') . '.png';
-
-            Storage::disk('local')->put($path, $imageData);
-
-            $data['ttd_commercial_path'] = $path;
-            $data['ttd_type'] = 'draw';
-        }
-    } else {
-        // Kolom database hanya menerima draw/upload dan boleh NULL.
-        // Metode offline tidak menyimpan tipe tanda tangan digital.
-        $data['ttd_type'] = null;
-        $data['ttd_commercial_path'] = null;
-    }
-
-    $kontrak->update($data);
-
-    return redirect()
-        ->route('kontrak.uploadFinal', $kontrak->id)
-        ->with(
-            'success',
-            'Informasi Commercial tersimpan. Silakan lanjutkan ke Upload Dokumen Kontrak Final.'
-        );
-}
-
-public function formUploadFinal($id)
-{
-    $kontrak = Kontrak::with([
-        'kerjaSama',
-        'tenant',
-        'lokasi',
-    ])->findOrFail($id);
-
-    // Halaman upload final hanya bisa dibuka setelah proses ACC.
-    if (blank($kontrak->nama_commercial) || blank($kontrak->jabatan_commercial)) {
-        return redirect()
-            ->route('kontrak.acc', $kontrak->id)
-            ->with('error', 'Silakan selesaikan tahap ACC terlebih dahulu.');
-    }
-
-    return view('kontrak.upload-final', compact('kontrak'));
-}
-
-
+    
+/**
+ * Memproses upload dokumen kontrak final.
+ */
 public function storeUploadFinal(Request $request, $id)
 {
-    $kontrak = Kontrak::with('kerjaSama')->findOrFail($id);
-
-    // Pastikan tahap ACC sudah dilakukan.
-    if (blank($kontrak->nama_commercial) || blank($kontrak->jabatan_commercial)) {
-        return redirect()
-            ->route('kontrak.acc', $kontrak->id)
-            ->with('error', 'Silakan selesaikan tahap ACC terlebih dahulu.');
-    }
-
-    // Validasi dokumen final harus berupa PDF.
-    $request->validate([
+    $kontrak = Kontrak::findOrFail($id);
+    // Validasi file dan konfirmasi tanda tangan.
+    $validated = $request->validate([
         'final_pdf' => [
             'required',
             'file',
@@ -601,112 +764,83 @@ public function storeUploadFinal(Request $request, $id)
         ],
     ], [
         'final_pdf.required' => 'Dokumen kontrak final wajib diunggah.',
-        'final_pdf.mimes' => 'Dokumen kontrak final harus berformat PDF.',
-        'final_pdf.max' => 'Ukuran dokumen maksimal 10 MB.',
-        'final_signature_confirmed.required' => 'Konfirmasi tanda tangan kedua pihak wajib dilakukan.',
-        'final_signature_confirmed.accepted' => 'Kamu harus mengonfirmasi bahwa dokumen telah ditandatangani kedua pihak.',
+        'final_pdf.file' => 'File yang diunggah tidak valid.',
+        'final_pdf.mimes' => 'Dokumen harus menggunakan format PDF.',
+        'final_pdf.max' => 'Ukuran PDF maksimal 10 MB.',
+        'final_signature_confirmed.required' => 'Konfirmasi tanda tangan wajib dicentang.',
+        'final_signature_confirmed.accepted' => 'Dokumen harus dikonfirmasi telah ditandatangani kedua pihak.',
     ]);
 
-    // Simpan file PDF ke storage lokal.
-    $path = $request->file('final_pdf')->store(
-        'kontrak-final',
+    // Simpan file PDF ke penyimpanan lokal Laravel.
+    $file = $request->file('final_pdf');
+
+    $namaFile = 'kontrak_final_' . $kontrak->id . '_' .
+        now()->format('YmdHis') . '.pdf';
+
+    $pathBaru = $file->storeAs(
+        'kontrak/final',
+        $namaFile,
         'local'
     );
 
-    // Dokumen final berhasil disimpan, kontrak dinyatakan selesai.
-    $kontrak->update([
-        'final_pdf_path' => $path,
-        'final_uploaded_at' => now(),
-        'final_signature_confirmed' => true,
-        'status' => 'Selesai',
-    ]);
+    if (!$pathBaru) {
+        return back()
+            ->withInput()
+            ->with('error', 'Dokumen kontrak final gagal disimpan.');
+    }
 
-    return redirect()
+    // Simpan lokasi file dan informasi upload ke database.
+    $pathLama = $kontrak->final_pdf_path;
+
+    $kontrak->final_pdf_path = $pathBaru;
+$kontrak->final_uploaded_at = now();
+$kontrak->final_signature_confirmed = true;
+
+// Tandai kontrak telah selesai ditandatangani.
+$kontrak->status = 'Selesai';
+
+$kontrak->save();
+
+    // Hapus file sebelumnya jika ada penggantian dokumen.
+    if (
+        $pathLama &&
+        $pathLama !== $pathBaru &&
+        Storage::disk('local')->exists($pathLama)
+    ) {
+        Storage::disk('local')->delete($pathLama);
+    }
+
+   return redirect()
     ->route('kontrak')
     ->with(
         'success',
-        'Dokumen kontrak final berhasil diunggah. Kontrak telah selesai.'
+        'Dokumen kontrak final berhasil diunggah dan disimpan.'
     );
 }
 
-    /**
-     * Menyimpan keputusan konfirmasi perpanjangan kontrak.
-     */
-    
-public function storeKonfirmasiPerpanjangan(Request $request, $id)
+public function finalPdf($id)
 {
-    $request->validate([
-        'status_perpanjangan' => [
-            'required',
-            'in:Ingin Memperpanjang,Tidak Memperpanjang',
+    $kontrak = Kontrak::findOrFail($id);
+
+    if (
+        !$kontrak->final_pdf_path ||
+        !Storage::disk('local')->exists($kontrak->final_pdf_path)
+    ) {
+        abort(404, 'Dokumen kontrak final tidak ditemukan.');
+    }
+
+    return Storage::disk('local')->response(
+        $kontrak->final_pdf_path,
+        basename($kontrak->final_pdf_path),
+        [
+            'Content-Type' => 'application/pdf',
         ],
-    ], [
-        'status_perpanjangan.required' =>
-            'Silakan pilih keputusan perpanjangan terlebih dahulu.',
-        'status_perpanjangan.in' =>
-            'Pilihan konfirmasi perpanjangan tidak valid.',
-    ]);
-
-    $kontrak = Kontrak::with('kerjaSama')->findOrFail($id);
-
-    if ($kontrak->status !== 'Selesai') {
-    return redirect()
-        ->route('kontrak')
-        ->with('error', 'Konfirmasi hanya dapat dilakukan untuk kontrak yang sudah selesai.');
+        'inline'
+    );
 }
-
-    $tanggalAkhir = $kontrak->kerjaSama?->tanggal_berakhir;
-
-    if (!$tanggalAkhir) {
-        return redirect()
-            ->route('kontrak')
-            ->with('error', 'Tanggal akhir masa sewa belum tersedia.');
-    }
-
-    $batasKonfirmasi = Carbon::parse($tanggalAkhir)
-        ->subMonthNoOverflow()
-        ->startOfDay();
-
-    if (now()->startOfDay()->lt($batasKonfirmasi)) {
-        return redirect()
-            ->route('kontrak')
-            ->with('error', 'Konfirmasi baru dapat dilakukan mulai satu bulan sebelum masa sewa berakhir.');
-    }
-
-    $kontrak->update([
-        'status_perpanjangan' => $request->input('status_perpanjangan'),
-        'tanggal_konfirmasi' => now()->toDateString(),
-    ]);
-
-    if ($request->input('status_perpanjangan') === 'Ingin Memperpanjang') {
-    return redirect()
-        ->route('kerja-sama.create', [
-            'perpanjangan_dari' => $kontrak->kerja_sama_id,
-        ])
-        ->with(
-            'success',
-            'Konfirmasi perpanjangan berhasil disimpan. Silakan lanjutkan membuat kerja sama baru.'
-        );
-}
-
-    return redirect()
-        ->route('kontrak')
-        ->with('success', 'Konfirmasi tidak memperpanjang berhasil disimpan.');
-}
-
-
-    public function document($id)
-    {
-        $kontrak = Kontrak::with([
-            'kerjaSama.tenant',
-            'kerjaSama.lokasi',
-            'tenant',
-            'lokasi',
-        ])->findOrFail($id);
-
-        return view('kontrak.dokumen', compact('kontrak'));
-    }
-
+    /**
+     * Menampilkan halaman upload dokumen kontrak final.
+     */
     public function previewDocument($kerjaSamaId)
     {
         $kerjaSama = KerjaSama::with([
@@ -714,16 +848,647 @@ public function storeKonfirmasiPerpanjangan(Request $request, $id)
             'lokasi',
         ])->findOrFail($kerjaSamaId);
 
+        // Pastikan data Tenant dan Lokasi tersedia.
+        if (!$kerjaSama->tenant || !$kerjaSama->lokasi) {
+            return redirect()
+                ->route('kontrak')
+                ->with(
+                    'error',
+                    'Data Tenant atau Lokasi pada Kerja Sama tidak ditemukan.'
+                );
+        }
+
         return view('kontrak.dokumen', [
             'kontrak' => null,
             'kerjaSama' => $kerjaSama,
             'tenant' => $kerjaSama->tenant,
             'lokasi' => $kerjaSama->lokasi,
             'isPreview' => true,
+            'apIndonesia' => $this->getDataPerusahaan(),
         ]);
     }
 
-    public function show($id)
+
+    /**
+     * Menghasilkan dokumen Perjanjian Pokok dalam format Word.
+     */
+    public function downloadWord($id)
+    {
+        $kontrak = Kontrak::with([
+            'kerjaSama',
+            'tenant',
+            'lokasi',
+        ])->findOrFail($id);
+
+        // Pastikan data dokumen sudah dilengkapi.
+        if (
+            !$kontrak->tanggal_dokumen ||
+            !$kontrak->logo_mitra_path ||
+            !$kontrak->periode_evaluasi_tarif ||
+            !$kontrak->klausul_kepemilikan_fasilitas ||
+            !$kontrak->nama_mitra_snapshot ||
+            !$kontrak->nama_pic_mitra_snapshot ||
+            !$kontrak->nama_penandatangan_mitra ||
+            !$kontrak->data_kerja_sama_snapshot ||
+            !$kontrak->data_lokasi_snapshot
+        ) {
+            return redirect()
+                ->route('kontrak.show', $kontrak->id)
+                ->with(
+                    'error',
+                    'Lengkapi data dokumen kontrak terlebih dahulu.'
+                );
+        }
+
+        // Ambil data snapshot kontrak.
+        $ks = $kontrak->data_kerja_sama_snapshot ?? [];
+        $dataLokasi = $kontrak->data_lokasi_snapshot ?? [];
+
+        $tanggalDokumen = Carbon::parse(
+            $kontrak->tanggal_dokumen
+        );
+
+        $tanggalMulai = $ks['tanggal_mulai'] ?? null;
+        $tanggalBerakhir = $ks['tanggal_berakhir'] ?? null;
+
+        // Menghitung durasi kerja sama.
+        $durasi = '-';
+
+        if ($tanggalMulai && $tanggalBerakhir) {
+            $durasi = Carbon::parse($tanggalMulai)
+                ->diffInMonths(Carbon::parse($tanggalBerakhir));
+        }
+
+        $namaUsaha = $ks['jenis_usaha'] ?? '-';
+        $namaLokasi = $dataLokasi['lokasi'] ?? '-';
+        $namaMitra = $kontrak->nama_mitra_snapshot ?? '-';
+
+        // Inisialisasi PHPWord.
+        $phpWord = new PhpWord();
+
+        $phpWord->setDefaultFontName('Arial');
+        $phpWord->setDefaultFontSize(10);
+
+        // Pengaturan halaman A4.
+        $section = $phpWord->addSection([
+            'paperSize' => 'A4',
+            'orientation' => 'portrait',
+            'marginTop' => 1800,
+            'marginBottom' => 1600,
+            'marginLeft' => 1800,
+            'marginRight' => 1800,
+        ]);
+
+        // Format teks.
+        $center = [
+            'alignment' => 'center',
+            'spaceAfter' => 100,
+        ];
+
+        $boldCenter = [
+            'bold' => true,
+            'size' => 11,
+        ];
+
+        $normal = [
+            'size' => 10,
+        ];
+
+        // Helper untuk menambahkan paragraf.
+        $addText = function ($text, $style = []) use ($section) {
+            $section->addText(
+                $text,
+                array_merge(['size' => 10], $style),
+                ['spaceAfter' => 100]
+            );
+        };
+
+        // Helper untuk judul pasal.
+        $addHeading = function ($text) use ($section) {
+            $section->addText(
+                $text,
+                ['bold' => true, 'size' => 11],
+                [
+                    'alignment' => 'center',
+                    'spaceBefore' => 150,
+                    'spaceAfter' => 80,
+                ]
+            );
+        };
+
+        // Memastikan file logo tersedia.
+        $logoPath = Storage::disk('local')->path(
+            $kontrak->logo_mitra_path
+        );
+
+        if (!file_exists($logoPath)) {
+            return redirect()
+                ->route('kontrak.show', $kontrak->id)
+                ->with(
+                    'error',
+                    'File logo Mitra tidak ditemukan. Silakan unggah ulang logo.'
+                );
+        }
+
+        // Mulai menyusun dokumen.
+                // =========================
+        // HALAMAN 1
+        // =========================
+
+        // Menambahkan logo Mitra.
+        $section->addImage($logoPath, [
+            'width' => 100,
+            'height' => 65,
+            'alignment' => 'center',
+        ]);
+
+        // Judul dokumen.
+        $section->addText(
+            'PERJANJIAN POKOK',
+            $boldCenter,
+            $center
+        );
+
+        $section->addText(
+            'TENTANG',
+            $boldCenter,
+            $center
+        );
+
+        $section->addText(
+            'KERJA SAMA PEMANFAATAN FASILITAS KOMERSIAL PT ANGKASA PURA INDONESIA',
+            ['bold' => true, 'size' => 11],
+            $center
+        );
+
+        $section->addText(
+            'UNTUK KEGIATAN USAHA ' . $namaUsaha,
+            ['bold' => true, 'size' => 11],
+            $center
+        );
+
+        $section->addText(
+            'DI ' . $namaLokasi,
+            ['bold' => true, 'size' => 11],
+            $center
+        );
+
+        // Nomor dokumen.
+        $addText(
+            'NOMOR : ' . $kontrak->nomor_kontrak
+        );
+
+        $addText(
+            'NOMOR MITRA : ' .
+            ($kontrak->nomor_kontrak_mitra ?: '-')
+        );
+
+        // Tanggal pembuatan dokumen.
+        $addText(
+            'Perjanjian Pokok ini dibuat dan ditandatangani pada:'
+        );
+
+        $addText(
+            'HARI : ' .
+            $tanggalDokumen->locale('id')->translatedFormat('l')
+        );
+
+        $addText(
+            'TANGGAL : ' .
+            $tanggalDokumen->locale('id')->translatedFormat('d F Y')
+        );
+
+        $addText('Oleh dan antara:');
+
+        // =========================
+        // PIHAK PERTAMA
+        // =========================
+
+        $addText(
+            'I. PT ANGKASA PURA INDONESIA',
+            ['bold' => true]
+        );
+
+        $addText(
+            'Alamat : Jalan Raya Ir. H. Juanda No. 1, Segoro Tambak, Kecamatan Sedati, Kabupaten Sidoarjo, Jawa Timur 61253'
+        );
+
+        $addText(
+            'Dalam hal ini diwakili oleh : Laksma TNI Muhammad Tohir'
+        );
+
+        $addText(
+            'Selaku : General Manager PT Angkasa Pura Indonesia Cabang Bandara Internasional Juanda'
+        );
+
+        $addText(
+            'Dengan demikian sah bertindak untuk dan atas nama PT Angkasa Pura Indonesia, selanjutnya dalam Perjanjian Pokok ini disebut AP INDONESIA.'
+        );
+
+        // =========================
+        // PIHAK KEDUA
+        // =========================
+
+        $addText(
+            'II. ' . $namaMitra,
+            ['bold' => true]
+        );
+
+        $addText(
+            'Alamat : ' .
+            ($kontrak->alamat_mitra_snapshot ?? '-')
+        );
+
+        $addText(
+            'Dalam hal ini diwakili oleh : ' .
+            ($kontrak->nama_penandatangan_mitra ?? '-')
+        );
+
+        $addText(
+            'Selaku : ' .
+            ($kontrak->jabatan_penandatangan_mitra ?? '-')
+        );
+
+        $addText(
+            'Dengan demikian sah bertindak untuk dan atas nama ' .
+            $namaMitra .
+            ', selanjutnya dalam Perjanjian Pokok ini disebut MITRA.'
+        );
+
+        // Penutup identitas para pihak.
+        $addText(
+            'Selanjutnya, AP INDONESIA dan MITRA secara bersama-sama disebut "PARA PIHAK".'
+        );
+                // =========================
+        // HALAMAN 2
+        // =========================
+
+        $section->addPageBreak();
+
+        // Pendahuluan.
+        $addText(
+            'PARA PIHAK terlebih dahulu menerangkan hal-hal sebagai berikut:'
+        );
+
+        $addText(
+            'a. AP INDONESIA merupakan perseroan terbatas yang bergerak di bidang pelayanan jasa kebandarudaraan.'
+        );
+
+        $addText(
+            'b. MITRA dalam rangka melaksanakan kegiatan usahanya bermaksud memanfaatkan Fasilitas Komersial milik AP INDONESIA.'
+        );
+
+        $addText(
+            'c. Bahwa PARA PIHAK telah menyepakati pemanfaatan Fasilitas Komersial sebagaimana dituangkan dalam Berita Acara Kesepakatan [Nomor BAK belum tersedia] (Selanjutnya disebut "Berita Acara Kesepakatan") dan dokumen lain (sebagaimana relevan).'
+        );
+
+        $addText(
+            'Berdasarkan hal-hal tersebut di atas, PARA PIHAK menyatakan sepakat untuk menandatangani Perjanjian Pokok Tentang Kerja Sama Pemanfaatan Fasilitas Komersial PT Angkasa Pura Indonesia untuk Kegiatan Usaha ' .
+            $namaUsaha .
+            ' di ' .
+            $namaLokasi .
+            ' (Selanjutnya disebut "Perjanjian Pokok"), dengan ketentuan dan syarat-syarat sebagai berikut:'
+        );
+
+        // =========================
+        // PASAL 1
+        // POKOK PERJANJIAN
+        // =========================
+
+        $addHeading('PASAL 1');
+
+        $addHeading('POKOK PERJANJIAN');
+
+        $addText(
+            '(1) AP INDONESIA memberikan izin pemanfaatan Fasilitas Komersial kepada MITRA untuk melakukan kegiatan usaha, dan MITRA sepakat untuk memanfaatkan Fasilitas Komersial milik AP INDONESIA, dengan rincian sebagaimana terlampir pada Perjanjian Pokok ini.'
+        );
+
+        $addText(
+            '(2) Bentuk Kerja Sama Pemanfaatan Fasilitas Komersial adalah:'
+        );
+
+        // Pilihan bentuk kerja sama.
+        // Perlu disesuaikan dengan pilihan resmi pada data kerja sama.
+        $addText(
+            '[Bentuk kerja sama yang disepakati belum tersedia pada data kontrak.]'
+        );
+
+        $addText(
+            '(3) Atas pemanfaatan Fasilitas Komersial sebagaimana tersebut pada ayat (1) Pasal ini MITRA bersedia membayar biaya dan/atau imbalan sesuai bentuk kerja sama yang disepakati, dengan detail rincian dan cara pembayaran sebagaimana terlampir pada Perjanjian Pokok ini.'
+        );
+                // =========================
+        // HALAMAN 3
+        // =========================
+
+        $section->addPageBreak();
+
+        // =========================
+        // PASAL 2
+        // JANGKA WAKTU
+        // =========================
+
+        $addHeading('PASAL 2');
+
+        $addHeading('JANGKA WAKTU');
+
+        $tanggalMulaiText = $tanggalMulai
+            ? Carbon::parse($tanggalMulai)->locale('id')->translatedFormat('d F Y')
+            : '-';
+
+        $tanggalBerakhirText = $tanggalBerakhir
+            ? Carbon::parse($tanggalBerakhir)->locale('id')->translatedFormat('d F Y')
+            : '-';
+
+        $addText(
+            '(1) Perjanjian Pokok ini berlaku untuk jangka waktu ' .
+            $durasi .
+            ' (bulan), terhitung sejak tanggal ' .
+            $tanggalMulaiText .
+            ' sampai dengan tanggal ' .
+            $tanggalBerakhirText .
+            '.'
+        );
+
+        $addText(
+            '(2) Perpanjangan jangka waktu Perjanjian Pokok dilakukan berdasarkan kesepakatan PARA PIHAK sesuai ketentuan yang berlaku.'
+        );
+
+        // =========================
+        // PASAL 3
+        // PENINJAUAN TARIF
+        // =========================
+
+        $addHeading('PASAL 3');
+
+        $addHeading('PENINJAUAN TARIF');
+
+        $periodeEvaluasi = $kontrak->periode_evaluasi_tarif;
+        $satuanEvaluasi = $kontrak->satuan_evaluasi_tarif;
+
+        $addText(
+            '(1) Peninjauan tarif atas pemanfaatan Fasilitas Komersial dilakukan setiap ' .
+            $periodeEvaluasi .
+            ' ' .
+            $satuanEvaluasi .
+            ' atau sesuai kesepakatan PARA PIHAK berdasarkan ketentuan yang berlaku.'
+        );
+
+        // =========================
+        // PASAL 4
+        // PELAKSANAAN PERJANJIAN
+        // =========================
+
+        $addHeading('PASAL 4');
+
+        $addHeading('PELAKSANAAN PERJANJIAN');
+
+        if ($kontrak->klausul_kepemilikan_fasilitas === 'mitra') {
+            $addText(
+                '(1) Fasilitas atau sarana yang dibangun dan/atau disediakan oleh MITRA dalam rangka pelaksanaan kegiatan usaha menjadi milik MITRA, dengan tetap memperhatikan ketentuan dalam Perjanjian Pokok dan peraturan yang berlaku.'
+            );
+        } elseif ($kontrak->klausul_kepemilikan_fasilitas === 'ap_indonesia') {
+            $addText(
+                '(1) Fasilitas atau sarana yang dibangun dan/atau disediakan oleh MITRA dalam rangka pelaksanaan kegiatan usaha menjadi milik AP INDONESIA, dengan tetap memperhatikan ketentuan dalam Perjanjian Pokok dan peraturan yang berlaku.'
+            );
+        }        
+                // =========================
+        // HALAMAN 4
+        // =========================
+
+        $section->addPageBreak();
+
+        // =========================
+        // PASAL 5
+        // LAMPIRAN PERJANJIAN
+        // =========================
+
+        $addHeading('PASAL 5');
+        $addHeading('LAMPIRAN PERJANJIAN');
+
+        $addText(
+            '(1) Dokumen-dokumen yang menjadi lampiran Perjanjian Pokok ini merupakan bagian yang tidak terpisahkan dari Perjanjian Pokok.'
+        );
+
+        $addText('Lampiran Perjanjian Pokok meliputi:');
+
+        // Ambil daftar lampiran yang dipilih.
+        $daftarLampiran = $kontrak->lampiran_perjanjian ?? [];
+
+        if (is_string($daftarLampiran)) {
+            $daftarLampiran = json_decode($daftarLampiran, true) ?? [];
+        }
+
+        if (!is_array($daftarLampiran)) {
+            $daftarLampiran = [];
+        }
+
+        $nomorLampiran = 1;
+
+        foreach ($daftarLampiran as $lampiran) {
+            $addText(
+                $nomorLampiran . '. ' . $lampiran
+            );
+
+            $nomorLampiran++;
+        }
+
+        // =========================
+        // PASAL 6
+        // KORESPONDENSI
+        // =========================
+
+        $addHeading('PASAL 6');
+        $addHeading('KORESPONDENSI');
+
+        // Catatan:
+        // Redaksi resmi Pasal 6 perlu dicocokkan dengan formulir.
+        // Data kontak berikut ditampilkan sebagai informasi para pihak.
+
+        $addText(
+            'Alamat korespondensi MITRA:'
+        );
+
+        $addText(
+            'Nama: ' . ($kontrak->nama_mitra_snapshot ?? '-')
+        );
+
+        $addText(
+            'Alamat: ' . ($kontrak->alamat_mitra_snapshot ?? '-')
+        );
+
+        $addText(
+            'Telepon: ' . ($kontrak->telepon_mitra_snapshot ?? '-')
+        );
+
+        $addText(
+            'Fax: ' . ($kontrak->fax_mitra_snapshot ?: '-')
+        );
+
+        $addText(
+            'Email: ' . ($kontrak->email_mitra_snapshot ?? '-')
+        );
+
+        $addText(
+            'PIC: ' . ($kontrak->nama_pic_mitra_snapshot ?? '-')
+        );
+
+        // =========================
+        // PASAL 7
+        // PENUTUP
+        // =========================
+
+        $addHeading('PASAL 7');
+        $addHeading('PENUTUP');
+
+        // Redaksi ini merupakan penutup sementara.
+        // Sesuaikan dengan redaksi pada formulir resmi.
+
+        $addText(
+            'Demikian Perjanjian Pokok ini dibuat untuk dipahami dan dilaksanakan oleh PARA PIHAK sesuai dengan ketentuan yang disepakati.'
+        );
+
+        $addText(
+            'Perjanjian Pokok ini ditandatangani oleh PARA PIHAK pada tanggal sebagaimana tercantum dalam dokumen ini.'
+        );
+
+        // =========================
+        // BAGIAN TANDA TANGAN
+        // =========================
+
+        $section->addTextBreak(2);
+
+        $tableStyle = [
+            'borderSize' => 0,
+            'borderColor' => 'FFFFFF',
+            'cellMargin' => 100,
+            'alignment' => \PhpOffice\PhpWord\SimpleType\JcTable::CENTER,
+        ];
+
+        $cellStyle = [
+            'valign' => 'center',
+        ];
+
+        $phpWord->addTableStyle('TabelTandaTangan', $tableStyle);
+
+        $table = $section->addTable('TabelTandaTangan');
+
+        // Baris jabatan para pihak.
+        $table->addRow();
+
+        $table->addCell(4500, $cellStyle)->addText(
+            'AP INDONESIA',
+            ['bold' => true],
+            ['alignment' => 'center']
+        );
+
+        $table->addCell(4500, $cellStyle)->addText(
+            'MITRA',
+            ['bold' => true],
+            ['alignment' => 'center']
+        );
+
+        // Ruang tanda tangan.
+        $table->addRow(1800);
+
+        $table->addCell(4500, $cellStyle)->addText(
+            ''
+        );
+
+        $table->addCell(4500, $cellStyle)->addText(
+            ''
+        );
+
+        // Nama penandatangan.
+        $table->addRow();
+
+        $table->addCell(4500, $cellStyle)->addText(
+            'Laksma TNI Muhammad Tohir',
+            ['bold' => true, 'underline' => 'single'],
+            ['alignment' => 'center']
+        );
+
+        $table->addCell(4500, $cellStyle)->addText(
+            $kontrak->nama_penandatangan_mitra ?? '-',
+            ['bold' => true, 'underline' => 'single'],
+            ['alignment' => 'center']
+        );
+
+        // Jabatan penandatangan.
+        $table->addRow();
+
+        $table->addCell(4500, $cellStyle)->addText(
+            'General Manager',
+            [],
+            ['alignment' => 'center']
+        );
+
+        $table->addCell(4500, $cellStyle)->addText(
+            $kontrak->jabatan_penandatangan_mitra ?? '-',
+            [],
+            ['alignment' => 'center']
+        );
+                // =========================
+        // GENERATE FILE WORD
+        // =========================
+
+        // Membuat nama file berdasarkan nomor kontrak.
+        $namaFile = 'Perjanjian_Pokok_' .
+            $kontrak->nomor_kontrak . '.docx';
+
+        // Mengganti karakter "/" agar aman sebagai nama file.
+        $namaFile = str_replace('/', '_', $namaFile);
+
+        // Membuat file sementara.
+        $pathSementara = tempnam(
+            sys_get_temp_dir(),
+            'kontrak_'
+        );
+
+        try {
+
+            // Membuat writer Word.
+            $writer = IOFactory::createWriter(
+                $phpWord,
+                'Word2007'
+            );
+
+            // Menyimpan dokumen Word.
+            $writer->save($pathSementara);
+
+            // Mengirim file Word untuk diunduh.
+            return response()
+                ->download(
+                    $pathSementara,
+                    $namaFile,
+                    [
+                        'Content-Type' =>
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    ]
+                )
+                ->deleteFileAfterSend(true);
+
+        } catch (\Throwable $e) {
+
+            // Menghapus file sementara jika proses gagal.
+            if (file_exists($pathSementara)) {
+                unlink($pathSementara);
+            }
+
+            report($e);
+
+            return redirect()
+                ->route('kontrak.show', $kontrak->id)
+                ->with(
+                    'error',
+                    'Dokumen Word gagal dibuat. Silakan periksa kembali data kontrak.'
+                );
+        }
+    }
+    
+    /**
+     * Menghasilkan dokumen Perjanjian Pokok dalam format PDF.
+     */
+    public function downloadPdf($id)
     {
         $kontrak = Kontrak::with([
             'kerjaSama.tenant',
@@ -732,56 +1497,92 @@ public function storeKonfirmasiPerpanjangan(Request $request, $id)
             'lokasi',
         ])->findOrFail($id);
 
-        return view('kontrak.dokumen', compact('kontrak'));
-    }
+        // Pastikan data dokumen sudah dilengkapi.
+        if (
+            !$kontrak->tanggal_dokumen ||
+            !$kontrak->logo_mitra_path ||
+            !$kontrak->periode_evaluasi_tarif ||
+            !$kontrak->klausul_kepemilikan_fasilitas ||
+            !$kontrak->nama_mitra_snapshot ||
+            !$kontrak->nama_pic_mitra_snapshot ||
+            !$kontrak->nama_penandatangan_mitra ||
+            !$kontrak->data_kerja_sama_snapshot ||
+            !$kontrak->data_lokasi_snapshot
+        ) {
+            return redirect()
+                ->route('kontrak.show', $kontrak->id)
+                ->with(
+                    'error',
+                    'Lengkapi data dokumen kontrak terlebih dahulu.'
+                );
+        }
 
-public function finalPdf($id)
+        // Siapkan data untuk halaman dokumen PDF.
+        $data = [
+            'kontrak' => $kontrak,
+            'apIndonesia' => $this->getDataPerusahaan(),
+            'isPdf' => true,
+        ];
+
+        try {
+            // Membuat PDF dari halaman dokumen kontrak.
+            $pdf = Pdf::loadView(
+                'kontrak.dokumen',
+                $data
+            )->setPaper('a4', 'portrait');
+
+            // Membuat nama file PDF.
+            $namaFile = 'Perjanjian_Pokok_' .
+                $kontrak->nomor_kontrak . '.pdf';
+
+            $namaFile = str_replace('/', '_', $namaFile);
+
+            // Mengunduh PDF.
+            return $pdf->download($namaFile);
+
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('kontrak.show', $kontrak->id)
+                ->with(
+                    'error',
+                    'Dokumen PDF gagal dibuat. Silakan periksa kembali data kontrak.'
+                );
+        }
+    }
+/**
+ * Menyimpan keputusan tenant terkait perpanjangan kontrak.
+ */
+public function storeKonfirmasiPerpanjangan(Request $request, $id)
 {
     $kontrak = Kontrak::findOrFail($id);
 
-    if (
-        $kontrak->status !== 'Selesai' ||
-        blank($kontrak->final_pdf_path)
-    ) {
-        return redirect()
-            ->route('kontrak')
-            ->with('error', 'Dokumen kontrak final belum tersedia.');
-    }
+    // Validasi keputusan tenant.
+    $validated = $request->validate([
+        'status_perpanjangan' => [
+            'required',
+            'in:Ingin Memperpanjang,Tidak Memperpanjang',
+        ],
+    ], [
+        'status_perpanjangan.required' =>
+            'Keputusan tenant wajib dipilih.',
 
-    $disk = \Illuminate\Support\Facades\Storage::disk('local');
-
-    if (!$disk->exists($kontrak->final_pdf_path)) {
-        return redirect()
-            ->route('kontrak')
-            ->with('error', 'File PDF kontrak final tidak ditemukan.');
-    }
-
-    return response()->file(
-        $disk->path($kontrak->final_pdf_path),
-        [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="kontrak-final.pdf"',
-        ]
-    );
-}
-
-    public function updateDokumen(Request $request, $id)
-{
-    $request->validate([
-        'klausul_tambahan' => ['nullable', 'string', 'max:10000'],
+        'status_perpanjangan.in' =>
+            'Pilihan keputusan tenant tidak valid.',
     ]);
 
-    $kontrak = Kontrak::findOrFail($id);
-
-    $kontrak->klausul_tambahan = $request->input(
-        'klausul_tambahan',
-        ''
-    );
+    // Simpan keputusan perpanjangan ke database.
+    $kontrak->status_perpanjangan =
+        $validated['status_perpanjangan'];
 
     $kontrak->save();
 
     return redirect()
-        ->route('kontrak.show', $kontrak->id)
-        ->with('success', 'Penyesuaian dokumen berhasil disimpan.');
+        ->route('kontrak')
+        ->with(
+            'success',
+            'Konfirmasi perpanjangan kontrak berhasil disimpan.'
+        );
 }
 }
