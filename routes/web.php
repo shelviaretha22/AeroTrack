@@ -9,6 +9,7 @@ use App\Http\Controllers\KontrakController;
 use App\Http\Controllers\KerjaSamaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AktivasiController;
+use App\Http\Controllers\NotifikasiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -103,6 +104,20 @@ Route::get(
     [KerjaSamaController::class, 'downloadBeritaAcara']
 )->middleware('auth')
     ->name('kerja-sama.berita-acara.download');
+
+// Unggah BA final (sudah ditandatangani di luar sistem)
+Route::post(
+    '/kerja-sama/{id}/berita-acara/final',
+    [KerjaSamaController::class, 'unggahBeritaAcaraFinal']
+)->middleware('auth')
+    ->name('kerja-sama.berita-acara.final.upload');
+
+// Lihat BA final
+Route::get(
+    '/kerja-sama/{id}/berita-acara/final',
+    [KerjaSamaController::class, 'lihatBeritaAcaraFinal']
+)->middleware('auth')
+    ->name('kerja-sama.berita-acara.final');
 
 // ================================
 // DETAIL, EDIT, UPDATE, DELETE
@@ -255,6 +270,19 @@ Route::middleware('auth')->group(function () {
         [AktivasiController::class, 'index']
     )->name('aktivasi');
 
+    // Halaman Detail Aktivasi
+    Route::get(
+        '/aktivasi/{kerjaSama}',
+        [AktivasiController::class, 'show']
+    )->whereNumber('kerjaSama')
+        ->name('aktivasi.show');
+
+    // Simpan catatan Kontrak Fisik
+    Route::post(
+        '/aktivasi/{kerjaSama}/kontrak-fisik',
+        [AktivasiController::class, 'updateKontrakFisik']
+    )->name('aktivasi.kontrak-fisik');
+
     // Membuat pengajuan aktivasi baru
     Route::post(
         '/aktivasi/{kerjaSamaId}/request',
@@ -289,15 +317,6 @@ Route::get('/pendapatan', function () {
     return view('pendapatan.index');
 })->middleware('auth')
     ->name('pendapatan');
-
-// ================================
-// MONITORING
-// ================================
-
-Route::get('/monitoring', function () {
-    return view('monitoring.index');
-})->middleware('auth')
-    ->name('monitoring');
 
 // ================================
 // LAPORAN
@@ -339,6 +358,12 @@ Route::middleware('auth')->group(function () {
         [ProfileController::class, 'updatePreferences']
     )->name('profile.preferences.update');
 
+    // Keluarkan akun dari perangkat/sesi lain
+    Route::post(
+        '/profile/sesi/keluar-lainnya',
+        [ProfileController::class, 'keluarkanSesiLain']
+    )->name('profile.sesi.keluar-lainnya');
+
        // MASTER PERUSAHAAN
     Route::get(
         '/profile/perusahaan',
@@ -357,3 +382,19 @@ Route::middleware('auth')->group(function () {
 // ================================
 
 require __DIR__.'/auth.php';
+
+// ================================
+// NOTIFIKASI
+// ================================
+
+Route::middleware('auth')->prefix('notifikasi')->name('notifikasi.')->group(function () {
+
+    Route::get('/', [NotifikasiController::class, 'index'])->name('index');
+
+    // Tandai dibaca lalu buka halaman tujuan
+    Route::get('/buka', [NotifikasiController::class, 'buka'])->name('buka');
+
+    Route::post('/baca', [NotifikasiController::class, 'baca'])->name('baca');
+
+    Route::post('/baca-semua', [NotifikasiController::class, 'bacaSemua'])->name('baca-semua');
+});

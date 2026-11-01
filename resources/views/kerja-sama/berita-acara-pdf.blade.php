@@ -287,7 +287,7 @@
         <tr>
             <td>Kode Ruang</td>
             <td class="separator">:</td>
-            <td>{{ $formatNilai($lokasi->kode_ruang ?? null) }}</td>
+            <td>{{ $formatNilai($lokasi->kode_tampilan ?? null) }}</td>
         </tr>
         <tr>
             <td>Jenis Ruangan</td>

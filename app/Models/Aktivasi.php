@@ -18,6 +18,10 @@ class Aktivasi extends Model
         'tanggal_keputusan',
         'catatan',
         'dokumen_path',
+        'ttd_commercial_path',
+        'ttd_type',
+        'nama_penandatangan',
+        'jabatan_penandatangan',
     ];
 
     protected $casts = [

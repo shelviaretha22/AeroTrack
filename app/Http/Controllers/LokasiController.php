@@ -11,6 +11,12 @@ use Illuminate\Validation\ValidationException;
 
 class LokasiController extends Controller
 {
+    /** Daftar jenis ruangan baku. */
+    public const JENIS_RUANGAN = [
+        'Store', 'Counter', 'Customer Service',
+        'Lounge', 'Antena', 'Gudang', 'Lainnya',
+    ];
+
     /**
      * Menampilkan daftar lokasi dan statistik dashboard.
      */
@@ -28,8 +34,11 @@ class LokasiController extends Controller
 
         $totalTerisi = Lokasi::where('status', 'Terisi')->count();
 
+        // Catatan: operator pembanding harus diikuti nilainya.
+        // where('kolom', '<>') tanpa nilai dibaca sebagai kolom = '<>'
+        // sehingga tidak pernah ada data yang cocok.
         $totalJenisRuangan = Lokasi::whereNotNull('jenis_ruangan')
-            ->where('jenis_ruangan', '<>')
+            ->where('jenis_ruangan', '<>', '')
             ->distinct()
             ->count('jenis_ruangan');
 
@@ -41,39 +50,127 @@ class LokasiController extends Controller
             ? round(($totalTerisi / $totalLokasi) * 100, 1)
             : 0;
 
+        $totalLuas = (float) Lokasi::sum('luas_area');
+
+        $luasTerisi = (float) Lokasi::where('status', 'Terisi')
+            ->sum('luas_area');
+
         /*
-         * GRAFIK JUMLAH LOKASI PER TERMINAL
+         * GRAFIK PER TERMINAL (total, terisi, kosong)
          */
         $lokasiPerTerminal = Lokasi::select(
             'terminal',
-            DB::raw('COUNT(*) as total')
+            DB::raw('COUNT(*) as total'),
+            DB::raw("SUM(CASE WHEN status = 'Terisi' THEN 1 ELSE 0 END) as terisi")
         )
             ->whereNotNull('terminal')
+            ->where('terminal', '<>', '')
             ->groupBy('terminal')
             ->orderBy('terminal')
             ->get();
 
         /*
-         * GRAFIK JUMLAH LOKASI PER JENIS RUANGAN
+         * GRAFIK PER JENIS RUANGAN (total, terisi, kosong)
          */
         $lokasiPerJenis = Lokasi::select(
             'jenis_ruangan',
-            DB::raw('COUNT(*) as total')
+            DB::raw('COUNT(*) as total'),
+            DB::raw("SUM(CASE WHEN status = 'Terisi' THEN 1 ELSE 0 END) as terisi")
         )
             ->whereNotNull('jenis_ruangan')
-            ->where('jenis_ruangan', '<>')
+            ->where('jenis_ruangan', '<>', '')
             ->groupBy('jenis_ruangan')
             ->orderByDesc('total')
             ->orderBy('jenis_ruangan')
             ->get();
 
         /*
+         * HEATMAP OKUPANSI: terminal x lantai
+         */
+        $matriksLantai = Lokasi::select(
+            'terminal',
+            'lantai',
+            DB::raw('COUNT(*) as total'),
+            DB::raw("SUM(CASE WHEN status = 'Terisi' THEN 1 ELSE 0 END) as terisi")
+        )
+            ->whereNotNull('terminal')->where('terminal', '<>', '')
+            ->whereNotNull('lantai')->where('lantai', '<>', '')
+            ->groupBy('terminal', 'lantai')
+            ->get()
+            ->keyBy(fn ($r) => $r->terminal . '|' . $r->lantai);
+
+        $daftarTerminal = $matriksLantai->pluck('terminal')->unique()->sort()->values();
+
+        $daftarLantai = $matriksLantai->pluck('lantai')->unique()
+            ->sortBy(fn ($l) => is_numeric($l) ? (int) $l : 999)
+            ->values();
+
+        /*
+         * DENAH OKUPANSI: setiap ruangan sebagai satu kotak
+         * terminal -> lantai -> daftar ruangan
+         */
+        $denah = Lokasi::select(
+            'id', 'terminal', 'lantai', 'kode_ruang',
+            'jenis_ruangan', 'status', 'luas_area', 'lokasi'
+        )
+            ->whereNotNull('terminal')->where('terminal', '<>', '')
+            ->orderBy('terminal')
+            ->orderBy('kode_ruang')
+            ->get()
+            ->groupBy('terminal')
+            ->map(fn ($perTerminal) => $perTerminal
+                ->groupBy(fn ($l) => $l->lantai ?: '-')
+                ->sortKeys(SORT_NATURAL));
+
+        /*
+         * KOMPOSISI JENIS USAHA tenant pada lokasi yang terisi
+         */
+        $perJenisUsaha = Lokasi::query()
+            ->join('tenants', 'tenants.id', '=', 'lokasis.tenant_id')
+            ->leftJoin('kerja_samas', 'kerja_samas.id', '=', 'tenants.kerja_sama_id')
+            ->where('lokasis.status', 'Terisi')
+            ->select(
+                DB::raw("COALESCE(NULLIF(tenants.jenis_usaha, ''), NULLIF(kerja_samas.jenis_usaha, ''), 'Belum diisi') as jenis_usaha"),
+                DB::raw('COUNT(*) as total'),
+                DB::raw('COALESCE(SUM(lokasis.luas_area), 0) as luas')
+            )
+            ->groupBy('jenis_usaha')
+            ->orderByDesc('total')
+            ->get();
+
+        /*
+         * PILIHAN FILTER
+         * Diambil dari data yang benar-benar ada, digabung dengan daftar baku.
+         */
+        $pilihanTerminal = Lokasi::whereNotNull('terminal')
+            ->where('terminal', '<>', '')
+            ->distinct()
+            ->orderBy('terminal')
+            ->pluck('terminal');
+
+        $pilihanLantai = Lokasi::whereNotNull('lantai')
+            ->where('lantai', '<>', '')
+            ->distinct()
+            ->pluck('lantai')
+            ->sortBy(fn ($l) => is_numeric($l) ? (int) $l : 999)
+            ->values();
+
+        $pilihanJenis = collect(self::JENIS_RUANGAN)
+            ->merge(
+                Lokasi::whereNotNull('jenis_ruangan')
+                    ->where('jenis_ruangan', '<>', '')
+                    ->distinct()
+                    ->pluck('jenis_ruangan')
+            )
+            ->unique()
+            ->values();
+
+        /*
          * DATA TABEL
-         * Pencarian, filter, dan pengurutan tetap bekerja seperti sebelumnya.
          */
         $query = Lokasi::with('tenant');
 
-        // Pencarian lokasi.
+        // Pencarian lokasi (termasuk nama tenant).
         if ($request->filled('search')) {
             $search = trim($request->search);
 
@@ -82,26 +179,26 @@ class LokasiController extends Controller
                     ->orWhere('nomor_ro', 'like', "%{$search}%")
                     ->orWhere('kode_ruang', 'like', "%{$search}%")
                     ->orWhere('lokasi', 'like', "%{$search}%")
-                    ->orWhere('jenis_ruangan', 'like', "%{$search}%");
+                    ->orWhere('jenis_ruangan', 'like', "%{$search}%")
+                    ->orWhereHas('tenant', function ($t) use ($search) {
+                        $t->where('nama_tenant', 'like', "%{$search}%")
+                            ->orWhere('mitra_usaha', 'like', "%{$search}%");
+                    });
             });
         }
 
-        // Filter terminal.
         if ($request->filled('terminal')) {
             $query->where('terminal', $request->terminal);
         }
 
-        // Filter lantai.
         if ($request->filled('lantai')) {
             $query->where('lantai', $request->lantai);
         }
 
-        // Filter jenis ruangan.
         if ($request->filled('jenis_ruangan')) {
             $query->where('jenis_ruangan', $request->jenis_ruangan);
         }
 
-        // Filter status.
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -120,23 +217,47 @@ class LokasiController extends Controller
                 $query->orderBy('kode_ruang', 'desc');
                 break;
 
+            case 'luas_desc':
+                $query->orderByDesc('luas_area');
+                break;
+
+            case 'luas_asc':
+                $query->orderBy('luas_area', 'asc');
+                break;
+
             default:
-                $query->orderBy('created_at', 'desc');
+                $query->orderBy('created_at', 'desc')->orderByDesc('id');
                 break;
         }
 
-        $lokasis = $query->get();
+        $perPage = (int) $request->get('per_page', 15);
+        $perPage = in_array($perPage, [10, 15, 25, 50, 100], true)
+            ? $perPage
+            : 15;
+
+        $lokasis = $query->paginate($perPage)->withQueryString();
 
         return view('lokasi.index', compact(
             'lokasis',
+            'perPage',
             'totalLokasi',
             'totalKosong',
             'totalTerisi',
             'totalJenisRuangan',
             'persentaseKosong',
             'persentaseTerisi',
+            'totalLuas',
+            'luasTerisi',
             'lokasiPerTerminal',
-            'lokasiPerJenis'
+            'lokasiPerJenis',
+            'matriksLantai',
+            'daftarTerminal',
+            'daftarLantai',
+            'denah',
+            'perJenisUsaha',
+            'pilihanTerminal',
+            'pilihanLantai',
+            'pilihanJenis'
         ));
     }
 
@@ -262,9 +383,18 @@ class LokasiController extends Controller
      */
     public function show(Lokasi $lokasi)
     {
-        $lokasi->load('tenant');
+        $lokasi->load('tenant.kerjaSama');
 
-        return view('lokasi.show', compact('lokasi'));
+        // Ruangan lain di terminal & lantai yang sama (untuk mini denah).
+        $ruanganSelantai = Lokasi::select(
+            'id', 'kode_ruang', 'status', 'jenis_ruangan', 'luas_area', 'lokasi'
+        )
+            ->where('terminal', $lokasi->terminal)
+            ->where('lantai', $lokasi->lantai)
+            ->orderBy('kode_ruang')
+            ->get();
+
+        return view('lokasi.show', compact('lokasi', 'ruanganSelantai'));
     }
 
     /**
