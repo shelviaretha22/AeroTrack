@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Aktivasi;
+use App\Models\AktivasiProgres;
+use App\Models\AktivasiRiwayat;
 use App\Models\KerjaSama;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -19,17 +22,12 @@ class AktivasiController extends Controller
     {
         $semuaData = KerjaSama::with([
             'tenant',
-            'lokasi',
+            'lokasi.tenant',
             'aktivasi',
+            'kontrakTerbaru',
         ])
-            ->whereNotNull('berita_acara_path')
             ->latest()
-            ->get()
-            ->filter(function ($kerjaSama) {
-                return Storage::disk('local')->exists(
-                    $kerjaSama->berita_acara_path
-                );
-            });
+            ->get();
 
         $dataAktivasi = $semuaData;
 
@@ -38,14 +36,11 @@ class AktivasiController extends Controller
 
             $dataAktivasi = $dataAktivasi->filter(
                 function ($kerjaSama) use ($keyword) {
-                    $aktivasi = $kerjaSama->aktivasi;
-                    $tenant = $kerjaSama->tenant;
-
                     $dataCari = [
-                        $aktivasi?->nomor_pengajuan,
+                        $kerjaSama->aktivasi?->nomor_pengajuan,
                         $kerjaSama->mitra_usaha,
                         $kerjaSama->brand,
-                        $tenant?->nama_tenant,
+                        $kerjaSama->tenant?->nama_tenant,
                         (string) $kerjaSama->id,
                     ];
 
@@ -66,55 +61,236 @@ class AktivasiController extends Controller
             );
         }
 
-        if ($request->filled('status')) {
-            $statusFilter = $request->status;
-
+        if ($request->filled('kontrak_fisik')) {
             $dataAktivasi = $dataAktivasi->filter(
-                function ($kerjaSama) use ($statusFilter) {
-                    return (
-                        $kerjaSama->aktivasi?->status
-                        ?? 'Belum Diajukan'
-                    ) === $statusFilter;
-                }
+                fn ($ks) => $ks->posisiKontrakFisik()
+                    === $request->kontrak_fisik
             );
         }
 
-        $dataAktivasi = $dataAktivasi->values();
+        if ($request->filled('kontrak_sistem')) {
+            $dataAktivasi = $dataAktivasi->filter(
+                fn ($ks) => $ks->statusKontrakSistem()
+                    === $request->kontrak_sistem
+            );
+        }
 
-        $totalAktivasi = $semuaData->count();
+        if ($request->filled('status')) {
+            $dataAktivasi = $dataAktivasi->filter(
+                fn ($ks) => $ks->statusAktivasi() === $request->status
+            );
+        }
 
-        $menunggu = $semuaData->filter(function ($kerjaSama) {
-            return $kerjaSama->aktivasi?->status
-                === 'Menunggu Keputusan';
-        })->count();
+        /*
+         * DATA DIAGRAM
+         * Dihitung dari seluruh kerja sama, tidak terpengaruh filter tabel.
+         */
+        $perAktivasi = collect(KerjaSama::STATUS_AKTIVASI)->mapWithKeys(
+            fn ($status) => [
+                $status => $semuaData
+                    ->filter(fn ($ks) => $ks->statusAktivasi() === $status)
+                    ->count(),
+            ]
+        );
 
-        $disetujui = $semuaData->filter(function ($kerjaSama) {
-            return $kerjaSama->aktivasi?->status === 'Disetujui';
-        })->count();
+        $perKontrakFisik = collect(KerjaSama::POSISI_KONTRAK_FISIK)->mapWithKeys(
+            fn ($posisi) => [
+                $posisi => $semuaData
+                    ->filter(fn ($ks) => $ks->posisiKontrakFisik() === $posisi)
+                    ->count(),
+            ]
+        );
 
-        $ditolak = $semuaData->filter(function ($kerjaSama) {
-            return $kerjaSama->aktivasi?->status === 'Ditolak';
-        })->count();
+        $perTerminal = $semuaData
+            ->groupBy(fn ($ks) => $ks->lokasi?->terminal ?: 'Belum ada lokasi')
+            ->map(fn ($grup) => [
+                'total' => $grup->count(),
+                'aktif' => $grup
+                    ->filter(fn ($ks) => $ks->statusKontrakSistem() === 'Aktif')
+                    ->count(),
+                'menunggu' => $grup
+                    ->filter(fn ($ks) => $ks->statusAktivasi() === 'Menunggu Keputusan')
+                    ->count(),
+            ])
+            ->sortKeys();
 
-        return view('aktivasi.index', compact(
-            'dataAktivasi',
-            'totalAktivasi',
-            'menunggu',
-            'disetujui',
-            'ditolak'
-        ));
+        // Kontrak sistem yang sudah aktif dan akan berakhir dalam 90 hari
+        // (atau sudah lewat), diurutkan dari yang paling mendesak.
+        $segeraBerakhir = $semuaData
+            ->filter(fn ($ks) => $ks->tanggal_berakhir
+                && $ks->statusKontrakSistem() === 'Aktif'
+                && $ks->tanggal_berakhir->lte(now()->addDays(90)))
+            ->sortBy('tanggal_berakhir')
+            ->take(5)
+            ->values();
+
+        return view('aktivasi.index', [
+            'perAktivasi' => $perAktivasi,
+            'perKontrakFisik' => $perKontrakFisik,
+            'perTerminal' => $perTerminal,
+            'segeraBerakhir' => $segeraBerakhir,
+            'dataAktivasi' => $dataAktivasi->values(),
+            'totalAktivasi' => $semuaData->count(),
+            'menunggu' => $semuaData->filter(
+                fn ($ks) => $ks->statusAktivasi() === 'Menunggu Keputusan'
+            )->count(),
+            'disetujui' => $semuaData->filter(
+                fn ($ks) => $ks->statusAktivasi() === 'Disetujui'
+            )->count(),
+            'sistemAktif' => $semuaData->filter(
+                fn ($ks) => $ks->statusKontrakSistem() === 'Aktif'
+            )->count(),
+            'opsiKontrakFisik' => KerjaSama::POSISI_KONTRAK_FISIK,
+            'opsiKontrakSistem' => KerjaSama::STATUS_KONTRAK_SISTEM,
+            'opsiAktivasi' => KerjaSama::STATUS_AKTIVASI,
+        ]);
+    }
+
+    /**
+     * Halaman Detail: tiga bagian per Kerja Sama.
+     */
+    public function show(KerjaSama $kerjaSama)
+    {
+        $kerjaSama->load([
+            'tenant',
+            'lokasi.tenant',
+            'aktivasi',
+            'aktivasis' => fn ($q) => $q->orderByDesc('id'),
+            'progres',
+            'kontrakTerbaru',
+            'aktivasiRiwayats.user',
+        ]);
+
+        return view('aktivasi.show', [
+            'kerjaSama' => $kerjaSama,
+            'tenant' => $kerjaSama->tenant,
+            'lokasi' => $kerjaSama->lokasi,
+            'progres' => $kerjaSama->progres,
+            'kontrak' => $kerjaSama->kontrakTerbaru,
+        ]);
+    }
+
+    /**
+     * Catatan perkembangan Kontrak Fisik.
+     * Posisi BA/kontrak dihitung otomatis dari data.
+     */
+    public function updateKontrakFisik(
+        Request $request,
+        KerjaSama $kerjaSama
+    ) {
+        $validated = $request->validate([
+            'kontrak_fisik_catatan' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        DB::transaction(function () use ($kerjaSama, $validated) {
+            $progres = AktivasiProgres::firstOrNew([
+                'kerja_sama_id' => $kerjaSama->id,
+            ]);
+
+            $progres->kontrak_fisik_catatan =
+                $validated['kontrak_fisik_catatan'] ?? null;
+            $progres->kontrak_fisik_updated_at = now();
+            $progres->save();
+
+            $this->catatRiwayat(
+                $kerjaSama->id,
+                'Kontrak Fisik',
+                'Catatan perkembangan diperbarui.'
+            );
+        });
+
+        return redirect()
+            ->route('aktivasi.show', $kerjaSama->id)
+            ->with('success', 'Catatan Kontrak Fisik berhasil disimpan.');
+    }
+
+    private function catatRiwayat(
+        int $kerjaSamaId,
+        string $komponen,
+        string $keterangan
+    ): void {
+        AktivasiRiwayat::create([
+            'kerja_sama_id' => $kerjaSamaId,
+            'user_id' => Auth::id(),
+            'komponen' => $komponen,
+            'keterangan' => $keterangan,
+        ]);
+    }
+
+    /**
+     * Menyimpan tanda tangan PIC Commercial (gambar langsung / unggah).
+     */
+    private function simpanTtd(Request $request): string
+    {
+        if ($request->ttd_type === 'upload') {
+            return $request->file('ttd_file')
+                ->store('aktivasi/ttd', 'local');
+        }
+
+        $data = (string) $request->ttd_draw;
+
+        if (!preg_match('#^data:image/png;base64,#', $data)) {
+            throw new \RuntimeException('Tanda tangan tidak valid.');
+        }
+
+        $biner = base64_decode(
+            substr($data, strpos($data, ',') + 1),
+            true
+        );
+
+        if (
+            $biner === false ||
+            strlen($biner) > 2 * 1024 * 1024 ||
+            @getimagesizefromstring($biner) === false
+        ) {
+            throw new \RuntimeException('Tanda tangan tidak valid.');
+        }
+
+        $path = 'aktivasi/ttd/' . uniqid('ttd_', true) . '.png';
+        Storage::disk('local')->put($path, $biner);
+
+        return $path;
     }
 
     /**
      * Membuat pengajuan aktivasi baru dan PDF secara otomatis.
      */
-    public function requestAktivasi($kerjaSamaId)
+    public function requestAktivasi(Request $request, $kerjaSamaId)
     {
+        $validated = $request->validate([
+            'nama_penandatangan' => ['required', 'string', 'max:150'],
+            'jabatan_penandatangan' => ['required', 'string', 'max:150'],
+            'ttd_type' => ['required', 'in:draw,upload'],
+            'ttd_draw' => ['required_if:ttd_type,draw', 'nullable', 'string'],
+            'ttd_file' => [
+                'required_if:ttd_type,upload',
+                'nullable',
+                'file',
+                'mimes:png,jpg,jpeg',
+                'max:2048',
+            ],
+        ], [
+            'nama_penandatangan.required' => 'Nama penandatangan wajib diisi.',
+            'jabatan_penandatangan.required' => 'Jabatan penandatangan wajib diisi.',
+            'ttd_draw.required_if' => 'Tanda tangan wajib digambar.',
+            'ttd_file.required_if' => 'File tanda tangan wajib diunggah.',
+            'ttd_file.mimes' => 'Tanda tangan harus berupa PNG atau JPG.',
+            'ttd_file.max' => 'Ukuran tanda tangan maksimal 2 MB.',
+        ]);
+
         $aktivasi = null;
         $pathSurat = null;
+        $pathTtd = null;
 
         try {
-            $aktivasi = DB::transaction(function () use ($kerjaSamaId) {
+            $pathTtd = $this->simpanTtd($request);
+
+            $aktivasi = DB::transaction(function () use (
+                $kerjaSamaId,
+                $validated,
+                $pathTtd,
+                $request
+            ) {
                 $kerjaSama = KerjaSama::with([
                     'tenant',
                     'lokasi',
@@ -122,12 +298,7 @@ class AktivasiController extends Controller
                     ->lockForUpdate()
                     ->findOrFail($kerjaSamaId);
 
-                if (
-                    !$kerjaSama->berita_acara_path ||
-                    !Storage::disk('local')->exists(
-                        $kerjaSama->berita_acara_path
-                    )
-                ) {
+                if (!$kerjaSama->baTersedia()) {
                     throw new \RuntimeException(
                         'Pengajuan belum dapat dibuat karena dokumen BA belum tersedia.'
                     );
@@ -177,6 +348,10 @@ class AktivasiController extends Controller
                     'kerja_sama_id' => $kerjaSama->id,
                     'tanggal_pengajuan' => now()->toDateString(),
                     'status' => 'Menunggu Keputusan',
+                    'ttd_commercial_path' => $pathTtd,
+                    'ttd_type' => $validated['ttd_type'],
+                    'nama_penandatangan' => $validated['nama_penandatangan'],
+                    'jabatan_penandatangan' => $validated['jabatan_penandatangan'],
                 ]);
 
                 $aktivasi->nomor_pengajuan = sprintf(
@@ -202,6 +377,7 @@ class AktivasiController extends Controller
                     'kerjaSama' => $kerjaSama,
                     'tenant' => $kerjaSama->tenant,
                     'lokasi' => $kerjaSama->lokasi,
+                    'ttdDataUri' => $this->ttdDataUri($aktivasi),
                 ]
             );
 
@@ -217,8 +393,15 @@ class AktivasiController extends Controller
             $aktivasi->surat_pengajuan_path = $pathSurat;
             $aktivasi->save();
 
+            $this->catatRiwayat(
+                (int) $kerjaSamaId,
+                'Aktivasi',
+                'Pengajuan ' . $aktivasi->nomor_pengajuan
+                    . ' dibuat dengan status "Menunggu Keputusan".'
+            );
+
             return redirect()
-                ->route('aktivasi')
+                ->route('aktivasi.show', $kerjaSamaId)
                 ->with(
                     'success',
                     'Pengajuan aktivasi berhasil dibuat dan surat PDF sudah tersedia.'
@@ -230,13 +413,34 @@ class AktivasiController extends Controller
                 Storage::disk('local')->delete($pathSurat);
             }
 
+            // Jika surat gagal dibuat, batalkan pengajuan agar tidak
+            // tersisa data "Menunggu Keputusan" tanpa surat.
+            if ($aktivasi && !$aktivasi->surat_pengajuan_path) {
+                $aktivasi->delete();
+            }
+
+            if ($pathTtd) {
+                Storage::disk('local')->delete($pathTtd);
+            }
+
             if ($e instanceof \RuntimeException) {
                 return back()->with('error', $e->getMessage());
             }
 
+            $kolomHilang = $e instanceof \Illuminate\Database\QueryException
+                && (
+                    str_contains($e->getMessage(), 'no column')
+                    || str_contains($e->getMessage(), 'Unknown column')
+                    || str_contains($e->getMessage(), 'no such column')
+                );
+
+            $penyebab = $kolomHilang
+                ? 'Kolom database belum ada. Jalankan "php artisan migrate" lalu coba lagi.'
+                : \Illuminate\Support\Str::limit($e->getMessage(), 300);
+
             return back()->with(
                 'error',
-                'Pengajuan gagal dibuat. Periksa konfigurasi PDF dan log Laravel.'
+                'Pengajuan gagal dibuat. Penyebab: ' . $penyebab
             );
         }
     }
@@ -273,10 +477,13 @@ class AktivasiController extends Controller
             ],
             'catatan' => [
                 'nullable',
+                'required_if:status,Ditolak',
                 'string',
                 'max:2000',
             ],
         ], [
+            'catatan.required_if' =>
+                'Catatan / alasan wajib diisi jika pengajuan ditolak.',
             'tanggal_keputusan.required' =>
                 'Tanggal keputusan wajib diisi.',
             'tanggal_keputusan.before_or_equal' =>
@@ -317,8 +524,15 @@ class AktivasiController extends Controller
                 $data->save();
             });
 
+            $this->catatRiwayat(
+                (int) $aktivasi->kerja_sama_id,
+                'Aktivasi',
+                'Keputusan pengajuan ' . $aktivasi->nomor_pengajuan
+                    . ' dicatat: ' . $validated['status'] . '.'
+            );
+
             return redirect()
-                ->route('aktivasi')
+                ->route('aktivasi.show', $aktivasi->kerja_sama_id)
                 ->with(
                     'success',
                     'Keputusan resmi berhasil dicatat.'
@@ -381,5 +595,19 @@ class AktivasiController extends Controller
         return Storage::disk('local')->download(
             $aktivasi->dokumen_path
         );
+    }
+
+    private function ttdDataUri(Aktivasi $aktivasi): ?string
+    {
+        $path = $aktivasi->ttd_commercial_path;
+
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            return null;
+        }
+
+        $mime = Storage::disk('local')->mimeType($path) ?: 'image/png';
+
+        return 'data:' . $mime . ';base64,'
+            . base64_encode(Storage::disk('local')->get($path));
     }
 }

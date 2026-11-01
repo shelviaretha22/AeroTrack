@@ -7,13 +7,14 @@
     <style>
         @page {
             size: A4;
-            margin: 2.5cm;
+            margin: 1.6cm 2cm;
         }
 
         body {
             font-family: "DejaVu Sans", sans-serif;
-            font-size: 11pt;
-            line-height: 1.6;
+            font-size: 10pt;
+            margin: 0;
+            line-height: 1.35;
             color: #222;
         }
 
@@ -21,7 +22,7 @@
             text-align: center;
             border-bottom: 2px solid #365F65;
             padding-bottom: 14px;
-            margin-bottom: 24px;
+            margin-bottom: 14px;
         }
 
         .header h2 {
@@ -39,18 +40,18 @@
             text-align: center;
             font-weight: bold;
             text-decoration: underline;
-            margin: 24px 0 4px;
+            margin: 14px 0 4px;
         }
 
         .nomor {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 14px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 16px 0;
+            margin: 8px 0;
         }
 
         td {
@@ -74,13 +75,17 @@
         }
 
         .ruang-ttd {
-            height: 70px;
+            height: 60px;
         }
+
+        .tabel-ttd { margin-top: 18px; }
+        .kolom-ttd { width: 50%; text-align: center; }
+        .kolom-ttd p { margin: 2px 0; }
 
         .catatan {
             font-size: 9pt;
             color: #666;
-            margin-top: 30px;
+            margin-top: 14px;
             border-top: 1px solid #ccc;
             padding-top: 8px;
         }
@@ -138,7 +143,13 @@
         <tr>
             <td class="label">Lokasi Tenant</td>
             <td>:
-                {{ $lokasi->nama_lokasi ?? $lokasi->kode_lokasi ?? '-' }}
+                @if ($lokasi)
+                    {{ $lokasi->kode_tampilan ?: '-' }}
+                    @if ($lokasi->terminal) — {{ $lokasi->terminal }} @endif
+                    @if ($lokasi->lokasi) ({{ $lokasi->lokasi }}) @endif
+                @else
+                    -
+                @endif
             </td>
         </tr>
         <tr>
@@ -158,13 +169,29 @@
         mengucapkan terima kasih.
     </p>
 
-    <div class="ttd">
-        <p>Hormat kami,</p>
-        <p>Commercial</p>
-        <div class="ruang-ttd"></div>
-        <p><strong>________________________</strong></p>
-        <p>Penanggung Jawab</p>
-    </div>
+    <table class="tabel-ttd">
+        <tr>
+            <td class="kolom-ttd">
+                <p>Menyetujui,</p>
+                <p><strong>Commercial Pusat</strong></p>
+                <div class="ruang-ttd"></div>
+                <p><strong>________________________</strong></p>
+                <p>Nama / Jabatan</p>
+                <p>Tanggal: ____________________</p>
+            </td>
+            <td class="kolom-ttd">
+                <p>Hormat kami,</p>
+                <p><strong>Commercial</strong></p>
+                <div class="ruang-ttd">
+                    @if (!empty($ttdDataUri))
+                        <img src="{{ $ttdDataUri }}" style="max-height: 60px; max-width: 180px;">
+                    @endif
+                </div>
+                <p><strong><u>{{ $aktivasi->nama_penandatangan ?: '________________________' }}</u></strong></p>
+                <p>{{ $aktivasi->jabatan_penandatangan ?: 'Penanggung Jawab' }}</p>
+            </td>
+        </tr>
+    </table>
 
     <div class="catatan">
         Dokumen ini merupakan draf pengajuan yang dihasilkan oleh

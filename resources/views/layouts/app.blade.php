@@ -295,30 +295,6 @@
                         <span>Pendapatan</span>
                     </a>
 
-                    {{-- MONITORING --}}
-                    <a
-                        href="#"
-                        class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-[19px] h-[19px] shrink-0"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"
-                            />
-                            <circle cx="12" cy="12" r="2.5" />
-                        </svg>
-
-                        <span>Monitoring</span>
-                    </a>
-
                     {{-- LAPORAN --}}
                     <a
                         href="#"
@@ -505,48 +481,61 @@
                     </div>
 
                     {{-- NOTIFICATION --}}
-                    <button
-                        class="relative w-10 h-10 rounded-xl bg-[#F3F6F5] flex items-center justify-center text-[#527D82] hover:bg-[#E8F0EE] transition"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-5 h-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
-                            />
-                        </svg>
-
-                        {{-- Notification Dot --}}
-                        <span
-                            class="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#4F8189]"
-                        ></span>
-                    </button>
+                    @include('notifikasi._dropdown')
 
                     {{-- USER --}}
-                    <div class="hidden sm:flex items-center gap-3 pl-2">
-                        <div
-                            class="w-9 h-9 rounded-xl bg-[#D9E5E3] flex items-center justify-center text-[#365F65] font-bold text-sm"
-                        >
-                            C
-                        </div>
+                    @auth
+                    <div class="relative" x-data="{ buka: false }" @keydown.escape.window="buka = false" @click.outside="buka = false">
+                        <button type="button" @click="buka = !buka" :aria-expanded="buka" aria-haspopup="true"
+                                class="flex items-center gap-3 rounded-xl py-1 pl-1 pr-2 transition hover:bg-[#F3F6F5]">
+                            @if (auth()->user()->avatar_path)
+                                <img src="{{ asset('storage/' . auth()->user()->avatar_path) }}" alt=""
+                                     class="h-9 w-9 rounded-xl object-cover">
+                            @else
+                                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#D9E5E3] text-sm font-bold text-[#365F65]">
+                                    {{ auth()->user()->inisial }}
+                                </span>
+                            @endif
 
-                        <div class="hidden lg:block">
-                            <p class="text-xs font-bold text-[#365F65]">
-                                Commercial
-                            </p>
+                            <span class="hidden text-left lg:block">
+                                <span class="block max-w-[140px] truncate text-xs font-bold text-[#365F65]">{{ auth()->user()->name }}</span>
+                                <span class="block text-[10px] text-[#8BA5A2]">{{ auth()->user()->peran }}</span>
+                            </span>
 
-                            <p class="text-[10px] text-[#8BA5A2]">
-                                Administrator
-                            </p>
+                            <svg class="hidden h-4 w-4 text-[#8BA5A2] transition sm:block" :class="buka ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+
+                        <div x-show="buka" x-transition.origin.top.right style="display: none;"
+                             class="absolute right-0 z-50 mt-3 w-60 overflow-hidden rounded-2xl border border-[#E2EBE9] bg-white shadow-xl">
+                            <div class="border-b border-[#E2EBE9] px-4 py-3">
+                                <p class="truncate text-sm font-bold text-[#365F65]">{{ auth()->user()->name }}</p>
+                                <p class="truncate text-xs text-[#8BA5A2]">{{ auth()->user()->email }}</p>
+                            </div>
+
+                            <div class="p-1.5 text-sm font-medium text-[#527D82]">
+                                <a href="{{ route('profile.index') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-[#F3F6F5]">
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                                    Profile &amp; Pengaturan
+                                </a>
+                                <a href="{{ route('notifikasi.index') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-[#F3F6F5]">
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+                                    Semua notifikasi
+                                    @if (($notifRingkas['belum'] ?? 0) > 0)
+                                        <span class="ml-auto rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">{{ $notifRingkas['belum'] }}</span>
+                                    @endif
+                                </a>
+                            </div>
+
+                            <form action="{{ route('logout') }}" method="POST" class="border-t border-[#E2EBE9] p-1.5">
+                                @csrf
+                                <button type="submit" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50">
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                                    Keluar
+                                </button>
+                            </form>
                         </div>
                     </div>
+                    @endauth
 
                 </div>
             </header>

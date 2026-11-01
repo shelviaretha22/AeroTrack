@@ -350,7 +350,7 @@
 
                             <td class="px-4 py-4">
                                 <p class="text-sm font-semibold text-[#365F65]">
-                                    {{ $lokasiKandidat?->kode_ruang ?? '-' }}
+                                    {{ $lokasiKandidat?->kode_tampilan ?? '-' }}
                                 </p>
 
                                 <p class="mt-1 text-xs text-[#7A9290]">
@@ -394,10 +394,10 @@
 
                             {{-- NOTE KANDIDAT --}}
                             <td class="px-4 py-4 text-sm text-[#527D82]">
-                                Kerja sama sudah memenuhi syarat untuk dibuatkan kontrak.
+                                Berita Acara sudah dibuat, kontrak dapat dibuat sekarang.
 
                                 <p class="mt-1 text-xs text-[#8BA5A2]">
-                                    Aktivasi: {{ $kandidat->aktivasi?->nomor_pengajuan ?? '-' }}
+                                    Status BA: {{ $kandidat->statusBa() }}
                                 </p>
                             </td>
 
@@ -499,7 +499,7 @@
 
                             <td class="px-4 py-4">
                                 <p class="text-sm font-semibold text-[#365F65]">
-                                    {{ $lokasi?->kode_ruang ?? '-' }}
+                                    {{ $lokasi?->kode_tampilan ?? '-' }}
                                 </p>
 
                                 <p class="mt-1 text-xs text-[#7A9290]">

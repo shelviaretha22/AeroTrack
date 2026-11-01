@@ -84,6 +84,17 @@
     |--------------------------------------------------------------------------
     */
 
+    // PIC dan penandatangan MITRA diambil dari data Tenant (pihak mitra),
+    // bukan dari PIC Commercial yang merupakan pegawai AP Indonesia.
+    $picMitraNamaDefault = $tenant?->nama_pic ?? '';
+    $picMitraJabatanDefault = $tenant?->jabatan_pic ?? '';
+
+    // Data kontrak lama bisa berisi PIC Commercial AP Indonesia yang dulu
+    // terisi otomatis di kolom mitra. Nilai seperti itu diabaikan.
+    $abaikanBilaMilikAp = function ($nilai, $milikAp) {
+        return ($nilai && $nilai !== $milikAp) ? $nilai : '';
+    };
+
     $namaPicCommercial = $kerjaSama?->pic_commercial
         ?? $kontrak?->nama_commercial
         ?? '[Nama PIC Komersil]';
@@ -99,7 +110,8 @@
     |--------------------------------------------------------------------------
     */
 
-    $kodeRuang = $lokasi?->kode_ruang ?? '-';
+    $kodeRuang = $lokasi?->kode_tampilan
+        ?: ($lokasi?->kode_ruang ?? '-');
 
     $namaLokasi = $lokasi?->lokasi ?? '-';
 
@@ -200,12 +212,12 @@
 
     $namaPenandatanganMitra = old(
         'nama_penandatangan_mitra',
-        $kontrak?->nama_penandatangan_mitra ?? ''
+        $abaikanBilaMilikAp($kontrak?->nama_penandatangan_mitra, $kerjaSama?->pic_commercial) ?: $picMitraNamaDefault
     );
 
     $jabatanPenandatanganMitra = old(
         'jabatan_penandatangan_mitra',
-        $kontrak?->jabatan_penandatangan_mitra ?? ''
+        $abaikanBilaMilikAp($kontrak?->jabatan_penandatangan_mitra, $kerjaSama?->jabatan_pic_commercial) ?: $picMitraJabatanDefault
     );
 
     $alamatMitra = old(
@@ -1645,7 +1657,7 @@
             name="nama_pic_mitra_snapshot"
             id="nama_pic_mitra_snapshot"
             class="form-control-custom"
-            value="{{ old('nama_pic_mitra_snapshot', $namaPicCommercial ?? '') }}"
+            value="{{ old('nama_pic_mitra_snapshot', $abaikanBilaMilikAp($kontrak?->nama_pic_mitra_snapshot, $kerjaSama?->pic_commercial) ?: $picMitraNamaDefault) }}"
             placeholder="Masukkan nama PIC mitra"
             required
         >
@@ -1667,7 +1679,7 @@
             name="jabatan_pic_mitra_snapshot"
             id="jabatan_pic_mitra_snapshot"
             class="form-control-custom"
-            value="{{ old('jabatan_pic_mitra_snapshot', $jabatanPicCommercial ?? '') }}"
+            value="{{ old('jabatan_pic_mitra_snapshot', $abaikanBilaMilikAp($kontrak?->jabatan_pic_mitra_snapshot, $kerjaSama?->jabatan_pic_commercial) ?: $picMitraJabatanDefault) }}"
             placeholder="Masukkan jabatan PIC mitra"
             required
         >
@@ -1689,7 +1701,7 @@
                     name="nama_penandatangan_mitra"
                     id="nama_penandatangan_mitra"
                     class="form-control-custom"
-                    value="{{ old('nama_penandatangan_mitra', $namaPenandatanganMitra ?: $namaPicCommercial) }}"
+                    value="{{ old('nama_penandatangan_mitra', $namaPenandatanganMitra) }}"
                     placeholder="Masukkan nama penandatangan"
                     required
                 >
@@ -1708,7 +1720,7 @@
                     name="jabatan_penandatangan_mitra"
                     id="jabatan_penandatangan_mitra"
                     class="form-control-custom"
-                    value="{{ old('jabatan_penandatangan_mitra', $jabatanPenandatanganMitra ?: $jabatanPicCommercial) }}"
+                    value="{{ old('jabatan_penandatangan_mitra', $jabatanPenandatanganMitra) }}"
                     placeholder="Masukkan jabatan penandatangan"
                     required
                 >
@@ -2534,14 +2546,14 @@
                 <td>Hari</td>
                 <td>:</td>
                 <td>
-                    {{ now()->locale('id')->translatedFormat('l') }}
+                    {{ \Illuminate\Support\Carbon::parse($kontrak?->tanggal_dokumen ?? now())->locale('id')->translatedFormat('l') }}
                 </td>
             </tr>
             <tr>
                 <td>Tanggal</td>
                 <td>:</td>
                 <td>
-                    {{ now()->locale('id')->translatedFormat('d F Y') }}
+                    {{ \Illuminate\Support\Carbon::parse($kontrak?->tanggal_dokumen ?? now())->locale('id')->translatedFormat('d F Y') }}
                 </td>
             </tr>
         </tbody>
@@ -2828,15 +2840,15 @@
                             <div class="signature-space"></div>
 
                             <div class="signature-name">
-                                {{ $namaPicCommercial }}
+                                {{ $apIndonesia['penandatangan'] ?: '[Nama Penandatangan AP Indonesia]' }}
                             </div>
 
                             <div>
-                                {{ $jabatanPicCommercial }}
+                                {{ $apIndonesia['jabatan'] ?: '[Jabatan Penandatangan AP Indonesia]' }}
                             </div>
 
                             <div>
-                                PT ANGKASA PURA INDONESIA
+                                {{ $apIndonesia['nama'] ?: 'PT ANGKASA PURA INDONESIA' }}
                             </div>
                         </div>
 

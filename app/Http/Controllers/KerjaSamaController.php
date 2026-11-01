@@ -328,6 +328,69 @@ public function store(Request $request)
     }
 
     /**
+     * Mengunggah BA final yang sudah ditandatangani di luar sistem.
+     */
+    public function unggahBeritaAcaraFinal(Request $request, $id)
+    {
+        $kerjaSama = KerjaSama::findOrFail($id);
+
+        if (!$kerjaSama->baTersedia()) {
+            return back()->with(
+                'error',
+                'Buat Berita Acara terlebih dahulu sebelum mengunggah BA final.'
+            );
+        }
+
+        // BA final hanya boleh diunggah satu kali.
+        if ($kerjaSama->baFinalTersedia()) {
+            return back()->with(
+                'error',
+                'BA final sudah diunggah dan tidak dapat diganti.'
+            );
+        }
+
+        $request->validate([
+            'berita_acara_final' => [
+                'required',
+                'file',
+                'mimes:pdf,jpg,jpeg,png',
+                'max:10240',
+            ],
+        ], [
+            'berita_acara_final.required' => 'Pilih file BA final terlebih dahulu.',
+            'berita_acara_final.mimes' => 'BA final harus berupa PDF, JPG, JPEG, atau PNG.',
+            'berita_acara_final.max' => 'Ukuran BA final maksimal 10 MB.',
+        ]);
+
+        $pathBaru = $request->file('berita_acara_final')
+            ->store('berita-acara/final', 'local');
+
+        if (!$pathBaru) {
+            return back()->with('error', 'File BA final gagal disimpan.');
+        }
+
+        $kerjaSama->berita_acara_final_path = $pathBaru;
+        $kerjaSama->berita_acara_final_uploaded_at = now();
+        $kerjaSama->save();
+
+        return back()->with('success', 'BA final berhasil diunggah.');
+    }
+
+    /**
+     * Menampilkan BA final.
+     */
+    public function lihatBeritaAcaraFinal($id)
+    {
+        $kerjaSama = KerjaSama::findOrFail($id);
+
+        abort_unless($kerjaSama->baFinalTersedia(), 404, 'BA final belum diunggah.');
+
+        return response()->file(
+            Storage::disk('local')->path($kerjaSama->berita_acara_final_path)
+        );
+    }
+
+    /**
      * Menghapus Kerja Sama dan melepaskan lokasi dari Tenant.
      */
     public function destroy($id)

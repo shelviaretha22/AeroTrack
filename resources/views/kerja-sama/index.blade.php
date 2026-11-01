@@ -395,6 +395,11 @@
        style="display: inline-block; padding: 8px 12px; background: #365f65; color: white; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">
         {{ $kerjaSama->berita_acara_path ? 'Berita Acara' : 'Cetak Berita Acara' }}
     </a>
+    @if ($kerjaSama->berita_acara_path)
+        <span style="display: block; margin-top: 6px; font-size: 11px; font-weight: 600; color: {{ $kerjaSama->baFinalTersedia() ? '#166534' : '#92400e' }};">
+            {{ $kerjaSama->baFinalTersedia() ? 'BA Final terunggah' : 'Belum TTD · unggah BA final' }}
+        </span>
+    @endif
 @else
     <span style="display: inline-block; padding: 8px 12px; background: #e5e7eb; color: #6b7280; border-radius: 6px; font-size: 12px;">
         Belum Siap

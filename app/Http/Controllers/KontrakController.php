@@ -26,11 +26,16 @@ private function getDataPerusahaan()
     $perusahaan = MasterPerusahaan::first();
 
     return [
-        'nama' => $perusahaan?->nama_perusahaan ?? '',
-        'domisili' => $perusahaan?->domisili ?? '',
-        'alamat' => $perusahaan?->alamat ?? '',
-        'penandatangan' => $perusahaan?->nama_penandatangan ?? '',
-        'jabatan' => $perusahaan?->jabatan_penandatangan ?? '',
+        'nama' => $perusahaan?->nama_perusahaan ?: 'PT ANGKASA PURA INDONESIA',
+        // Bila master perusahaan belum diisi, pakai data bawaan Juanda.
+        // Isi lewat menu Profil > Perusahaan agar bisa diubah.
+        'domisili' => $perusahaan?->domisili ?: 'Sidoarjo',
+        'alamat' => $perusahaan?->alamat
+            ?: 'Jalan Raya Ir. H. Juanda No. 1, Segoro Tambak, Kecamatan Sedati, Kabupaten Sidoarjo, Jawa Timur 61253',
+        'penandatangan' => $perusahaan?->nama_penandatangan
+            ?: 'Laksma TNI Muhammad Tohir',
+        'jabatan' => $perusahaan?->jabatan_penandatangan
+            ?: 'General Manager PT Angkasa Pura Indonesia Cabang Bandara Internasional Juanda',
         'telepon' => $perusahaan?->telepon ?? '',
         'fax' => '',
         'email' => $perusahaan?->email ?? '',
@@ -211,8 +216,7 @@ private function getDataPerusahaan()
         |--------------------------------------------------------------------------
         |
         | Kerja sama dapat menjadi kandidat kontrak jika:
-        | - Dokumen Berita Acara tersedia.
-        | - Aktivasi berstatus Disetujui.
+        | - Dokumen Berita Acara sudah dibuat.
         | - Data tenant dan lokasi tersedia.
         | - Belum memiliki kontrak.
         |
@@ -234,7 +238,6 @@ private function getDataPerusahaan()
                 );
 
                 return $baTersedia
-                    && $kerjaSama->aktivasi?->status === 'Disetujui'
                     && $kerjaSama->tenant !== null
                     && $kerjaSama->lokasi !== null
                     && !$kerjaSamaSudahAdaKontrak->contains($kerjaSama->id);
@@ -340,7 +343,7 @@ private function getDataPerusahaan()
     }
 
     /**
-     * Membuat kontrak dari kerja sama yang aktivasi terbarunya disetujui.
+     * Membuat kontrak dari kerja sama yang Berita Acara-nya sudah dibuat.
      */
     public function store(Request $request, $kerjaSamaId)
     {
@@ -355,13 +358,6 @@ private function getDataPerusahaan()
                 ])
                     ->lockForUpdate()
                     ->findOrFail($kerjaSamaId);
-
-                // Pastikan aktivasi terbaru sudah disetujui.
-                if ($kerjaSama->aktivasi?->status !== 'Disetujui') {
-                    throw new \RuntimeException(
-                        'Kontrak hanya dapat dibuat jika aktivasi terbaru telah disetujui.'
-                    );
-                }
 
                 // Pastikan dokumen Berita Acara tersedia.
                 if (
@@ -677,6 +673,7 @@ return view('kontrak.dokumen', compact('kontrak', 'apIndonesia'));
             'jenis_ruangan' => $lokasi->jenis_ruangan,
             'nomor_ro' => $lokasi->nomor_ro,
             'kode_ruang' => $lokasi->kode_ruang,
+            'kode_tampilan' => $lokasi->kode_tampilan,
             'lokasi' => $lokasi->lokasi,
             'luas_area' => $lokasi->luas_area,
         ];
@@ -869,13 +866,15 @@ public function finalPdf($id)
     }
 
 
-    /**
-     * Menghasilkan dokumen Perjanjian Pokok dalam format Word.
+        /**
+     * Mengunduh dokumen Perjanjian Pokok dalam format Word (DOCX).
+     * Susunan dan isi dibuat sama dengan versi PDF.
      */
     public function downloadWord($id)
     {
         $kontrak = Kontrak::with([
-            'kerjaSama',
+            'kerjaSama.tenant',
+            'kerjaSama.lokasi',
             'tenant',
             'lokasi',
         ])->findOrFail($id);
@@ -900,88 +899,12 @@ public function finalPdf($id)
                 );
         }
 
-        // Ambil data snapshot kontrak.
-        $ks = $kontrak->data_kerja_sama_snapshot ?? [];
-        $dataLokasi = $kontrak->data_lokasi_snapshot ?? [];
-
-        $tanggalDokumen = Carbon::parse(
-            $kontrak->tanggal_dokumen
-        );
-
-        $tanggalMulai = $ks['tanggal_mulai'] ?? null;
-        $tanggalBerakhir = $ks['tanggal_berakhir'] ?? null;
-
-        // Menghitung durasi kerja sama.
-        $durasi = '-';
-
-        if ($tanggalMulai && $tanggalBerakhir) {
-            $durasi = Carbon::parse($tanggalMulai)
-                ->diffInMonths(Carbon::parse($tanggalBerakhir));
-        }
-
-        $namaUsaha = $ks['jenis_usaha'] ?? '-';
-        $namaLokasi = $dataLokasi['lokasi'] ?? '-';
-        $namaMitra = $kontrak->nama_mitra_snapshot ?? '-';
-
-        // Inisialisasi PHPWord.
-        $phpWord = new PhpWord();
-
-        $phpWord->setDefaultFontName('Arial');
-        $phpWord->setDefaultFontSize(10);
-
-        // Pengaturan halaman A4.
-        $section = $phpWord->addSection([
-            'paperSize' => 'A4',
-            'orientation' => 'portrait',
-            'marginTop' => 1800,
-            'marginBottom' => 1600,
-            'marginLeft' => 1800,
-            'marginRight' => 1800,
-        ]);
-
-        // Format teks.
-        $center = [
-            'alignment' => 'center',
-            'spaceAfter' => 100,
-        ];
-
-        $boldCenter = [
-            'bold' => true,
-            'size' => 11,
-        ];
-
-        $normal = [
-            'size' => 10,
-        ];
-
-        // Helper untuk menambahkan paragraf.
-        $addText = function ($text, $style = []) use ($section) {
-            $section->addText(
-                $text,
-                array_merge(['size' => 10], $style),
-                ['spaceAfter' => 100]
-            );
-        };
-
-        // Helper untuk judul pasal.
-        $addHeading = function ($text) use ($section) {
-            $section->addText(
-                $text,
-                ['bold' => true, 'size' => 11],
-                [
-                    'alignment' => 'center',
-                    'spaceBefore' => 150,
-                    'spaceAfter' => 80,
-                ]
-            );
-        };
-
-        // Memastikan file logo tersedia.
-        $logoPath = Storage::disk('local')->path(
+        // Memastikan file logo Mitra tersedia.
+        $logoMitraPath = Storage::disk('local')->path(
             $kontrak->logo_mitra_path
         );
 
-        if (!file_exists($logoPath)) {
+        if (!file_exists($logoMitraPath)) {
             return redirect()
                 ->route('kontrak.show', $kontrak->id)
                 ->with(
@@ -990,472 +913,26 @@ public function finalPdf($id)
                 );
         }
 
-        // Mulai menyusun dokumen.
-                // =========================
-        // HALAMAN 1
-        // =========================
-
-        // Menambahkan logo Mitra.
-        $section->addImage($logoPath, [
-            'width' => 100,
-            'height' => 65,
-            'alignment' => 'center',
-        ]);
-
-        // Judul dokumen.
-        $section->addText(
-            'PERJANJIAN POKOK',
-            $boldCenter,
-            $center
-        );
-
-        $section->addText(
-            'TENTANG',
-            $boldCenter,
-            $center
-        );
-
-        $section->addText(
-            'KERJA SAMA PEMANFAATAN FASILITAS KOMERSIAL PT ANGKASA PURA INDONESIA',
-            ['bold' => true, 'size' => 11],
-            $center
-        );
-
-        $section->addText(
-            'UNTUK KEGIATAN USAHA ' . $namaUsaha,
-            ['bold' => true, 'size' => 11],
-            $center
-        );
-
-        $section->addText(
-            'DI ' . $namaLokasi,
-            ['bold' => true, 'size' => 11],
-            $center
-        );
-
-        // Nomor dokumen.
-        $addText(
-            'NOMOR : ' . $kontrak->nomor_kontrak
-        );
-
-        $addText(
-            'NOMOR MITRA : ' .
-            ($kontrak->nomor_kontrak_mitra ?: '-')
-        );
-
-        // Tanggal pembuatan dokumen.
-        $addText(
-            'Perjanjian Pokok ini dibuat dan ditandatangani pada:'
-        );
-
-        $addText(
-            'HARI : ' .
-            $tanggalDokumen->locale('id')->translatedFormat('l')
-        );
-
-        $addText(
-            'TANGGAL : ' .
-            $tanggalDokumen->locale('id')->translatedFormat('d F Y')
-        );
-
-        $addText('Oleh dan antara:');
-
-        // =========================
-        // PIHAK PERTAMA
-        // =========================
-
-        $addText(
-            'I. PT ANGKASA PURA INDONESIA',
-            ['bold' => true]
-        );
-
-        $addText(
-            'Alamat : Jalan Raya Ir. H. Juanda No. 1, Segoro Tambak, Kecamatan Sedati, Kabupaten Sidoarjo, Jawa Timur 61253'
-        );
-
-        $addText(
-            'Dalam hal ini diwakili oleh : Laksma TNI Muhammad Tohir'
-        );
-
-        $addText(
-            'Selaku : General Manager PT Angkasa Pura Indonesia Cabang Bandara Internasional Juanda'
-        );
-
-        $addText(
-            'Dengan demikian sah bertindak untuk dan atas nama PT Angkasa Pura Indonesia, selanjutnya dalam Perjanjian Pokok ini disebut AP INDONESIA.'
-        );
-
-        // =========================
-        // PIHAK KEDUA
-        // =========================
-
-        $addText(
-            'II. ' . $namaMitra,
-            ['bold' => true]
-        );
-
-        $addText(
-            'Alamat : ' .
-            ($kontrak->alamat_mitra_snapshot ?? '-')
-        );
-
-        $addText(
-            'Dalam hal ini diwakili oleh : ' .
-            ($kontrak->nama_penandatangan_mitra ?? '-')
-        );
-
-        $addText(
-            'Selaku : ' .
-            ($kontrak->jabatan_penandatangan_mitra ?? '-')
-        );
-
-        $addText(
-            'Dengan demikian sah bertindak untuk dan atas nama ' .
-            $namaMitra .
-            ', selanjutnya dalam Perjanjian Pokok ini disebut MITRA.'
-        );
-
-        // Penutup identitas para pihak.
-        $addText(
-            'Selanjutnya, AP INDONESIA dan MITRA secara bersama-sama disebut "PARA PIHAK".'
-        );
-                // =========================
-        // HALAMAN 2
-        // =========================
-
-        $section->addPageBreak();
-
-        // Pendahuluan.
-        $addText(
-            'PARA PIHAK terlebih dahulu menerangkan hal-hal sebagai berikut:'
-        );
-
-        $addText(
-            'a. AP INDONESIA merupakan perseroan terbatas yang bergerak di bidang pelayanan jasa kebandarudaraan.'
-        );
-
-        $addText(
-            'b. MITRA dalam rangka melaksanakan kegiatan usahanya bermaksud memanfaatkan Fasilitas Komersial milik AP INDONESIA.'
-        );
-
-        $addText(
-            'c. Bahwa PARA PIHAK telah menyepakati pemanfaatan Fasilitas Komersial sebagaimana dituangkan dalam Berita Acara Kesepakatan [Nomor BAK belum tersedia] (Selanjutnya disebut "Berita Acara Kesepakatan") dan dokumen lain (sebagaimana relevan).'
-        );
-
-        $addText(
-            'Berdasarkan hal-hal tersebut di atas, PARA PIHAK menyatakan sepakat untuk menandatangani Perjanjian Pokok Tentang Kerja Sama Pemanfaatan Fasilitas Komersial PT Angkasa Pura Indonesia untuk Kegiatan Usaha ' .
-            $namaUsaha .
-            ' di ' .
-            $namaLokasi .
-            ' (Selanjutnya disebut "Perjanjian Pokok"), dengan ketentuan dan syarat-syarat sebagai berikut:'
-        );
-
-        // =========================
-        // PASAL 1
-        // POKOK PERJANJIAN
-        // =========================
-
-        $addHeading('PASAL 1');
-
-        $addHeading('POKOK PERJANJIAN');
-
-        $addText(
-            '(1) AP INDONESIA memberikan izin pemanfaatan Fasilitas Komersial kepada MITRA untuk melakukan kegiatan usaha, dan MITRA sepakat untuk memanfaatkan Fasilitas Komersial milik AP INDONESIA, dengan rincian sebagaimana terlampir pada Perjanjian Pokok ini.'
-        );
-
-        $addText(
-            '(2) Bentuk Kerja Sama Pemanfaatan Fasilitas Komersial adalah:'
-        );
-
-        // Pilihan bentuk kerja sama.
-        // Perlu disesuaikan dengan pilihan resmi pada data kerja sama.
-        $addText(
-            '[Bentuk kerja sama yang disepakati belum tersedia pada data kontrak.]'
-        );
-
-        $addText(
-            '(3) Atas pemanfaatan Fasilitas Komersial sebagaimana tersebut pada ayat (1) Pasal ini MITRA bersedia membayar biaya dan/atau imbalan sesuai bentuk kerja sama yang disepakati, dengan detail rincian dan cara pembayaran sebagaimana terlampir pada Perjanjian Pokok ini.'
-        );
-                // =========================
-        // HALAMAN 3
-        // =========================
-
-        $section->addPageBreak();
-
-        // =========================
-        // PASAL 2
-        // JANGKA WAKTU
-        // =========================
-
-        $addHeading('PASAL 2');
-
-        $addHeading('JANGKA WAKTU');
-
-        $tanggalMulaiText = $tanggalMulai
-            ? Carbon::parse($tanggalMulai)->locale('id')->translatedFormat('d F Y')
-            : '-';
-
-        $tanggalBerakhirText = $tanggalBerakhir
-            ? Carbon::parse($tanggalBerakhir)->locale('id')->translatedFormat('d F Y')
-            : '-';
-
-        $addText(
-            '(1) Perjanjian Pokok ini berlaku untuk jangka waktu ' .
-            $durasi .
-            ' (bulan), terhitung sejak tanggal ' .
-            $tanggalMulaiText .
-            ' sampai dengan tanggal ' .
-            $tanggalBerakhirText .
-            '.'
-        );
-
-        $addText(
-            '(2) Perpanjangan jangka waktu Perjanjian Pokok dilakukan berdasarkan kesepakatan PARA PIHAK sesuai ketentuan yang berlaku.'
-        );
-
-        // =========================
-        // PASAL 3
-        // PENINJAUAN TARIF
-        // =========================
-
-        $addHeading('PASAL 3');
-
-        $addHeading('PENINJAUAN TARIF');
-
-        $periodeEvaluasi = $kontrak->periode_evaluasi_tarif;
-        $satuanEvaluasi = $kontrak->satuan_evaluasi_tarif;
-
-        $addText(
-            '(1) Peninjauan tarif atas pemanfaatan Fasilitas Komersial dilakukan setiap ' .
-            $periodeEvaluasi .
-            ' ' .
-            $satuanEvaluasi .
-            ' atau sesuai kesepakatan PARA PIHAK berdasarkan ketentuan yang berlaku.'
-        );
-
-        // =========================
-        // PASAL 4
-        // PELAKSANAAN PERJANJIAN
-        // =========================
-
-        $addHeading('PASAL 4');
-
-        $addHeading('PELAKSANAAN PERJANJIAN');
-
-        if ($kontrak->klausul_kepemilikan_fasilitas === 'mitra') {
-            $addText(
-                '(1) Fasilitas atau sarana yang dibangun dan/atau disediakan oleh MITRA dalam rangka pelaksanaan kegiatan usaha menjadi milik MITRA, dengan tetap memperhatikan ketentuan dalam Perjanjian Pokok dan peraturan yang berlaku.'
-            );
-        } elseif ($kontrak->klausul_kepemilikan_fasilitas === 'ap_indonesia') {
-            $addText(
-                '(1) Fasilitas atau sarana yang dibangun dan/atau disediakan oleh MITRA dalam rangka pelaksanaan kegiatan usaha menjadi milik AP INDONESIA, dengan tetap memperhatikan ketentuan dalam Perjanjian Pokok dan peraturan yang berlaku.'
-            );
-        }        
-                // =========================
-        // HALAMAN 4
-        // =========================
-
-        $section->addPageBreak();
-
-        // =========================
-        // PASAL 5
-        // LAMPIRAN PERJANJIAN
-        // =========================
-
-        $addHeading('PASAL 5');
-        $addHeading('LAMPIRAN PERJANJIAN');
-
-        $addText(
-            '(1) Dokumen-dokumen yang menjadi lampiran Perjanjian Pokok ini merupakan bagian yang tidak terpisahkan dari Perjanjian Pokok.'
-        );
-
-        $addText('Lampiran Perjanjian Pokok meliputi:');
-
-        // Ambil daftar lampiran yang dipilih.
-        $daftarLampiran = $kontrak->lampiran_perjanjian ?? [];
-
-        if (is_string($daftarLampiran)) {
-            $daftarLampiran = json_decode($daftarLampiran, true) ?? [];
-        }
-
-        if (!is_array($daftarLampiran)) {
-            $daftarLampiran = [];
-        }
-
-        $nomorLampiran = 1;
-
-        foreach ($daftarLampiran as $lampiran) {
-            $addText(
-                $nomorLampiran . '. ' . $lampiran
-            );
-
-            $nomorLampiran++;
-        }
-
-        // =========================
-        // PASAL 6
-        // KORESPONDENSI
-        // =========================
-
-        $addHeading('PASAL 6');
-        $addHeading('KORESPONDENSI');
-
-        // Catatan:
-        // Redaksi resmi Pasal 6 perlu dicocokkan dengan formulir.
-        // Data kontak berikut ditampilkan sebagai informasi para pihak.
-
-        $addText(
-            'Alamat korespondensi MITRA:'
-        );
-
-        $addText(
-            'Nama: ' . ($kontrak->nama_mitra_snapshot ?? '-')
-        );
-
-        $addText(
-            'Alamat: ' . ($kontrak->alamat_mitra_snapshot ?? '-')
-        );
-
-        $addText(
-            'Telepon: ' . ($kontrak->telepon_mitra_snapshot ?? '-')
-        );
-
-        $addText(
-            'Fax: ' . ($kontrak->fax_mitra_snapshot ?: '-')
-        );
-
-        $addText(
-            'Email: ' . ($kontrak->email_mitra_snapshot ?? '-')
-        );
-
-        $addText(
-            'PIC: ' . ($kontrak->nama_pic_mitra_snapshot ?? '-')
-        );
-
-        // =========================
-        // PASAL 7
-        // PENUTUP
-        // =========================
-
-        $addHeading('PASAL 7');
-        $addHeading('PENUTUP');
-
-        // Redaksi ini merupakan penutup sementara.
-        // Sesuaikan dengan redaksi pada formulir resmi.
-
-        $addText(
-            'Demikian Perjanjian Pokok ini dibuat untuk dipahami dan dilaksanakan oleh PARA PIHAK sesuai dengan ketentuan yang disepakati.'
-        );
-
-        $addText(
-            'Perjanjian Pokok ini ditandatangani oleh PARA PIHAK pada tanggal sebagaimana tercantum dalam dokumen ini.'
-        );
-
-        // =========================
-        // BAGIAN TANDA TANGAN
-        // =========================
-
-        $section->addTextBreak(2);
-
-        $tableStyle = [
-            'borderSize' => 0,
-            'borderColor' => 'FFFFFF',
-            'cellMargin' => 100,
-            'alignment' => \PhpOffice\PhpWord\SimpleType\JcTable::CENTER,
-        ];
-
-        $cellStyle = [
-            'valign' => 'center',
-        ];
-
-        $phpWord->addTableStyle('TabelTandaTangan', $tableStyle);
-
-        $table = $section->addTable('TabelTandaTangan');
-
-        // Baris jabatan para pihak.
-        $table->addRow();
-
-        $table->addCell(4500, $cellStyle)->addText(
-            'AP INDONESIA',
-            ['bold' => true],
-            ['alignment' => 'center']
-        );
-
-        $table->addCell(4500, $cellStyle)->addText(
-            'MITRA',
-            ['bold' => true],
-            ['alignment' => 'center']
-        );
-
-        // Ruang tanda tangan.
-        $table->addRow(1800);
-
-        $table->addCell(4500, $cellStyle)->addText(
-            ''
-        );
-
-        $table->addCell(4500, $cellStyle)->addText(
-            ''
-        );
-
-        // Nama penandatangan.
-        $table->addRow();
-
-        $table->addCell(4500, $cellStyle)->addText(
-            'Laksma TNI Muhammad Tohir',
-            ['bold' => true, 'underline' => 'single'],
-            ['alignment' => 'center']
-        );
-
-        $table->addCell(4500, $cellStyle)->addText(
-            $kontrak->nama_penandatangan_mitra ?? '-',
-            ['bold' => true, 'underline' => 'single'],
-            ['alignment' => 'center']
-        );
-
-        // Jabatan penandatangan.
-        $table->addRow();
-
-        $table->addCell(4500, $cellStyle)->addText(
-            'General Manager',
-            [],
-            ['alignment' => 'center']
-        );
-
-        $table->addCell(4500, $cellStyle)->addText(
-            $kontrak->jabatan_penandatangan_mitra ?? '-',
-            [],
-            ['alignment' => 'center']
-        );
-                // =========================
-        // GENERATE FILE WORD
-        // =========================
-
         // Membuat nama file berdasarkan nomor kontrak.
-        $namaFile = 'Perjanjian_Pokok_' .
-            $kontrak->nomor_kontrak . '.docx';
-
-        // Mengganti karakter "/" agar aman sebagai nama file.
-        $namaFile = str_replace('/', '_', $namaFile);
+        $namaFile = str_replace(
+            '/',
+            '_',
+            'Perjanjian_Pokok_' . $kontrak->nomor_kontrak . '.docx'
+        );
 
         // Membuat file sementara.
-        $pathSementara = tempnam(
-            sys_get_temp_dir(),
-            'kontrak_'
-        );
+        $pathSementara = tempnam(sys_get_temp_dir(), 'kontrak_');
 
         try {
-
-            // Membuat writer Word.
-            $writer = IOFactory::createWriter(
-                $phpWord,
-                'Word2007'
+            $phpWord = $this->susunDokumenWord(
+                $kontrak,
+                $logoMitraPath,
+                public_path('images/angkasa-pura-logo.png')
             );
 
-            // Menyimpan dokumen Word.
-            $writer->save($pathSementara);
+            IOFactory::createWriter($phpWord, 'Word2007')
+                ->save($pathSementara);
 
-            // Mengirim file Word untuk diunduh.
             return response()
                 ->download(
                     $pathSementara,
@@ -1484,7 +961,515 @@ public function finalPdf($id)
                 );
         }
     }
-    
+
+    /**
+     * Menyusun isi dokumen Word. Isi mengikuti kontrak.dokumen-pdf.
+     */
+    private function susunDokumenWord(
+        Kontrak $kontrak,
+        string $logoMitraPath,
+        string $logoApPath
+    ): PhpWord {
+
+        $kerjaSama = $kontrak->kerjaSama;
+        $tenant = $kontrak->tenant ?? $kerjaSama?->tenant;
+        $lokasi = $kontrak->lokasi ?? $kerjaSama?->lokasi;
+        $ap = $this->getDataPerusahaan();
+
+        $ks = $kontrak->data_kerja_sama_snapshot ?? [];
+        $dl = $kontrak->data_lokasi_snapshot ?? [];
+
+        // Data umum dokumen.
+        $mitra = $kerjaSama?->mitra_usaha
+            ?? $tenant?->mitra_usaha
+            ?? $kontrak->nama_mitra_snapshot
+            ?? '-';
+
+        $jenisUsaha = $kerjaSama?->jenis_usaha
+            ?? $tenant?->jenis_usaha
+            ?? ($ks['jenis_usaha'] ?? '-');
+
+        $namaLokasi = $lokasi?->lokasi ?? ($dl['lokasi'] ?? '-');
+        $terminal = $lokasi?->terminal ?? ($dl['terminal'] ?? '-');
+        $lantai = $lokasi?->lantai ?? ($dl['lantai'] ?? '-');
+        $kodeRuang = $lokasi?->kode_tampilan
+            ?: ($lokasi?->kode_ruang ?? ($dl['kode_ruang'] ?? '-'));
+
+        $luas = data_get($dl, 'luas_area')
+            ?? $lokasi?->luas_area
+            ?? '-';
+
+        $formatTanggal = function ($tanggal) {
+            return $tanggal
+                ? Carbon::parse($tanggal)->locale('id')->translatedFormat('d F Y')
+                : '-';
+        };
+
+        $tanggalDokumen = Carbon::parse($kontrak->tanggal_dokumen)
+            ->locale('id');
+
+        $tanggalMulai = $formatTanggal(
+            $kerjaSama?->tanggal_mulai ?? ($ks['tanggal_mulai'] ?? null)
+        );
+        $tanggalBerakhir = $formatTanggal(
+            $kerjaSama?->tanggal_berakhir ?? ($ks['tanggal_berakhir'] ?? null)
+        );
+
+        $alamatMitra = $kontrak->alamat_mitra_snapshot
+            ?: ($tenant?->alamat_perusahaan ?? '-');
+        $domisiliMitra = $kontrak->domisili_mitra_snapshot ?: '-';
+
+        $klausul = $kontrak->klausul_kepemilikan_fasilitas;
+        $klausulText = $klausul === 'mitra'
+            ? 'Fasilitas usaha yang dibangun tetap menjadi milik Mitra, dan fasilitas komersial dikembalikan sesuai ketentuan.'
+            : ($klausul === 'ap_indonesia'
+                ? 'Fasilitas usaha yang dibangun menjadi milik AP Indonesia tanpa kompensasi.'
+                : '[Belum dipilih]');
+
+        $labelLampiran = [
+            'SUP' => 'Syarat-Syarat Umum Perjanjian (SUP)',
+            'BAK' => 'Berita Acara Kesepakatan (BAK)',
+            'Denah Fasilitas Komersial' => 'Denah Fasilitas Komersial',
+            'Perjanjian Tingkat Layanan' => 'Perjanjian Tingkat Layanan',
+            'Lainnya' => 'Dokumen Lainnya',
+        ];
+
+        $lampiran = $kontrak->lampiran_perjanjian ?? [];
+
+        if (is_string($lampiran)) {
+            $lampiran = json_decode($lampiran, true) ?? [];
+        }
+
+        if (!is_array($lampiran)) {
+            $lampiran = [];
+        }
+
+        // Penandatangan.
+        $namaApTtd = $ap['penandatangan'] ?: '[Nama Penandatangan AP Indonesia]';
+        $jabatanApTtd = $ap['jabatan'] ?: '[Jabatan Penandatangan AP Indonesia]';
+        $namaApPerusahaan = $ap['nama'] ?: 'PT ANGKASA PURA INDONESIA';
+
+        // Abaikan nilai lama yang ternyata PIC Commercial AP Indonesia.
+        $namaMitraTtd = $kontrak->nama_penandatangan_mitra;
+        $jabatanMitraTtd = $kontrak->jabatan_penandatangan_mitra;
+
+        if ($namaMitraTtd && $namaMitraTtd === $kerjaSama?->pic_commercial) {
+            $namaMitraTtd = $tenant?->nama_pic;
+        }
+
+        if ($jabatanMitraTtd && $jabatanMitraTtd === $kerjaSama?->jabatan_pic_commercial) {
+            $jabatanMitraTtd = $tenant?->jabatan_pic;
+        }
+
+        $namaMitraTtd = $namaMitraTtd ?: '-';
+        $jabatanMitraTtd = $jabatanMitraTtd ?: '-';
+
+        // =========================
+        // PENGATURAN DOKUMEN
+        // =========================
+
+        // Escape karakter khusus XML (&, <, >) agar file tidak rusak,
+        // misalnya pada jenis usaha "F&B".
+        \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
+
+        $phpWord = new PhpWord();
+        $phpWord->setDefaultFontName('Times New Roman');
+        $phpWord->setDefaultFontSize(10.5);
+        $phpWord->setDefaultParagraphStyle([
+            'spaceBefore' => 0,
+            'spaceAfter' => 135,
+            'lineHeight' => 1.15,
+        ]);
+
+        // A4 dengan margin sama seperti PDF (14 mm atas/bawah, 20 mm kiri/kanan).
+        $section = $phpWord->addSection([
+            'paperSize' => 'A4',
+            'orientation' => 'portrait',
+            'marginTop' => 794,
+            'marginBottom' => 794,
+            'marginLeft' => 1134,
+            'marginRight' => 1134,
+            'footerHeight' => 400,
+        ]);
+
+        // Nomor halaman otomatis.
+        $section->addFooter()->addPreserveText(
+            'Halaman {PAGE} dari {NUMPAGES}',
+            ['size' => 8.5, 'color' => '666666'],
+            ['alignment' => 'center', 'spaceAfter' => 0]
+        );
+
+        $lebarTeks = 9638; // twips: 11906 - (2 x 1134)
+
+        $polosTabel = [
+            'borderSize' => 0,
+            'borderColor' => 'FFFFFF',
+            'cellMargin' => 0,
+        ];
+
+        $rata = ['alignment' => 'both'];
+        $tengah = ['alignment' => 'center'];
+
+        // Paragraf dengan potongan teks tebal.
+        // Setiap bagian berupa string biasa atau [teks, true] untuk tebal.
+        $tulis = function ($container, array $bagian, array $paragraf = []) {
+            $run = $container->addTextRun(
+                array_merge(['alignment' => 'both'], $paragraf)
+            );
+
+            foreach ($bagian as $b) {
+                if (is_array($b)) {
+                    $run->addText($b[0], ['bold' => true]);
+                } else {
+                    $run->addText($b);
+                }
+            }
+        };
+
+        // Judul pasal (dua baris, tengah, huruf besar).
+        $judulPasal = function ($pasal, $judul) use ($section) {
+            $section->addText(
+                mb_strtoupper($pasal),
+                ['bold' => true, 'size' => 11.5],
+                ['alignment' => 'center', 'spaceBefore' => 200, 'spaceAfter' => 0, 'keepNext' => true]
+            );
+            $section->addText(
+                mb_strtoupper($judul),
+                ['bold' => true, 'size' => 11.5],
+                ['alignment' => 'center', 'spaceAfter' => 80, 'keepNext' => true]
+            );
+        };
+
+        // Menghitung ukuran gambar agar muat dalam kotak (satuan point).
+        $ukuranGambar = function ($path, $maksLebar, $maksTinggi) {
+            $info = @getimagesize($path);
+
+            if (!$info || !$info[0] || !$info[1]) {
+                return [$maksLebar, $maksTinggi];
+            }
+
+            $skala = min($maksLebar / $info[0], $maksTinggi / $info[1]);
+
+            return [
+                round($info[0] * $skala),
+                round($info[1] * $skala),
+            ];
+        };
+
+        // =========================
+        // HALAMAN 1
+        // =========================
+
+        // Logo AP Indonesia (kiri) dan logo Mitra (kanan).
+        $tabelLogo = $section->addTable(array_merge($polosTabel, [
+            'width' => $lebarTeks,
+            'unit' => 'dxa',
+        ]));
+        $tabelLogo->addRow(1250);
+
+        $selKiri = $tabelLogo->addCell($lebarTeks / 2, ['valign' => 'center']);
+        $selKanan = $tabelLogo->addCell($lebarTeks / 2, ['valign' => 'center']);
+
+        if (is_file($logoApPath)) {
+            [$w, $h] = $ukuranGambar($logoApPath, 110, 44);
+            $selKiri->addImage($logoApPath, [
+                'width' => $w,
+                'height' => $h,
+                'alignment' => 'left',
+            ]);
+        }
+
+        [$w, $h] = $ukuranGambar($logoMitraPath, 110, 44);
+        $selKanan->addImage($logoMitraPath, [
+            'width' => $w,
+            'height' => $h,
+            'alignment' => 'right',
+        ]);
+
+        // Judul perjanjian.
+        $section->addText(
+            'PERJANJIAN POKOK',
+            ['bold' => true, 'size' => 14, 'underline' => 'single'],
+            ['alignment' => 'center', 'spaceBefore' => 200, 'spaceAfter' => 80]
+        );
+
+        foreach ([
+            'TENTANG',
+            'KERJA SAMA PEMANFAATAN FASILITAS KOMERSIAL PT ANGKASA PURA INDONESIA',
+            'UNTUK KEGIATAN USAHA ' . $jenisUsaha,
+            'DI ' . $namaLokasi,
+        ] as $baris) {
+            $section->addText(
+                $baris,
+                ['bold' => true, 'size' => 11],
+                ['alignment' => 'center', 'spaceAfter' => 40]
+            );
+        }
+
+        $section->addTextBreak(0);
+
+        // Tabel tiga kolom: label, titik dua, isi.
+        $tabelTigaKolom = function ($container, array $baris, array $lebar) use ($polosTabel) {
+            $tabel = $container->addTable($polosTabel);
+
+            foreach ($baris as [$label, $isi]) {
+                $tabel->addRow();
+                $tabel->addCell($lebar[0])->addText($label, [], ['spaceAfter' => 20]);
+                $tabel->addCell($lebar[1])->addText(':', [], ['spaceAfter' => 20]);
+                $tabel->addCell($lebar[2])->addText($isi, [], ['spaceAfter' => 20]);
+            }
+        };
+
+        // Nomor dokumen.
+        $tabelTigaKolom($section, [
+            ['Nomor Dokumen Kontrak', $kontrak->nomor_kontrak],
+            ['Nomor Kontrak Mitra', $kontrak->nomor_kontrak_mitra ?: '-'],
+        ], [3000, 300, 5000]);
+
+        $section->addTextBreak(0);
+
+        // Hari dan tanggal perjanjian.
+        $section->addText(
+            'Perjanjian Pokok ini dibuat dan ditandatangani pada:',
+            [],
+            ['spaceAfter' => 40]
+        );
+
+        $tabelTigaKolom($section, [
+            ['Hari', $tanggalDokumen->translatedFormat('l')],
+            ['Tanggal', $tanggalDokumen->translatedFormat('d F Y')],
+        ], [1100, 300, 8000]);
+
+        $section->addTextBreak(0);
+
+        $section->addText('Oleh dan antara:', [], ['spaceAfter' => 80]);
+
+        // Pihak I: AP Indonesia.
+        $section->addText(
+            'I. ' . $namaApPerusahaan,
+            ['bold' => true],
+            ['spaceAfter' => 40]
+        );
+
+        $tabelTigaKolom($section, [
+            ['Berkedudukan di', $ap['domisili'] ?: '-'],
+            ['Alamat', $ap['alamat'] ?: '-'],
+            ['Dalam hal ini diwakili oleh', $ap['penandatangan'] ?: '-'],
+            ['Selaku', $ap['jabatan'] ?: '-'],
+        ], [3000, 300, 6338]);
+
+        $section->addText(
+            'Dengan demikian sah bertindak untuk dan atas nama PT Angkasa Pura Indonesia, selanjutnya dalam Perjanjian Pokok ini disebut AP INDONESIA.',
+            [],
+            array_merge($rata, ['spaceBefore' => 80])
+        );
+
+        // Pihak II: Mitra.
+        $section->addText(
+            'II. ' . $mitra,
+            ['bold' => true],
+            ['spaceBefore' => 120, 'spaceAfter' => 40]
+        );
+
+        $tabelTigaKolom($section, [
+            ['Berkedudukan di', $domisiliMitra],
+            ['Alamat', $alamatMitra],
+            ['Dalam hal ini diwakili oleh', $namaMitraTtd],
+            ['Selaku', $jabatanMitraTtd],
+        ], [3000, 300, 6338]);
+
+        $section->addText(
+            'Dengan demikian sah bertindak untuk dan atas nama ' . $mitra .
+            ', selanjutnya dalam Perjanjian Pokok ini disebut MITRA.',
+            [],
+            array_merge($rata, ['spaceBefore' => 80])
+        );
+
+        $section->addText(
+            'Selanjutnya, AP INDONESIA dan MITRA secara bersama-sama disebut “PARA PIHAK”.',
+            [],
+            $rata
+        );
+
+        // =========================
+        // HALAMAN 2
+        // =========================
+
+        $section->addPageBreak();
+
+        $judulPasal('Pasal 2', 'Lokasi dan Fasilitas');
+
+        $section->addText(
+            'Pelaksanaan kegiatan usaha dilakukan pada lokasi fasilitas komersial yang telah disepakati oleh PARA PIHAK.',
+            [],
+            $rata
+        );
+
+        $tulis($section, [
+            'Lokasi fasilitas: ',
+            [$namaLokasi],
+            ', Terminal ' . $terminal .
+            ', Lantai ' . $lantai .
+            ', Kode Ruang ' . $kodeRuang . '.',
+        ]);
+
+        $tulis($section, [
+            'Luas fasilitas: ',
+            [(string) $luas],
+            '.',
+        ]);
+
+        $judulPasal('Pasal 3', 'Jangka Waktu Perjanjian');
+
+        $section->addText(
+            'Jangka waktu kerja sama mengikuti periode yang telah ditetapkan dalam data kerja sama dan dokumen perjanjian yang disepakati oleh PARA PIHAK.',
+            [],
+            $rata
+        );
+
+        $tulis($section, ['Tanggal mulai: ', [$tanggalMulai], '.']);
+        $tulis($section, ['Tanggal berakhir: ', [$tanggalBerakhir], '.']);
+
+        $judulPasal('Pasal 4', 'Evaluasi Tarif');
+
+        $tulis($section, [
+            'Evaluasi tarif dilakukan setiap ',
+            [(string) $kontrak->periode_evaluasi_tarif],
+            ' ',
+            [(string) ($kontrak->satuan_evaluasi_tarif ?: 'tahun')],
+            ' sesuai ketentuan dan kesepakatan PARA PIHAK.',
+        ]);
+
+        // =========================
+        // HALAMAN 3
+        // =========================
+
+        $section->addPageBreak();
+
+        $judulPasal('Pasal 5', 'Hak dan Kewajiban Para Pihak');
+
+        $section->addText(
+            'PARA PIHAK melaksanakan hak dan kewajiban masing-masing berdasarkan ketentuan yang disepakati dalam perjanjian dan dokumen lampiran yang menjadi bagian dari perjanjian.',
+            [],
+            $rata
+        );
+
+        $judulPasal('Pasal 6', 'Kepemilikan Fasilitas');
+
+        $section->addText(
+            'Ketentuan kepemilikan fasilitas yang digunakan dalam pelaksanaan kerja sama mengikuti pilihan klausul yang ditetapkan dalam pengisian data kontrak.',
+            [],
+            $rata
+        );
+
+        $tulis($section, [
+            'Pilihan kepemilikan fasilitas: ',
+            [$klausulText],
+            '.',
+        ]);
+
+        $judulPasal('Pasal 7', 'Ketentuan Penutup');
+
+        $section->addText(
+            'Hal-hal yang belum diatur dalam perjanjian ini akan mengikuti ketentuan dalam dokumen pendukung dan kesepakatan tertulis PARA PIHAK.',
+            [],
+            $rata
+        );
+
+        $section->addText(
+            'Dokumen lampiran yang dipilih sebagai bagian dari perjanjian:',
+            [],
+            $rata
+        );
+
+        if (empty($lampiran)) {
+            $section->addListItem('[Lampiran belum dipilih]', 0, [], \PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED, ['spaceAfter' => 40]);
+        }
+
+        foreach ($lampiran as $item) {
+            if (is_string($item) && str_starts_with($item, 'Lainnya: ')) {
+                $teks = substr($item, strlen('Lainnya: '));
+            } else {
+                $teks = $labelLampiran[$item] ?? $item;
+            }
+
+            $section->addListItem(
+                (string) $teks,
+                0,
+                [],
+                \PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED,
+                ['spaceAfter' => 40]
+            );
+        }
+
+        // =========================
+        // HALAMAN 4: PENUTUP DAN TANDA TANGAN
+        // =========================
+
+        $section->addPageBreak();
+
+        $section->addText(
+            'PENUTUP',
+            ['bold' => true, 'size' => 11.5],
+            ['alignment' => 'center', 'spaceBefore' => 200, 'spaceAfter' => 80]
+        );
+
+        $section->addText(
+            'Demikian dokumen perjanjian ini dibuat untuk menjadi bahan pemeriksaan dan penyelesaian dokumen kontrak oleh PARA PIHAK.',
+            [],
+            $rata
+        );
+
+        $section->addText(
+            'Bagian penandatanganan dan ketentuan final mengikuti dokumen resmi yang telah disetujui oleh pihak berwenang.',
+            [],
+            $rata
+        );
+
+        $section->addTextBreak(1);
+
+        $tabelTtd = $section->addTable(array_merge($polosTabel, [
+            'width' => $lebarTeks,
+            'unit' => 'dxa',
+        ]));
+
+        $lebarSel = (int) ($lebarTeks / 2);
+
+        $barisTtd = function ($teksKiri, $teksKanan, array $fontKiri = [], array $fontKanan = [], $tinggi = null) use ($tabelTtd, $lebarSel) {
+            $tinggi ? $tabelTtd->addRow($tinggi) : $tabelTtd->addRow();
+            $tabelTtd->addCell($lebarSel)->addText($teksKiri, $fontKiri, ['alignment' => 'center', 'spaceAfter' => 0]);
+            $tabelTtd->addCell($lebarSel)->addText($teksKanan, $fontKanan, ['alignment' => 'center', 'spaceAfter' => 0]);
+        };
+
+        $tebal = ['bold' => true];
+        $tebalGaris = ['bold' => true, 'underline' => 'single'];
+
+        $barisTtd('PIHAK PERTAMA', 'PIHAK KEDUA', $tebal, $tebal);
+        $barisTtd('', '', [], [], 1500);
+        $barisTtd($namaApTtd, $namaMitraTtd, $tebalGaris, $tebalGaris);
+        $barisTtd($jabatanApTtd, $jabatanMitraTtd);
+        $barisTtd($namaApPerusahaan, $mitra);
+
+        return $phpWord;
+    }
+
+    /**
+     * Mengubah file gambar menjadi data URI agar dapat dimuat DomPDF.
+     */
+    private function gambarSebagaiDataUri(string $path): string
+    {
+        if (!is_file($path)) {
+            return '';
+        }
+
+        $mime = function_exists('mime_content_type')
+            ? mime_content_type($path)
+            : 'image/png';
+
+        return 'data:' . ($mime ?: 'image/png') . ';base64,'
+            . base64_encode(file_get_contents($path));
+    }
+
     /**
      * Menghasilkan dokumen Perjanjian Pokok dalam format PDF.
      */
@@ -1522,12 +1507,20 @@ public function finalPdf($id)
             'kontrak' => $kontrak,
             'apIndonesia' => $this->getDataPerusahaan(),
             'isPdf' => true,
+            'logoApSrc' => $this->gambarSebagaiDataUri(
+                public_path('images/angkasa-pura-logo.png')
+            ),
+            'logoMitraSrc' => $kontrak->logo_mitra_path
+                ? $this->gambarSebagaiDataUri(
+                    Storage::disk('local')->path($kontrak->logo_mitra_path)
+                )
+                : '',
         ];
 
         try {
             // Membuat PDF dari halaman dokumen kontrak.
             $pdf = Pdf::loadView(
-                'kontrak.dokumen',
+                'kontrak.dokumen-pdf',
                 $data
             )->setPaper('a4', 'portrait');
 
