@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('page-title', 'Kontrak')
@@ -29,11 +28,61 @@
     ========================================================== --}}
     @if (session('success'))
         <div
+            id="successToast"
             role="status"
-            class="rounded-xl border border-[#CFE0DC] bg-[#EEF6F3] px-4 py-3 text-sm text-[#365F65]"
+            class="fixed right-6 top-6 z-[9999] flex w-[calc(100%-3rem)] max-w-md items-start gap-3 rounded-xl border border-[#CFE0DC] bg-[#EEF6F3] p-4 shadow-lg"
         >
-            {{ session('success') }}
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#DCECE6]">
+                <svg
+                    class="h-5 w-5 text-[#087F73]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                    />
+                </svg>
+            </div>
+
+            <div class="min-w-0 flex-1">
+                <h3 class="text-sm font-bold text-[#365F65]">
+                    Dokumen Berhasil Disimpan
+                </h3>
+
+                <p class="mt-1 text-sm leading-relaxed text-[#55736F]">
+                    {{ session('success') }}
+                </p>
+            </div>
+
+            <button
+                type="button"
+                onclick="document.getElementById('successToast').remove()"
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#55736F] transition hover:bg-[#DCECE6]"
+                aria-label="Tutup notifikasi"
+            >
+                ✕
+            </button>
         </div>
+
+        <script>
+            setTimeout(function () {
+                const toast = document.getElementById('successToast');
+
+                if (toast) {
+                    toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateY(-10px)';
+
+                    setTimeout(function () {
+                        toast.remove();
+                    }, 400);
+                }
+            }, 5000);
+        </script>
     @endif
 
     @if (session('error'))
@@ -48,7 +97,7 @@
     {{-- =========================================================
          SUMMARY DASHBOARD
     ========================================================== --}}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
 
         {{-- TOTAL KONTRAK --}}
         <div class="rounded-2xl border border-[#E2EBE9] bg-white p-5">
@@ -57,9 +106,11 @@
                     <p class="text-sm font-medium text-[#7A9290]">
                         Total Kontrak
                     </p>
+
                     <h3 class="mt-3 text-3xl font-bold text-[#365F65]">
                         {{ $totalKontrak ?? 0 }}
                     </h3>
+
                     <p class="mt-2 text-xs text-[#8BA5A2]">
                         Seluruh kontrak yang tercatat
                     </p>
@@ -83,11 +134,13 @@
                     <p class="text-sm font-medium text-[#7A9290]">
                         Kontrak Aktif
                     </p>
+
                     <h3 class="mt-3 text-3xl font-bold text-[#087F73]">
                         {{ $kontrakAktif ?? 0 }}
                     </h3>
+
                     <p class="mt-2 text-xs text-[#8BA5A2]">
-                        Sudah di-ACC dan belum berakhir
+                        PDF final tersedia dan belum berakhir
                     </p>
                 </div>
 
@@ -100,16 +153,18 @@
             </div>
         </div>
 
-        {{-- KONTRAK NON-AKTIF --}}
+        {{-- KONTRAK NONAKTIF --}}
         <div class="rounded-2xl border border-[#E2EBE9] bg-white p-5">
             <div class="flex items-start justify-between">
                 <div>
                     <p class="text-sm font-medium text-[#7A9290]">
-                        Kontrak Non-Aktif
+                        Kontrak Nonaktif
                     </p>
+
                     <h3 class="mt-3 text-3xl font-bold text-[#A47720]">
                         {{ $kontrakNonAktif ?? 0 }}
                     </h3>
+
                     <p class="mt-2 text-xs text-[#8BA5A2]">
                         Masa kontrak telah berakhir
                     </p>
@@ -125,23 +180,25 @@
             </div>
         </div>
 
-        {{-- KONTRAK DALAM PROSES --}}
+        {{-- KONTRAK DRAFT --}}
         <div class="rounded-2xl border border-[#E2EBE9] bg-white p-5">
             <div class="flex items-start justify-between">
                 <div>
                     <p class="text-sm font-medium text-[#7A9290]">
-                        Dalam Proses
+                        Kontrak Draft
                     </p>
-                    <h3 class="mt-3 text-3xl font-bold text-[#527D82]">
-                        {{ $kontrakDalamProses ?? 0 }}
+
+                    <h3 class="mt-3 text-3xl font-bold text-[#A16207]">
+                        {{ $kontrakDraft ?? 0 }}
                     </h3>
+
                     <p class="mt-2 text-xs text-[#8BA5A2]">
-                        Kontrak yang belum selesai di-ACC
+                        PDF final belum diunggah
                     </p>
                 </div>
 
-                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EDF2F1]">
-                    <svg class="h-6 w-6 text-[#527D82]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#FFF0D9]">
+                    <svg class="h-6 w-6 text-[#A16207]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="9" stroke-width="1.8"/>
                         <path stroke-linecap="round" stroke-width="1.8"
                               d="M12 7v5l3 2"/>
@@ -150,9 +207,34 @@
             </div>
         </div>
 
-    </div>
+        {{-- KERJA SAMA BELUM DIBUATKAN KONTRAK --}}
+        <div class="rounded-2xl border border-[#E2EBE9] bg-white p-5">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-sm font-medium text-[#7A9290]">
+                        Belum Dibuat
+                    </p>
 
-    {{-- =========================================================
+                    <h3 class="mt-3 text-3xl font-bold text-[#527D82]">
+                        {{ $kontrakBelumDibuat ?? 0 }}
+                    </h3>
+
+                    <p class="mt-2 text-xs text-[#8BA5A2]">
+                        Kerja sama belum memiliki kontrak
+                    </p>
+                </div>
+
+                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EDF2F1]">
+                    <svg class="h-6 w-6 text-[#527D82]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                              d="M12 5v14M5 12h14"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+    </div>
+        {{-- =========================================================
          GRAFIK DASHBOARD
     ========================================================== --}}
     <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
@@ -163,6 +245,7 @@
                 <h3 class="text-base font-bold text-[#365F65]">
                     Komposisi Status Kontrak
                 </h3>
+
                 <p class="mt-1 text-sm text-[#7A9290]">
                     Perbandingan status seluruh kontrak
                 </p>
@@ -179,6 +262,7 @@
                 <h3 class="text-base font-bold text-[#365F65]">
                     Kontrak per Tahun
                 </h3>
+
                 <p class="mt-1 text-sm text-[#7A9290]">
                     Jumlah kontrak berdasarkan tahun pengajuan
                 </p>
@@ -198,8 +282,9 @@
         <form
             method="GET"
             action="{{ route('kontrak') }}"
-            class="grid grid-cols-1 gap-4 md:grid-cols-4"
+            class="grid grid-cols-1 gap-4 md:grid-cols-5"
         >
+
             {{-- SEARCH --}}
             <div class="md:col-span-2">
                 <label
@@ -248,13 +333,39 @@
                     <option value="za" {{ request('sort') === 'za' ? 'selected' : '' }}>
                         Nama Brand Z-A
                     </option>
+                </select>
+            </div>
 
-                    <option value="active" {{ request('sort') === 'active' ? 'selected' : '' }}>
+            {{-- FILTER STATUS --}}
+            <div>
+                <label
+                    for="status"
+                    class="mb-1.5 block text-xs font-semibold text-[#527D82]"
+                >
+                    Status Kontrak
+                </label>
+
+                <select
+                    id="status"
+                    name="status"
+                    class="w-full rounded-xl border border-[#DCE6E4] bg-[#F8FAF9] px-4 py-3 text-sm text-[#365F65] outline-none focus:border-[#527D82] focus:ring-2 focus:ring-[#527D82]/10"
+                >
+                    <option value="">Semua Status</option>
+
+                    <option value="Belum Dibuat" {{ request('status') === 'Belum Dibuat' ? 'selected' : '' }}>
+                        Belum Dibuat
+                    </option>
+
+                    <option value="Draft" {{ request('status') === 'Draft' ? 'selected' : '' }}>
+                        Draft
+                    </option>
+
+                    <option value="Aktif" {{ request('status') === 'Aktif' ? 'selected' : '' }}>
                         Aktif
                     </option>
 
-                    <option value="inactive" {{ request('sort') === 'inactive' ? 'selected' : '' }}>
-                        Non-Aktif
+                    <option value="Nonaktif" {{ request('status') === 'Nonaktif' ? 'selected' : '' }}>
+                        Nonaktif
                     </option>
                 </select>
             </div>
@@ -268,17 +379,47 @@
                     Terapkan Filter
                 </button>
             </div>
+
         </form>
     </div>
 
     {{-- =========================================================
          TABEL GABUNGAN KONTRAK DAN KANDIDAT
     ========================================================== --}}
-    @php
-        $daftarKandidat = collect($kandidatKontrak ?? []);
-        $daftarKontrak = collect($kontraks ?? []);
-        $nomorBaris = 0;
-    @endphp
+    
+@php
+    $daftarKandidat = collect($kandidatKontrak ?? []);
+
+    $daftarKontrak = collect($kontraks ?? [])
+        ->sortBy(function ($kontrak) {
+
+            $adaPdfFinal = filled($kontrak->final_pdf_path)
+                && \Illuminate\Support\Facades\Storage::disk('local')
+                    ->exists($kontrak->final_pdf_path);
+
+            $tanggalAkhir = $kontrak->kerjaSama?->tanggal_berakhir;
+
+            $isExpired = $tanggalAkhir
+                ? \Carbon\Carbon::parse($tanggalAkhir)
+                    ->startOfDay()
+                    ->lt(now()->startOfDay())
+                : false;
+
+            if (!$adaPdfFinal) {
+                return 1; // Draft
+            }
+
+            if ($isExpired) {
+                return 3; // Nonaktif
+            }
+
+            return 2; // Aktif
+        })
+        ->values();
+
+    $nomorBaris = 0;
+@endphp
+
 
     <div class="overflow-hidden rounded-2xl border border-[#E2EBE9] bg-white">
         <div class="overflow-x-auto">
@@ -350,7 +491,7 @@
 
                             <td class="px-4 py-4">
                                 <p class="text-sm font-semibold text-[#365F65]">
-                                    {{ $lokasiKandidat?->kode_tampilan ?? '-' }}
+                                    {{ $lokasiKandidat?->kode_ruang ?? '-' }}
                                 </p>
 
                                 <p class="mt-1 text-xs text-[#7A9290]">
@@ -373,7 +514,7 @@
 
                                     <p class="mt-1 text-xs text-[#8BA5A2]">
                                         ({{ \Carbon\Carbon::parse($tanggalMulai)
-                                         ->diffInMonths(\Carbon\Carbon::parse($tanggalBerakhir)) }} bulan)
+                                            ->diffInMonths(\Carbon\Carbon::parse($tanggalBerakhir)) }} bulan)
                                     </p>
                                 @else
                                     -
@@ -383,7 +524,7 @@
                             {{-- STATUS KANDIDAT --}}
                             <td class="px-4 py-4">
                                 <span class="inline-flex rounded-lg bg-[#F3F6F5] px-3 py-1.5 text-xs font-semibold text-[#527D82]">
-                                    Belum Kontrak
+                                    Belum Dibuat
                                 </span>
                             </td>
 
@@ -394,10 +535,10 @@
 
                             {{-- NOTE KANDIDAT --}}
                             <td class="px-4 py-4 text-sm text-[#527D82]">
-                                Berita Acara sudah dibuat, kontrak dapat dibuat sekarang.
+                                Kerja sama sudah memenuhi syarat untuk dibuatkan kontrak.
 
                                 <p class="mt-1 text-xs text-[#8BA5A2]">
-                                    Status BA: {{ $kandidat->statusBa() }}
+                                    Aktivasi: {{ $kandidat->aktivasi?->nomor_pengajuan ?? '-' }}
                                 </p>
                             </td>
 
@@ -421,8 +562,7 @@
 
                         </tr>
                     @endforeach
-
-                    {{-- =================================================
+                                        {{-- =================================================
                          KONTRAK YANG SUDAH DIBUAT
                     ================================================== --}}
                     @foreach ($daftarKontrak as $kontrak)
@@ -443,16 +583,25 @@
                                 : false;
 
                             $akanHabis = $tanggalAkhir
-                                ? (
-                                    !$isExpired &&
-                                    now()->startOfDay()->diffInDays(
-                                        \Carbon\Carbon::parse($tanggalAkhir)->startOfDay()
-                                    ) <= 30
-                                )
-                                : false;
+                            ? (
+                                !$isExpired &&
+                                now()->startOfDay()->diffInDays(
+                                    \Carbon\Carbon::parse($tanggalAkhir)->startOfDay()
+                                ) <= 30
+                            )
+                            : false;
 
-                            $statusKontrak = $kontrak->status ?? 'Draft';
-                            $sudahSelesai = $statusKontrak === 'Selesai';
+                            /*
+                             * Status ditentukan berdasarkan keberadaan PDF final
+                             * dan tanggal berakhir kerja sama.
+                             */
+                            $adaPdfFinal = filled($kontrak->final_pdf_path)
+                                && \Illuminate\Support\Facades\Storage::disk('local')
+                                    ->exists($kontrak->final_pdf_path);
+
+                            $statusKontrak = !$adaPdfFinal
+                                ? 'Draft'
+                                : ($isExpired ? 'Nonaktif' : 'Aktif');
 
                             $batasKonfirmasi = $tanggalAkhir
                                 ? \Carbon\Carbon::parse($tanggalAkhir)
@@ -460,12 +609,18 @@
                                     ->startOfDay()
                                 : null;
 
-                            $bolehKonfirmasi = $sudahSelesai
+                            $bolehKonfirmasi = $adaPdfFinal
                                 && $tanggalAkhir
+                                && !$isExpired
                                 && now()->startOfDay()->greaterThanOrEqualTo($batasKonfirmasi);
-                        @endphp
+                                                    @endphp
 
-                        <tr class="{{ $isExpired ? 'bg-[#F7F8F8]' : 'hover:bg-[#FAFCFB]' }} transition">
+                        
+<tr class="{{ $statusKontrak === 'Nonaktif'
+    ? 'bg-[#EEF1F0] opacity-65'
+    : 'bg-white'
+}} transition">
+
 
                             <td class="px-4 py-4 text-sm text-[#7A9290]">
                                 {{ $nomorBaris }}
@@ -499,7 +654,7 @@
 
                             <td class="px-4 py-4">
                                 <p class="text-sm font-semibold text-[#365F65]">
-                                    {{ $lokasi?->kode_tampilan ?? '-' }}
+                                    {{ $lokasi?->kode_ruang ?? '-' }}
                                 </p>
 
                                 <p class="mt-1 text-xs text-[#7A9290]">
@@ -532,24 +687,24 @@
 
                             {{-- STATUS KONTRAK --}}
                             <td class="px-4 py-4">
-                                @if ($sudahSelesai)
+                                @if ($statusKontrak === 'Aktif')
                                     <span class="inline-flex rounded-lg bg-[#D1FAE5] px-3 py-1.5 text-xs font-semibold text-[#047857]">
-                                        Selesai
+                                        Aktif
                                     </span>
-                                @elseif ($statusKontrak === 'Draft')
-                                    <span class="inline-flex rounded-lg bg-[#FFF0D9] px-3 py-1.5 text-xs font-semibold text-[#A16207]">
-                                        Draft
+                                @elseif ($statusKontrak === 'Nonaktif')
+                                    <span class="inline-flex rounded-lg bg-[#F3F6F5] px-3 py-1.5 text-xs font-semibold text-[#64748B]">
+                                        Nonaktif
                                     </span>
                                 @else
-                                    <span class="inline-flex rounded-lg bg-[#DBEAFE] px-3 py-1.5 text-xs font-semibold text-[#1D4ED8]">
-                                        {{ $statusKontrak }}
+                                    <span class="inline-flex rounded-lg bg-[#FFF0D9] px-3 py-1.5 text-xs font-semibold text-[#A16207]">
+                                        Draft
                                     </span>
                                 @endif
                             </td>
 
                             {{-- KONFIRMASI PERPANJANGAN --}}
                             <td class="px-4 py-4">
-                                @if (!$sudahSelesai)
+                                @if (!$adaPdfFinal)
                                     <span class="text-xs text-[#8BA5A2]">
                                         -
                                     </span>
@@ -600,28 +755,39 @@
                                 @endif
                             </td>
 
-                            {{-- NOTE --}}
-                            <td class="px-4 py-4 text-sm text-[#527D82]">
-                                @if ($isExpired)
-                                    Kontrak telah berakhir.
-                                @elseif ($akanHabis)
-                                    <span class="font-semibold text-[#A47720]">
-                                        Kontrak akan habis.
-                                    </span>
-                                @elseif ($sudahSelesai)
-                                    Kontrak telah selesai diproses.
-                                @elseif ($statusKontrak === 'Draft')
-                                    Dokumen kontrak sedang disusun.
-                                @else
-                                    Kontrak sedang dalam proses.
-                                @endif
-                            </td>
+                            
+{{-- NOTE --}}
+<td class="px-4 py-4 text-sm text-[#527D82]">
+
+    @if ($statusKontrak === 'Nonaktif')
+
+        Masa kontrak telah berakhir.
+
+    @elseif ($statusKontrak === 'Aktif' && $akanHabis)
+
+        <span class="font-semibold text-[#A47720]">
+            Kontrak akan habis.
+        </span>
+
+    @elseif ($statusKontrak === 'Aktif')
+
+        PDF final telah diunggah dan kontrak masih berlaku.
+
+    @else
+
+        Dokumen kontrak belum memiliki PDF final.
+
+    @endif
+
+</td>
+
 
                             
 {{-- AKSI --}}
 <td class="px-4 py-4">
 
-    @if (filled($kontrak->final_pdf_path))
+    {{-- KONTRAK SUDAH MEMILIKI PDF FINAL --}}
+    @if ($adaPdfFinal)
 
         <a
             href="{{ route('kontrak.finalPdf', $kontrak->id) }}"
@@ -632,25 +798,21 @@
             Detail
         </a>
 
-    @elseif ($sudahSelesai)
-
-        <span class="text-xs text-[#8BA5A2]">
-            PDF final belum tersedia
-        </span>
-
-    @elseif (blank($kontrak->nama_commercial) || blank($kontrak->jabatan_commercial))
+    {{-- PROGRES TERAKHIR ADALAH UPLOAD DOKUMEN FINAL --}}
+    @elseif ($kontrak->progress_tahap === 'upload_final')
 
         <a
-            href="{{ route('kontrak.show', $kontrak->id) }}"
+            href="{{ route('kontrak.uploadFinal', $kontrak->id) }}"
             class="inline-flex items-center justify-center whitespace-nowrap rounded-lg bg-[#365F65] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#294F55]"
         >
             Lanjutkan
         </a>
 
+    {{-- DEFAULT: KEMBALI KE ISI DOKUMEN KONTRAK --}}
     @else
 
         <a
-            href="{{ route('kontrak.uploadFinal', $kontrak->id) }}"
+            href="{{ route('kontrak.acc', $kontrak->id) }}"
             class="inline-flex items-center justify-center whitespace-nowrap rounded-lg bg-[#365F65] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#294F55]"
         >
             Lanjutkan
@@ -660,11 +822,9 @@
 
 </td>
 
-
                         </tr>
                     @endforeach
-
-                    {{-- EMPTY STATE --}}
+                                        {{-- EMPTY STATE --}}
                     @if ($nomorBaris === 0)
                         <tr>
                             <td colspan="10" class="px-5 py-16 text-center">
@@ -695,19 +855,20 @@
          KETERANGAN
     ========================================================== --}}
     <div class="rounded-xl border border-[#DCE6E4] bg-[#F3F6F5] px-4 py-3">
-        <p class="text-xs leading-5 text-[#7A9290]">
-            <span class="font-semibold text-[#527D82]">
-                Keterangan:
-            </span>
+    <p class="text-xs leading-5 text-[#7A9290]">
+        <span class="font-semibold text-[#527D82]">
+            Keterangan:
+        </span>
 
-            Kontrak yang telah melewati tanggal akhir akan ditampilkan
-            dengan warna abu-abu dan berstatus
-            <strong>Non-Aktif</strong>.
-            Jika masa kontrak tersisa maksimal 1 bulan,
-            sistem akan memberikan catatan
-            <strong>Kontrak akan habis</strong>.
-        </p>
-    </div>
+        Kontrak yang PDF finalnya sudah tersimpan dan masa sewanya
+        telah berakhir akan berstatus
+        <strong>Nonaktif</strong>, terlepas dari keputusan perpanjangan mitra.
+
+        Jika masa sewa kontrak aktif tersisa maksimal 1 bulan,
+        sistem akan memberikan catatan
+        <strong>Kontrak akan habis</strong>.
+    </p>
+</div>
 
 </div>
 
@@ -718,7 +879,6 @@
     window.dataStatusKontrak = @json($dataStatus ?? []);
     window.dataKontrakTahunan = @json($dataTahunan ?? []);
 </script>
-
 {{-- =========================================================
      MODAL KONFIRMASI PERPANJANGAN
 ========================================================== --}}
@@ -771,9 +931,11 @@
                 class="w-full rounded-xl border border-[#DCE6E4] bg-[#F8FAF9] px-4 py-3 text-sm text-[#365F65] focus:border-[#527D82] focus:outline-none focus:ring-2 focus:ring-[#527D82]/10"
             >
                 <option value="">Pilih keputusan</option>
+
                 <option value="Ingin Memperpanjang">
                     Ingin Memperpanjang
                 </option>
+
                 <option value="Tidak Memperpanjang">
                     Tidak Memperpanjang
                 </option>

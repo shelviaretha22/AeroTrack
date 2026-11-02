@@ -74,14 +74,24 @@
             </div>
 
             <div class="form-group">
-                <label for="telepon">Nomor Telepon</label>
-                <input
-                    type="text"
-                    id="telepon"
-                    name="telepon"
-                    value="{{ old('telepon', $perusahaan->telepon) }}"
-                >
-            </div>
+    <label for="telepon">Nomor Telepon</label>
+    <input
+        type="text"
+        id="telepon"
+        name="telepon"
+        value="{{ old('telepon', $perusahaan->telepon) }}"
+    >
+</div>
+
+<div class="form-group">
+    <label for="fax">Nomor Fax</label>
+    <input
+        type="text"
+        id="fax"
+        name="fax"
+        value="{{ old('fax', $perusahaan->fax ?? '(031) 8667506') }}"
+    >
+</div>
 
             <div class="form-group full-width">
                 <label for="alamat">Alamat Perusahaan</label>

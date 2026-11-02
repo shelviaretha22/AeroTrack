@@ -6,55 +6,340 @@
 
 @section('content')
 
-<div class="min-h-full space-y-5 bg-[#F4F8FA] p-4 lg:p-6">
 
-    {{-- HEADER DAN PROGRESS --}}
-    <div class="mx-auto max-w-[1600px]">
+{{-- MODAL KONFIRMASI HAPUS DOKUMEN --}}
+<div
+    class="delete-modal-overlay"
+    id="deleteModal"
+    aria-hidden="true"
+>
+    <div
+        class="delete-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="deleteModalTitle"
+    >
+        <div class="delete-modal-header">
+            <h3 id="deleteModalTitle">
+                Hapus Dokumen
+            </h3>
 
-        {{-- STEPPER 2 TAHAP --}}
-        <div class="mx-auto mb-5 flex max-w-3xl items-center">
-
-            {{-- TAHAP 1: SELESAI --}}
-            <div class="flex flex-1 flex-col items-center gap-2">
-
-                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#087F73] text-white">
-                    ✓
-                </div>
-
-                <span class="text-center text-xs font-medium text-[#365F65] sm:text-sm">
-                    Isi Dokumen<br>Kontrak
-                </span>
-
-            </div>
-
-            {{-- GARIS PROGRESS --}}
-            <div class="mb-6 h-0.5 flex-1 bg-[#087F73]"></div>
-
-            {{-- TAHAP 2: AKTIF --}}
-            <div class="flex flex-1 flex-col items-center gap-2">
-
-                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#2563EB] font-semibold text-white">
-                    2
-                </div>
-
-                <span class="text-center text-xs font-semibold text-[#2563EB] sm:text-sm">
-                    Upload Dokumen<br>Kontrak
-                </span>
-
-            </div>
-
+            <button
+                type="button"
+                class="delete-modal-close"
+                id="closeDeleteModal"
+                aria-label="Tutup"
+            >
+                ✕
+            </button>
         </div>
 
-        {{-- JUDUL HALAMAN --}}
-        <h1 class="text-2xl font-bold text-[#142344] sm:text-3xl">
-            Upload Dokumen Kontrak
-        </h1>
-
-        <p class="mt-1 text-sm text-[#60718A] sm:text-base">
-            Unggah dokumen kontrak final yang telah ditandatangani oleh kedua pihak.
+        <p class="delete-modal-description">
+            Apakah kamu yakin ingin menghapus dokumen kontrak final ini?
+            Dokumen yang dihapus tidak dapat dikembalikan.
         </p>
 
+        <div class="delete-modal-actions">
+            <button
+                type="button"
+                class="delete-modal-confirm"
+                id="confirmDeleteFile"
+            >
+                <i class="fas fa-trash-alt"></i>
+                Hapus
+            </button>
+
+            <button
+                type="button"
+                class="delete-modal-cancel"
+                id="cancelDeleteModal"
+            >
+                Batal
+            </button>
+        </div>
     </div>
+</div>
+
+<style>
+    /* DASAR HALAMAN */
+    .dokumen-page {
+        width: 100%;
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 12px 20px 24px;
+        color: #243B5A;
+        font-family: Arial, sans-serif;
+        box-sizing: border-box;
+    }
+
+    .dokumen-page *,
+    .dokumen-page *::before,
+    .dokumen-page *::after {
+        box-sizing: border-box;
+    }
+
+    /* JUDUL HALAMAN */
+    .dokumen-page .page-heading {
+        margin-bottom: 12px;
+        text-align: center;
+    }
+
+    .dokumen-page .page-title {
+        margin: 0;
+        color: #142C5C;
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .dokumen-page .page-subtitle {
+        margin: 5px 0 0;
+        color: #7186AE;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    /* STEPPER */
+    .dokumen-page .contract-steps {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        width: 100%;
+        max-width: 430px;
+        margin: 15px auto 22px;
+    }
+
+    .dokumen-page .contract-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 125px;
+        color: #91A0B5;
+        text-align: center;
+    }
+
+    .dokumen-page .step-number {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 31px;
+        height: 31px;
+        border-radius: 50%;
+        background: #D4DCE7;
+        color: #FFFFFF;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    /* TAHAP 1 - SUDAH DILEWATI */
+    .dokumen-page .contract-step.completed {
+        color: #9CA3AF;
+        font-weight: 500;
+    }
+
+    .dokumen-page .contract-step.completed .step-number {
+        background: #D1D5DB;
+        color: #FFFFFF;
+    }
+
+    /* TAHAP 2 - SEDANG AKTIF */
+    .dokumen-page .contract-step.active {
+        color: #087F73;
+        font-weight: 600;
+    }
+
+    .dokumen-page .contract-step.active .step-number {
+        background: #087F73;
+        color: #FFFFFF;
+    }
+
+    /* GARIS PENGHUBUNG */
+    .dokumen-page .step-line.active {
+        background: #087F73;
+    }
+    .dokumen-page .step-label {
+        margin-top: 6px;
+        font-size: 10px;
+        line-height: 1.4;
+    }
+
+    .dokumen-page .step-line {
+        flex: 1;
+        height: 2px;
+        margin-top: 15px;
+        background: #D4DCE7;
+    }
+
+    .dokumen-page .step-line.active {
+        background: #087F73;
+    }
+    
+    
+/* =========================================
+   MODAL KONFIRMASI HAPUS DOKUMEN
+========================================= */
+
+.delete-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, .55);
+}
+
+.delete-modal-overlay.show {
+    display: flex;
+}
+
+.delete-modal {
+    width: 100%;
+    max-width: 420px;
+    padding: 25px;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, .18);
+    animation: deleteModalShow .2s ease;
+}
+
+@keyframes deleteModalShow {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.delete-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.delete-modal-header h3 {
+    margin: 0;
+    color: #142C5C;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.delete-modal-close {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    background: #F1F3F5;
+    color: #333333;
+    font-size: 16px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.delete-modal-close:hover {
+    background: #E5E7EB;
+}
+
+.delete-modal-description {
+    margin: 0 0 22px;
+    color: #89939b;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* BUTTON SEJAJAR KANAN KIRI */
+.delete-modal-actions {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.delete-modal-confirm,
+.delete-modal-cancel {
+    flex: 1;
+    min-height: 42px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.delete-modal-confirm {
+    border: 1px solid #dc3545;
+    background: #dc3545;
+    color: #ffffff;
+}
+
+.delete-modal-confirm:hover {
+    background: #bd2635;
+}
+
+.delete-modal-cancel {
+    border: 1px solid #e0e4e8;
+    background: #ffffff;
+    color: #68737d;
+}
+
+.delete-modal-cancel:hover {
+    background: #f7f8fa;
+}
+
+.delete-modal-confirm:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+</style>
+
+<div class="min-h-full space-y-5 bg-[#F4F8FA] p-4 lg:p-6">
+
+    
+{{-- HEADER DAN PROGRESS --}}
+<div class="dokumen-page">
+    <div class="page-heading">
+        <h1 class="page-title">Upload Dokumen Kontrak</h1>
+        <p class="page-subtitle">
+            Unggah dokumen kontrak final yang telah ditandatangani oleh kedua pihak.
+        </p>
+    </div>
+
+    {{-- STEPPER 2 TAHAP --}}
+    <div class="contract-steps">
+
+        {{-- TAHAP 1: SELESAI --}}
+        <div class="contract-step completed">
+            <div class="step-number">1</div>
+            <div class="step-label">
+                Isi Dokumen<br>Kontrak
+            </div>
+        </div>
+
+        <div class="step-line active"></div>
+
+        {{-- TAHAP 2: AKTIF --}}
+        <div class="contract-step active">
+            <div class="step-number">2</div>
+            <div class="step-label">
+                Upload Dokumen<br>Kontrak
+            </div>
+        </div>
+
+    </div>
+</div>
 
     {{-- NOTIFIKASI --}}
     @if (session('success'))
@@ -144,12 +429,15 @@
             </div>
 
             <form
-                id="formUploadFinal"
-                action="{{ route('kontrak.storeUploadFinal', $kontrak->id) }}"
-                method="POST"
-                enctype="multipart/form-data"
-                class="flex flex-1 flex-col"
-            >
+            id="formUploadFinal"
+            action="{{ route('kontrak.storeUploadFinal', $kontrak->id) }}"
+            method="POST"
+            data-temp-upload-url="{{ route('kontrak.uploadFinal.temp', $kontrak->id) }}"
+            data-temp-delete-url="{{ route('kontrak.uploadFinal.temp.delete', $kontrak->id) }}"
+            data-temp-preview-url="{{ route('kontrak.uploadFinal.temp.preview', $kontrak->id) }}"
+            data-temp-upload='@json($tempUpload)'
+            class="flex flex-1 flex-col"
+        >
                 @csrf
 
                 <div class="flex-1 space-y-4 p-5">
@@ -178,7 +466,6 @@
                         id="final_pdf"
                         name="final_pdf"
                         accept=".pdf,application/pdf"
-                        required
                         class="sr-only"
                     >
 
@@ -268,7 +555,7 @@
                 <div class="flex flex-col-reverse gap-3 border-t border-[#E6EDF2] bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
 
                     <a
-                        href="{{ route('kontrak') }}"
+                        href="{{ route('kontrak.show', $kontrak->id) }}"
                         class="inline-flex items-center justify-center gap-2 rounded-lg border border-[#CBD9E3] bg-white px-5 py-3 text-sm font-semibold text-[#29405C] hover:bg-[#F5F8FA]"
                     >
                         <span aria-hidden="true">‹</span>
@@ -293,153 +580,320 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const input = document.getElementById('final_pdf');
-    const dropZone = document.getElementById('dropZone');
-    const fileInfo = document.getElementById('fileInfo');
-    const fileName = document.getElementById('fileName');
-    const fileSize = document.getElementById('fileSize');
-    const removeButton = document.getElementById('removeFile');
-    const previewContainer = document.getElementById('previewContainer');
-    const filePreview = document.getElementById('filePreview');
-    const openPreview = document.getElementById('openPreview');
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('formUploadFinal');
 
-    const uploadedPdfPreview = document.getElementById('uploadedPdfPreview');
-    const emptyPreview = document.getElementById('emptyPreview');
+        const input = document.getElementById('final_pdf');
+        const dropZone = document.getElementById('dropZone');
 
-    const form = document.getElementById('formUploadFinal');
-    const submitButton = document.getElementById('submitUpload');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
 
-    let previewUrl = null;
+        const removeButton = document.getElementById('removeFile');
 
-    function clearPreview() {
-        if (previewUrl) {
-            URL.revokeObjectURL(previewUrl);
-            previewUrl = null;
+        const previewContainer = document.getElementById('previewContainer');
+        const filePreview = document.getElementById('filePreview');
+        const openPreview = document.getElementById('openPreview');
+
+        const uploadedPdfPreview = document.getElementById('uploadedPdfPreview');
+        const emptyPreview = document.getElementById('emptyPreview');
+
+        const submitButton = document.getElementById('submitUpload');
+        const confirmation = document.getElementById('final_signature_confirmed');
+
+        const uploadUrl = form.dataset.tempUploadUrl;
+        const deleteUrl = form.dataset.tempDeleteUrl;
+        const previewUrl = form.dataset.tempPreviewUrl;
+
+        const csrfToken = form.querySelector('input[name="_token"]').value;
+
+        let hasTemporaryFile = false;
+        let isUploading = false;
+        let isDeleting = false;
+
+        function formatFileSize(bytes) {
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
         }
 
-        filePreview.removeAttribute('src');
-        openPreview.removeAttribute('href');
-        uploadedPdfPreview.removeAttribute('src');
-
-        previewContainer.classList.add('hidden');
-        uploadedPdfPreview.classList.add('hidden');
-        emptyPreview.classList.remove('hidden');
-    }
-
-    function showFile(file) {
-        clearPreview();
-
-        if (!file) {
+        function showEmptyState() {
             fileInfo.classList.add('hidden');
             dropZone.classList.remove('hidden');
+
+            previewContainer.classList.add('hidden');
+
+            uploadedPdfPreview.removeAttribute('src');
+            uploadedPdfPreview.classList.add('hidden');
+
+            emptyPreview.classList.remove('hidden');
+
+            filePreview.removeAttribute('src');
+            openPreview.removeAttribute('href');
+
             fileName.textContent = '';
             fileSize.textContent = '';
-            return;
+
+            hasTemporaryFile = false;
         }
 
-        const isPdf = file.type === 'application/pdf'
-            || file.name.toLowerCase().endsWith('.pdf');
+        function showSavedFile(name, size) {
+            fileName.textContent = name;
+            fileSize.textContent = formatFileSize(size);
 
-        if (!isPdf) {
-            input.value = '';
-            fileInfo.classList.add('hidden');
-            dropZone.classList.remove('hidden');
-            alert('File harus berformat PDF.');
-            return;
+            fileInfo.classList.remove('hidden');
+            dropZone.classList.add('hidden');
+
+            const url = previewUrl + '?t=' + Date.now();
+
+            uploadedPdfPreview.src = url;
+            uploadedPdfPreview.classList.remove('hidden');
+
+            emptyPreview.classList.add('hidden');
+
+            filePreview.src = url;
+            openPreview.href = url;
+
+            previewContainer.classList.remove('hidden');
+
+            hasTemporaryFile = true;
         }
 
-        if (file.size > 10 * 1024 * 1024) {
-            input.value = '';
-            fileInfo.classList.add('hidden');
-            dropZone.classList.remove('hidden');
-            alert('Ukuran file maksimal 10 MB.');
-            return;
+        async function uploadTemporaryFile(file) {
+            if (!file) return;
+
+            const isPdf = file.type === 'application/pdf'
+                || file.name.toLowerCase().endsWith('.pdf');
+
+            if (!isPdf) {
+                input.value = '';
+                alert('File harus berformat PDF.');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                input.value = '';
+                alert('Ukuran file maksimal 10 MB.');
+                return;
+            }
+
+            if (isUploading) return;
+
+            isUploading = true;
+            submitButton.disabled = true;
+            removeButton.disabled = true;
+
+            const formData = new FormData();
+            formData.append('final_pdf', file);
+
+            try {
+                const response = await fetch(uploadUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(
+                        result.message || 'PDF gagal diunggah.'
+                    );
+                }
+
+                showSavedFile(
+                    result.file_name,
+                    result.file_size
+                );
+
+                input.value = '';
+
+            } catch (error) {
+                alert(error.message || 'Terjadi kesalahan saat mengunggah PDF.');
+                input.value = '';
+
+            } finally {
+                isUploading = false;
+                submitButton.disabled = false;
+                removeButton.disabled = false;
+            }
         }
 
-        fileName.textContent = file.name;
-        fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-
-        fileInfo.classList.remove('hidden');
-        dropZone.classList.add('hidden');
-
-        previewUrl = URL.createObjectURL(file);
-
-        // PDF yang sama ditampilkan di panel kiri dan panel kanan.
-        uploadedPdfPreview.src = previewUrl;
-        uploadedPdfPreview.classList.remove('hidden');
-        emptyPreview.classList.add('hidden');
-
-        filePreview.src = previewUrl;
-        openPreview.href = previewUrl;
-        previewContainer.classList.remove('hidden');
-    }
-
-    input.addEventListener('change', function () {
-        showFile(this.files[0]);
-    });
-
-    removeButton.addEventListener('click', function () {
-        input.value = '';
-        showFile(null);
-    });
-
-    ['dragenter', 'dragover'].forEach(function (eventName) {
-        dropZone.addEventListener(eventName, function (event) {
-            event.preventDefault();
-            dropZone.classList.add('border-[#087F73]', 'bg-[#F0F9F7]');
+        input.addEventListener('change', function () {
+            uploadTemporaryFile(this.files[0]);
         });
-    });
 
-    ['dragleave', 'drop'].forEach(function (eventName) {
-        dropZone.addEventListener(eventName, function (event) {
-            event.preventDefault();
-            dropZone.classList.remove('border-[#087F73]', 'bg-[#F0F9F7]');
+        
+        const deleteModal = document.getElementById('deleteModal');
+        const closeDeleteModal = document.getElementById('closeDeleteModal');
+        const cancelDeleteModal = document.getElementById('cancelDeleteModal');
+        const confirmDeleteFile = document.getElementById('confirmDeleteFile');
+
+        function openDeleteModal() {
+            if (!hasTemporaryFile || isDeleting) return;
+
+            deleteModal.classList.add('show');
+            deleteModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeDeleteModalWindow() {
+            deleteModal.classList.remove('show');
+            deleteModal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+        }
+
+        // Klik tombol Hapus pada informasi file
+        removeButton.addEventListener('click', function () {
+            openDeleteModal();
         });
-    });
 
-    dropZone.addEventListener('drop', function (event) {
-        const files = event.dataTransfer.files;
+        // Tombol Batal
+        cancelDeleteModal.addEventListener('click', function () {
+            closeDeleteModalWindow();
+        });
 
-        if (!files.length) return;
+        // Tombol X
+        closeDeleteModal.addEventListener('click', function () {
+            closeDeleteModalWindow();
+        });
 
-        const transfer = new DataTransfer();
-        transfer.items.add(files[0]);
-        input.files = transfer.files;
+        // Klik area gelap di luar modal
+        deleteModal.addEventListener('click', function (event) {
+            if (event.target === deleteModal) {
+                closeDeleteModalWindow();
+            }
+        });
 
-        showFile(files[0]);
-    });
+        // Konfirmasi penghapusan
+        confirmDeleteFile.addEventListener('click', async function () {
+            if (!hasTemporaryFile || isDeleting) return;
 
-    form.addEventListener('submit', function (event) {
-        const file = input.files[0];
-        const confirmed = document.getElementById('final_signature_confirmed').checked;
+            isDeleting = true;
+            confirmDeleteFile.disabled = true;
+            removeButton.disabled = true;
 
-        if (!file) {
-            event.preventDefault();
-            alert('Silakan pilih dokumen kontrak final terlebih dahulu.');
-            return;
+            confirmDeleteFile.innerHTML =
+                '<i class="fas fa-spinner fa-spin"></i> Menghapus...';
+
+            try {
+                const response = await fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(
+                        result.message || 'Dokumen gagal dihapus.'
+                    );
+                }
+
+                input.value = '';
+                showEmptyState();
+
+                closeDeleteModalWindow();
+
+            } catch (error) {
+                alert(
+                    error.message ||
+                    'Terjadi kesalahan saat menghapus dokumen.'
+                );
+
+            } finally {
+                isDeleting = false;
+                confirmDeleteFile.disabled = false;
+                removeButton.disabled = false;
+
+                confirmDeleteFile.innerHTML =
+                    '<i class="fas fa-trash-alt"></i> Hapus';
+            }
+        });
+
+
+        ['dragenter', 'dragover'].forEach(function (eventName) {
+            dropZone.addEventListener(eventName, function (event) {
+                event.preventDefault();
+
+                dropZone.classList.add(
+                    'border-[#087F73]',
+                    'bg-[#F0F9F7]'
+                );
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(function (eventName) {
+            dropZone.addEventListener(eventName, function (event) {
+                event.preventDefault();
+
+                dropZone.classList.remove(
+                    'border-[#087F73]',
+                    'bg-[#F0F9F7]'
+                );
+            });
+        });
+
+        dropZone.addEventListener('drop', function (event) {
+            const files = event.dataTransfer.files;
+
+            if (!files.length) return;
+
+            uploadTemporaryFile(files[0]);
+        });
+
+        form.addEventListener('submit', function (event) {
+            if (isUploading) {
+                event.preventDefault();
+                alert('Tunggu sampai proses upload PDF selesai.');
+                return;
+            }
+
+            if (!hasTemporaryFile) {
+                event.preventDefault();
+                alert('Silakan unggah dokumen kontrak final terlebih dahulu.');
+                return;
+            }
+
+            if (!confirmation.checked) {
+                event.preventDefault();
+                alert('Silakan centang konfirmasi tanda tangan kedua pihak.');
+                return;
+            }
+
+            if (!confirm(
+                'Pastikan PDF final sudah benar dan ditandatangani kedua pihak. Simpan dokumen ini?'
+            )) {
+                event.preventDefault();
+                return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.textContent = 'Menyimpan dokumen...';
+        });
+
+        // Tampilkan kembali file sementara ketika halaman dibuka ulang.
+        const savedFile = form.dataset.tempUpload
+            ? JSON.parse(form.dataset.tempUpload)
+            : null;
+
+        if (
+            savedFile &&
+            savedFile.name &&
+            savedFile.size
+        ) {
+            showSavedFile(
+                savedFile.name,
+                savedFile.size
+            );
+        } else {
+            showEmptyState();
         }
-
-        if (!confirmed) {
-            event.preventDefault();
-            alert('Silakan centang konfirmasi tanda tangan kedua pihak.');
-            return;
-        }
-
-        if (!confirm('Pastikan PDF final sudah benar dan ditandatangani kedua pihak. Simpan dokumen ini?')) {
-            event.preventDefault();
-            return;
-        }
-
-        submitButton.disabled = true;
-        submitButton.textContent = 'Menyimpan dokumen...';
     });
-
-    window.addEventListener('beforeunload', function () {
-        if (previewUrl) {
-            URL.revokeObjectURL(previewUrl);
-        }
-    });
-});
 </script>
 @endsection
