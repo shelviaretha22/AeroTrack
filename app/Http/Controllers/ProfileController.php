@@ -285,6 +285,7 @@ class ProfileController extends Controller
             'nama_penandatangan' => ['nullable', 'string', 'max:255'],
             'jabatan_penandatangan' => ['nullable', 'string', 'max:255'],
             'telepon' => ['nullable', 'string', 'max:30'],
+            'fax' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
         ]);
 

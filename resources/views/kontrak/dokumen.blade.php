@@ -46,10 +46,17 @@
     $nomorKontrakMitra = $kontrak?->nomor_kontrak_mitra ?? '';
 
     $nomorKerjaSama = $kerjaSama?->nomor_kerja_sama
+    ?: (
+        $kerjaSama
+            ? 'KS-' . str_pad($kerjaSama->id, 5, '0', STR_PAD_LEFT)
+            : '-'
+    );
+
+    // Nomor Berita Acara Kesepakatan dari data Kerja Sama.
+    $nomorBAK = $kerjaSama?->nomor_bak
         ?: (
-            $kerjaSama
-                ? 'KS-' . str_pad($kerjaSama->id, 5, '0', STR_PAD_LEFT)
-                : '-'
+            $kerjaSama?->nomor_berita_acara
+            ?: '[Nomor BA belum tersedia]'
         );
 
 
@@ -149,14 +156,22 @@
     |--------------------------------------------------------------------------
     */
 
-    $tanggalMulai = $kerjaSama?->tanggal_mulai
+        $tanggalMulaiCarbon = $kerjaSama?->tanggal_mulai
         ? \Illuminate\Support\Carbon::parse($kerjaSama->tanggal_mulai)
+        : null;
+
+    $tanggalBerakhirCarbon = $kerjaSama?->tanggal_berakhir
+        ? \Illuminate\Support\Carbon::parse($kerjaSama->tanggal_berakhir)
+        : null;
+
+    $tanggalMulai = $tanggalMulaiCarbon
+        ? $tanggalMulaiCarbon->copy()
             ->locale('id')
             ->translatedFormat('d F Y')
         : '[Tanggal mulai kerja sama]';
 
-    $tanggalBerakhir = $kerjaSama?->tanggal_berakhir
-        ? \Illuminate\Support\Carbon::parse($kerjaSama->tanggal_berakhir)
+    $tanggalBerakhir = $tanggalBerakhirCarbon
+        ? $tanggalBerakhirCarbon->copy()
             ->locale('id')
             ->translatedFormat('d F Y')
         : '[Tanggal berakhir kerja sama]';
@@ -165,18 +180,41 @@
         ->locale('id')
         ->translatedFormat('l, d F Y');
 
-    $durasiKerjaSama = $kerjaSama?->tanggal_mulai
-        && $kerjaSama?->tanggal_berakhir
-        ? (
-            \Illuminate\Support\Carbon::parse($kerjaSama->tanggal_mulai)
-                ->diffInDays(
-                    \Illuminate\Support\Carbon::parse(
-                        $kerjaSama->tanggal_berakhir
-                    )
-                ) . ' hari'
-        )
-        : '[Durasi sewa belum tersedia]';
+    /*
+    |--------------------------------------------------------------------------
+    | DURASI KERJA SAMA
+    |--------------------------------------------------------------------------
+    | Durasi minimal 1 tahun ditampilkan dalam satuan tahun.
+    | Durasi di bawah 1 tahun ditampilkan dalam satuan bulan.
+    */
 
+    $durasiNilai = null;
+    $durasiSatuan = null;
+
+    if (
+        $tanggalMulaiCarbon
+        && $tanggalBerakhirCarbon
+        && $tanggalBerakhirCarbon->greaterThanOrEqualTo($tanggalMulaiCarbon)
+    ) {
+        $selisihTahun = $tanggalMulaiCarbon->diffInYears(
+            $tanggalBerakhirCarbon
+        );
+
+        if ($selisihTahun >= 1) {
+            $durasiNilai = $selisihTahun;
+            $durasiSatuan = 'tahun';
+        } else {
+            $durasiNilai = $tanggalMulaiCarbon->diffInMonths(
+                $tanggalBerakhirCarbon
+            );
+
+            $durasiSatuan = 'bulan';
+        }
+    }
+
+    $durasiKerjaSama = $durasiNilai !== null
+        ? $durasiNilai . ' ' . $durasiSatuan
+        : '[Durasi perjanjian belum tersedia]';
 
     /*
     |--------------------------------------------------------------------------
@@ -210,14 +248,30 @@
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | 10. DATA PENANDATANGAN DAN KONTAK MITRA
+    |--------------------------------------------------------------------------
+    |
+    | Nama dan jabatan PIC Mitra dipisahkan dari data penandatangan.
+    |
+    | Data penandatangan hanya menggunakan data yang pernah disimpan
+    | atau diinput secara manual oleh pengguna.
+    |
+    | Jika belum pernah diisi, field penandatangan akan kosong.
+    |
+    | old() digunakan agar input tidak hilang ketika validasi gagal.
+    |
+    */
+
     $namaPenandatanganMitra = old(
         'nama_penandatangan_mitra',
-        $abaikanBilaMilikAp($kontrak?->nama_penandatangan_mitra, $kerjaSama?->pic_commercial) ?: $picMitraNamaDefault
+        $kontrak?->nama_penandatangan_mitra ?? ''
     );
 
     $jabatanPenandatanganMitra = old(
         'jabatan_penandatangan_mitra',
-        $abaikanBilaMilikAp($kontrak?->jabatan_penandatangan_mitra, $kerjaSama?->jabatan_pic_commercial) ?: $picMitraJabatanDefault
+        $kontrak?->jabatan_penandatangan_mitra ?? ''
     );
 
     $alamatMitra = old(
@@ -457,25 +511,25 @@
     }
 
     .dokumen-page .step-number {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 31px;
-        height: 31px;
-        border-radius: 50%;
-        background: #D4DCE7;
-        color: #FFFFFF;
-        font-size: 13px;
-        font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 31px;
+    height: 31px;
+    border-radius: 50%;
+    background: #DCE9E6;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 700;
     }
 
     .dokumen-page .contract-step.active {
-        color: #142C5C;
+        color: #365F65;
         font-weight: 600;
     }
 
     .dokumen-page .contract-step.active .step-number {
-        background: #2864E8;
+        background: #087F73;
     }
 
     .dokumen-page .step-label {
@@ -488,7 +542,7 @@
         flex: 1;
         height: 2px;
         margin-top: 15px;
-        background: #D4DCE7;
+        background: #DCE6E4;
     }
 
     /* =====================================================
@@ -951,67 +1005,63 @@
     }
 
     .btn-form-back,
-    .btn-form-next,
-    .btn-form-export {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        min-height: 42px;
-        padding: 10px 17px;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 600;
-        text-decoration: none;
-        cursor: pointer;
-        transition: .2s;
-    }
+.btn-form-next,
+.btn-form-export {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 47px;
+    padding: 10px 26px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: .2s;
+}
 
-    .btn-form-back {
-        border: 1px solid #dce1e6;
-        background: #ffffff;
-        color: #59636e;
-    }
+.btn-form-back,
+.btn-form-next,
+.btn-form-export {
+    border: 1px solid #087F73;
+    background: #ffffff;
+    color: #087F73;
+}
 
-    .btn-form-export {
-        border: 1px solid #2864E8;
-        background: #ffffff;
-        color: #2864E8;
-    }
+.btn-form-next {
+    border: 1px solid #087F73;
+    background: #087F73;
+    color: #ffffff;
+}
 
-    .btn-form-next {
-        border: 1px solid #2864E8;
-        background: #2864E8;
-        color: #ffffff;
-    }
+.btn-form-back:hover {
+    background: #f7f8fa;
+}
 
-    .btn-form-back:hover {
-        background: #f7f8fa;
-    }
+.btn-form-export:hover {
+    background: #E8F0EE;
+}
 
-    .btn-form-export:hover {
-        background: #F1F5FF;
-    }
+.btn-form-next:hover {
+    background: #06685F;
+}
 
-    .btn-form-next:hover {
-        background: #1D4FC2;
-    }
+.form-action-right {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
 
-    .form-action-right {
-        display: flex;
-        align-items: center;
-        gap: 9px;
-    }
+.form-action-right button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
 
-    .form-action-right button:disabled {
-        opacity: .55;
-        cursor: not-allowed;
-    }
-
-    .form-error-message {
-        color: #dc3545;
-        font-size: 11px;
-    }
+.form-error-message {
+    color: #dc3545;
+    font-size: 11px;
+}
 
     /* =========================================
        RESPONSIVE
@@ -1247,7 +1297,7 @@
                         @if($logoMitraPath)
                             <img
                                 id="logoPreviewImage"
-                                src="{{ asset('storage/' . $logoMitraPath) }}"
+                                src="{{ route('kontrak.logoMitra', $kontrak->id) }}"
                                 alt="Logo Mitra"
                             >
                         @else
@@ -1264,7 +1314,7 @@
 
                     <div class="logo-upload-content">
                         <strong>Unggah Logo Mitra</strong>
-                        <p>Format PNG atau JPG dengan ukuran maksimal 5 MB.</p>
+                        <p>Format PNG atau JPG dengan ukuran maksimal 10 MB.</p>
 
                         <input
                             type="file"
@@ -2006,27 +2056,27 @@
    LOGO INJOURNEY DAN MITRA
 ========================================= */
 
-.preview-paper-logos {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    margin: 0 auto 8px;
-}
-
-.preview-paper-logo,
-.preview-paper-logo-injourney {
-    width: 100px;
-    height: 55px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border: none;
-    border-radius: 0;
-    background: transparent;
-    box-sizing: border-box;
+    .preview-paper-logos {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        margin: 0 auto 8px;
     }
+
+    .preview-paper-logo,
+    .preview-paper-logo-injourney {
+        width: 100px;
+        height: 55px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-sizing: border-box;
+        }
 
     .preview-paper-logo img,
     .preview-paper-logo-injourney img {
@@ -2069,131 +2119,130 @@
     font-size: 10px;
     line-height: 1.2;
     text-align: left;
-}
+    }
 
-.preview-paper-number-table td {
-    padding: 3px 5px;
-    vertical-align: top;
-}
+    .preview-paper-number-table td {
+        padding: 3px 5px;
+        vertical-align: top;
+    }
 
-.preview-paper-number-table td:first-child {
-    width: 145px;
-}
+    .preview-paper-number-table td:first-child {
+        width: 145px;
+    }
 
-.preview-paper-number-table td:nth-child(2) {
-    width: 12px;
-}
+    .preview-paper-number-table td:nth-child(2) {
+        width: 12px;
+    }
 
-/* =========================================
-   KETERANGAN HARI DAN TANGGAL
-========================================= */
+    /* =========================================
+    KETERANGAN HARI DAN TANGGAL
+    ========================================= */
 
-.preview-paper-date-info {
-    width: 100%;
-    margin: 0 0 10px;
-    text-align: left;
-    line-height: 1.2;
-}
+    .preview-paper-date-info {
+        width: 100%;
+        margin: 0 0 10px;
+        text-align: left;
+        line-height: 1.2;
+    }
 
-.preview-paper-date-info p {
-    margin: 0 0 3px;
-    text-align: left;
-}
+    .preview-paper-date-info p {
+        margin: 0 0 3px;
+        text-align: left;
+    }
 
-.preview-paper-date-table {
-    width: auto;
-    margin: 0;
-    border-collapse: collapse;
-    font-size: 10px;
-    line-height: 1.2;
-    text-align: left;
-}
+    .preview-paper-date-table {
+        width: auto;
+        margin: 0;
+        border-collapse: collapse;
+        font-size: 10px;
+        line-height: 1.2;
+        text-align: left;
+    }
 
-.preview-paper-date-table td {
-    padding: 1px 4px 1px 0;
-    vertical-align: top;
-    text-align: left;
-}
+    .preview-paper-date-table td {
+        padding: 1px 4px 1px 0;
+        vertical-align: top;
+        text-align: left;
+    }
 
-.preview-paper-date-table td:first-child {
-    width: 55px;
-}
+    .preview-paper-date-table td:first-child {
+        width: 55px;
+    }
 
-.preview-paper-date-table td:nth-child(2) {
-    width: 12px;
-}
+    .preview-paper-date-table td:nth-child(2) {
+        width: 12px;
+    }
 
     .preview-paper p {
         margin: 0 0 10px;
         text-align: justify;
     }
 
-    
 
-/* =========================================
-   IDENTITAS PARA PIHAK HALAMAN 1
-========================================= */
+    /* =========================================
+    IDENTITAS PARA PIHAK HALAMAN 1
+    ========================================= */
 
 
-.preview-page1-parties {
-    width: 100%;
-    margin: 0;
-    text-align: left;
-    line-height: 1.2;
-}
+    .preview-page1-parties {
+        width: 100%;
+        margin: 0;
+        text-align: left;
+        line-height: 1.2;
+    }
 
-.preview-page1-intro {
-    margin: 0 0 3px !important;
-    text-align: left !important;
-}
+    .preview-page1-intro {
+        margin: 0 0 3px !important;
+        text-align: left !important;
+    }
 
-.preview-party-section {
-    width: 100%;
-    margin: 0 0 6px;
-    text-align: left;
-    line-height: 1.2;
-}
+    .preview-party-section {
+        width: 100%;
+        margin: 0 0 6px;
+        text-align: left;
+        line-height: 1.2;
+    }
 
-.preview-party-name {
-    margin: 0 0 2px !important;
-    text-align: left !important;
-    line-height: 1.2;
-}
+    .preview-party-name {
+        margin: 0 0 2px !important;
+        text-align: left !important;
+        line-height: 1.2;
+    }
 
-.preview-party-details {
-    width: 100%;
-    margin: 0;
-    line-height: 1.2;
-}
+    .preview-party-details {
+        width: 100%;
+        margin: 0;
+        line-height: 1.2;
+    }
 
-.preview-party-row {
-    display: grid;
-    grid-template-columns: 190px 12px minmax(0, 1fr);
-    column-gap: 5px;
-    align-items: start;
-    margin: 0 0 1px;
-    line-height: 1.2;
-    text-align: left;
-}
+    .preview-party-row {
+        display: grid;
+        grid-template-columns: 190px 12px minmax(0, 1fr);
+        column-gap: 5px;
+        align-items: start;
+        margin: 0 0 1px;
+        line-height: 1.2;
+        text-align: left;
+    }
 
-.preview-party-row span {
-    min-width: 0;
-    text-align: left;
-    overflow-wrap: break-word;
-    line-height: 1.2;
-}
+    .preview-party-row span {
+        min-width: 0;
+        text-align: left;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
 
-.preview-party-description {
-    margin: 3px 0 0 !important;
-    text-align: justify !important;
-    line-height: 1.2;
-}
+    .preview-party-description {
+        margin: 3px 0 0 !important;
+        text-align: justify !important;
+        line-height: 1.2;
+    }
 
-.preview-page1-closing {
-    margin: 0 0 10px !important;
-    text-align: justify !important;
-    line-height: 1.2;
-}
+    .preview-page1-closing {
+        margin: 0 0 10px !important;
+        text-align: justify !important;
+        line-height: 1.2;
+    }
 
 
     /* =========================================
@@ -2208,20 +2257,26 @@
     }
 
     .preview-thumbnail {
-        padding: 7px 5px;
-        border: 1px solid #e1e5e9;
-        border-radius: 7px;
-        background: #ffffff;
-        color: #77818b;
-        cursor: pointer;
-        text-align: center;
-        font-size: 10px;
+    padding: 7px 5px;
+    border: 1px solid #DCE6E4;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #527D82;
+    cursor: pointer;
+    text-align: center;
+    font-size: 10px;
+    }
+
+    .preview-thumbnail:hover {
+        border-color: #527D82;
+        background: #E8F0EE;
+        color: #365F65;
     }
 
     .preview-thumbnail.active {
-        border-color: #2864E8;
-        background: #F1F5FF;
-        color: #142C5C;
+        border-color: #087F73;
+        background: #E8F0EE;
+        color: #365F65;
         font-weight: 700;
     }
 
@@ -2230,7 +2285,7 @@
         height: 34px;
         margin: 0 auto 5px;
         padding: 5px 3px;
-        border: 1px solid #dfe3e7;
+        border: 1px solid #DCE6E4;
         background: #ffffff;
     }
 
@@ -2238,7 +2293,7 @@
         display: block;
         height: 2px;
         margin-bottom: 3px;
-        background: #d9dee3;
+        background: #DCE6E4;
     }
 
     /* =========================================
@@ -2246,11 +2301,11 @@
     ========================================= */
 
     .preview-confirmation {
-        margin-top: 16px;
-        padding: 14px;
-        border: 1px solid #d9e3f5;
-        border-radius: 9px;
-        background: #F1F5FF;
+    margin-top: 16px;
+    padding: 14px;
+    border: 1px solid #DCE6E4;
+    border-radius: 9px;
+    background: #E8F0EE;
     }
 
     .preview-confirmation-heading {
@@ -2258,14 +2313,14 @@
         align-items: center;
         gap: 8px;
         margin-bottom: 8px;
-        color: #142C5C;
+        color: #365F65;
         font-size: 12px;
         font-weight: 700;
     }
 
     .preview-confirmation p {
         margin: 0 0 12px;
-        color: #7186AE;
+        color: #527D82;
         font-size: 11px;
         line-height: 1.6;
     }
@@ -2274,7 +2329,7 @@
         display: flex;
         align-items: flex-start;
         gap: 9px;
-        color: #243B5A;
+        color: #365F65;
         font-size: 11px;
         line-height: 1.6;
         cursor: pointer;
@@ -2282,7 +2337,7 @@
 
     .preview-confirmation input {
         margin-top: 2px;
-        accent-color: #2864E8;
+        accent-color: #087F73;
         flex-shrink: 0;
     }
 
@@ -2373,6 +2428,25 @@
             justify-content: center;
         }
     }
+       /* CSS-CSS PREVIEW DOKUMEN YANG SUDAH ADA */
+
+
+    /* =========================================
+       PASAL 6 - PEMBERITAHUAN
+    ========================================= */
+
+    .preview-notice-row {
+        display: grid;
+        grid-template-columns: 85px 12px minmax(0, 1fr);
+        align-items: start;
+        margin: 1px 0;
+        text-align: left;
+    }
+
+    .preview-notice-row span:last-child {
+        overflow-wrap: anywhere;
+    }
+
 </style>
 
 {{-- =========================================
@@ -2474,7 +2548,9 @@
             {{-- LOGO INJOURNEY AIRPORTS --}}
             <div class="preview-paper-logo-injourney">
                 <img
-                    src="{{ asset('images/angkasa-pura-logo.png') }}"
+                    src="{{ ($isPdf ?? false) && !empty($logoApSrc)
+                        ? $logoApSrc
+                        : asset('images/angkasa-pura-logo.png') }}"
                     alt="Logo InJourney Airports"
                 >
             </div>
@@ -2484,7 +2560,9 @@
 
                 @if($logoMitraPath)
                     <img
-                        src="{{ asset('storage/' . $logoMitraPath) }}"
+                        src="{{ ($isPdf ?? false) && !empty($logoMitraSrc)
+                            ? $logoMitraSrc
+                            : asset('storage/' . $logoMitraPath) }}"
                         alt="Logo Mitra"
                     >
                 @else
@@ -2492,7 +2570,6 @@
                 @endif
 
             </div>
-
                 </div>
                         {{-- JUDUL PERJANJIAN --}}
 <div class="preview-page1-heading">
@@ -2676,214 +2753,674 @@
 
 
                 {{-- HALAMAN 2 --}}
-                <section
-                    class="preview-document-page"
-                    data-page="2"
-                    style="display: none;"
-                >
+<section
+    class="preview-document-page"
+    data-page="2"
+    style="display: none;"
+>
 
-                    <h4>Pasal 2</h4>
-                    <h4>Lokasi dan Fasilitas</h4>
+        {{-- PEMBUKAAN PERJANJIAN --}}
+    <div class="preview-page2-opening">
 
-                    <p>
-                        Pelaksanaan kegiatan usaha dilakukan pada lokasi
-                        fasilitas komersial yang telah disepakati oleh PARA PIHAK.
-                    </p>
+        <p>
+            PARA PIHAK terlebih dahulu menerangkan hal-hal sebagai berikut:
+        </p>
 
-                    <p>
-                        Lokasi fasilitas:
-                        <strong>{{ $namaLokasi }}</strong>,
-                        Terminal {{ $terminal }},
-                        Lantai {{ $lantai }},
-                        Kode Ruang {{ $kodeRuang }}.
-                    </p>
+        {{-- POIN A --}}
+        <div
+            style="
+                display: grid;
+                grid-template-columns: 20px minmax(0, 1fr);
+                column-gap: 5px;
+                margin-left: 24px;
+                margin-bottom: 8px;
+                text-align: justify;
+            "
+        >
+            <span>a.</span>
 
-                    <p>
-                        Luas fasilitas:
-                        <strong>{{ $luasFasilitas ?: '-' }}</strong>.
-                    </p>
+            <span>
+                AP INDONESIA merupakan perseroan terbatas yang bergerak
+                di bidang pelayanan jasa kebandarudaraan.
+            </span>
+        </div>
+
+        {{-- POIN B --}}
+        <div
+            style="
+                display: grid;
+                grid-template-columns: 20px minmax(0, 1fr);
+                column-gap: 5px;
+                margin-left: 24px;
+                margin-bottom: 8px;
+                text-align: justify;
+            "
+        >
+            <span>b.</span>
+
+            <span>
+                MITRA dalam rangka melaksanakan kegiatan usahanya
+                bermaksud memanfaatkan Fasilitas Komersial milik
+                AP INDONESIA.
+            </span>
+        </div>
+
+        {{-- POIN C --}}
+        <div
+            style="
+                display: grid;
+                grid-template-columns: 20px minmax(0, 1fr);
+                column-gap: 5px;
+                margin-left: 24px;
+                margin-bottom: 18px;
+                text-align: justify;
+            "
+        >
+            <span>c.</span>
+
+            <span>
+                Bahwa PARA PIHAK telah menyepakati pemanfaatan
+                Fasilitas Komersial sebagaimana dituangkan dalam
+                Berita Acara Kesepakatan
+                <strong>{{ $nomorBAK }}</strong>
+                (Selanjutnya disebut
+                <strong>“Berita Acara Kesepakatan”</strong>)
+                dan dokumen lain (sebagaimana relevan).
+            </span>
+        </div>
+
+        {{-- PENJELASAN PERJANJIAN POKOK --}}
+        <p style="text-align: justify; margin-top: 14px; margin-bottom: 18px;">
+            Berdasarkan hal-hal tersebut di atas, PARA PIHAK menyatakan
+            sepakat untuk menandatangani Perjanjian Pokok Tentang Kerja
+            Sama Pemanfaatan Fasilitas Komersial PT Angkasa Pura Indonesia
+            untuk Kegiatan Usaha
+            <strong>{{ $jenisUsaha }}</strong>
+            di
+            <strong>{{ $namaLokasi }}</strong>
+            (Selanjutnya disebut
+            <strong>“Perjanjian Pokok”</strong>),
+            dengan ketentuan dan syarat-syarat sebagai berikut:
+        </p>
 
 
-                    <h4>Pasal 3</h4>
-                    <h4>Jangka Waktu Perjanjian</h4>
+        {{-- PASAL 1 --}}
+        <div
+            style="
+                width: 100%;
+                display: block;
+                text-align: center !important;
+                margin-top: 16px;
+                margin-bottom: 6px;
+                line-height: 1.2;
+            "
+        >
+            <p
+                style="
+                    width: 100%;
+                    text-align: center !important;
+                    margin: 0 0 2px 0;
+                    line-height: 1.2;
+                "
+            >
+                <strong>PASAL 1</strong>
+            </p>
 
-                    <p>
-                        Jangka waktu kerja sama mengikuti periode yang telah
-                        ditetapkan dalam data kerja sama dan dokumen perjanjian
-                        yang disepakati oleh PARA PIHAK.
-                    </p>
+            <p
+                style="
+                    width: 100%;
+                    text-align: center !important;
+                    margin: 0;
+                    line-height: 1.2;
+                "
+            >
+                <strong>POKOK PERJANJIAN</strong>
+            </p>
+        </div>
 
-                    <p>
-                        Tanggal mulai:
-                        <strong>{{ $tanggalMulai }}</strong>.
-                    </p>
+        {{-- AYAT (1) --}}
+        <div
+            style="
+                display: grid;
+                grid-template-columns: 32px minmax(0, 1fr);
+                column-gap: 8px;
+                margin-bottom: 4px;
+                text-align: justify;
+                line-height: 1.2;
+            "
+        >
+            <span>(1)</span>
 
-                    <p>
-                        Tanggal berakhir:
-                        <strong>{{ $tanggalBerakhir }}</strong>.
-                    </p>
-
-
-                    <h4>Pasal 4</h4>
-                    <h4>Evaluasi Tarif</h4>
-
-                    <p>
-                        Evaluasi tarif dilakukan setiap
-                        <strong data-preview-field="periode_evaluasi_tarif">
-                            {{ $periodeEvaluasi }}
-                        </strong>
-                        <strong data-preview-field="satuan_evaluasi_tarif">
-                            {{ $satuanEvaluasi }}
-                        </strong>
-                        sesuai ketentuan dan kesepakatan PARA PIHAK.
-                    </p>
+            <span>
+                AP INDONESIA memberikan izin pemanfaatan Fasilitas
+                Komersial kepada MITRA untuk melakukan kegiatan usaha,
+                dan MITRA sepakat untuk memanfaatkan Fasilitas Komersial
+                milik AP INDONESIA, dengan rincian sebagaimana terlampir
+                pada Perjanjian Pokok ini.
+            </span>
+        </div>
 
 
-                    <div class="preview-paper-footer">
+        {{-- AYAT (2) --}}
+        <div
+            style="
+                display: grid;
+                grid-template-columns: 32px minmax(0, 1fr);
+                column-gap: 8px;
+                margin-bottom: 4px;
+                text-align: justify;
+                line-height: 1.2;
+            "
+        >
+            <span>(2)</span>
+
+            <span>
+                Bentuk Kerja Sama Pemanfaatan Fasilitas Komersial yang
+                disepakati PARA PIHAK adalah
+                <strong>Revenue Sharing</strong>.
+            </span>
+        </div>
+
+
+        {{-- AYAT (3) --}}
+        <div
+            style="
+                display: grid;
+                grid-template-columns: 32px minmax(0, 1fr);
+                column-gap: 8px;
+                margin-bottom: 4px;
+                text-align: justify;
+                line-height: 1.2;
+            "
+        >
+            <span>(3)</span>
+
+            <span>
+                Atas pemanfaatan Fasilitas Komersial sebagaimana
+                dimaksud pada ayat (1), MITRA berkewajiban memenuhi
+                ketentuan pembayaran berdasarkan nilai
+                <strong>Guaranteed Turnover (GTO)</strong>
+                dan persentase
+                <strong>Revenue Sharing</strong>
+                yang telah disepakati PARA PIHAK, dengan detail
+                rincian dan cara pembayaran, sebagaimana terlampir
+                pada Perjanjian Pokok ini.
+            </span>
+        </div>
+
+    </div>
+                    <div class="preview-paper-footer" style="text-align: center;">
                         Pratinjau dokumen — Halaman 2 dari 4
                     </div>
 
                 </section>
 
                 {{-- HALAMAN 3 --}}
-                <section
-                    class="preview-document-page"
-                    data-page="3"
-                    style="display: none;"
-                >
+<section
+    class="preview-document-page"
+    data-page="3"
+    style="display: none;"
+>
 
-                    <h4>Pasal 5</h4>
-                    <h4>Hak dan Kewajiban Para Pihak</h4>
+    {{-- PASAL 2 --}}
+    <div style="text-align: center; margin-bottom: 6px; line-height: 1.2;">
 
-                    <p>
-                        PARA PIHAK melaksanakan hak dan kewajiban masing-masing
-                        berdasarkan ketentuan yang disepakati dalam perjanjian
-                        dan dokumen lampiran yang menjadi bagian dari perjanjian.
-                    </p>
+        <h4 style="text-align: center; margin: 0 0 2px 0; line-height: 1.2;">
+            <strong>PASAL 2</strong>
+        </h4>
 
+        <h4 style="text-align: center; margin: 0; line-height: 1.2;">
+            <strong>JANGKA WAKTU PERJANJIAN</strong>
+        </h4>
 
-                    <h4>Pasal 6</h4>
-                    <h4>Kepemilikan Fasilitas</h4>
-
-                    <p>
-                        Ketentuan kepemilikan fasilitas yang digunakan dalam
-                        pelaksanaan kerja sama mengikuti pilihan klausul yang
-                        ditetapkan dalam pengisian data kontrak.
-                    </p>
-
-                    <p>
-                        Pilihan kepemilikan fasilitas:
-                        <strong data-preview-ownership>
-                            {{ $klausulKepemilikanText ?: '[Belum dipilih]' }}
-                        </strong>.
-                    </p>
+    </div>
+    <p style="text-align: justify; margin: 0 0 4px 0; line-height: 1.2;">
+        Perjanjian ini berlaku untuk jangka waktu
+        <strong>{{ $durasiNilai ?? '[Durasi]' }} {{ $durasiSatuan ?? '[bulan/tahun]' }}</strong>
+        terhitung sejak {{ $tanggalMulai }}
+        sampai dengan {{ $tanggalBerakhir }}.
+    </p>
 
 
-                    <h4>Pasal 7</h4>
-                    <h4>Ketentuan Penutup</h4>
+    {{-- PASAL 3 --}}
+    <div style="text-align: center; margin-top: 14px; margin-bottom: 6px; line-height: 1.2;">
 
-                    <p>
-                        Hal-hal yang belum diatur dalam perjanjian ini akan
-                        mengikuti ketentuan dalam dokumen pendukung dan
-                        kesepakatan tertulis PARA PIHAK.
-                    </p>
+        <h4 style="text-align: center; margin: 0 0 2px 0; line-height: 1.2;">
+            <strong>PASAL 3</strong>
+        </h4>
 
-                    <p>
-                        Dokumen lampiran yang dipilih sebagai bagian dari
-                        perjanjian:
-                    </p>
+        <h4 style="text-align: center; margin: 0; line-height: 1.2;">
+            <strong>PENINJAUAN TARIF</strong>
+        </h4>
 
-                    <ul class="preview-paper-list" id="previewAttachmentList">
+    </div>
+    <p style="text-align: justify; margin: 0 0 4px 0; line-height: 1.2;">
+    Besaran :
+    </p>
 
-                        @forelse($lampiranTerpilih as $lampiran)
-                            <li>{{ $daftarLampiran[$lampiran] ?? $lampiran }}</li>
-                        @empty
-                            <li>[Lampiran belum dipilih]</li>
-                        @endforelse
+    <div style="margin-left: 24px; line-height: 1.2;">
 
-                    </ul>
+        <p style="text-align: justify; margin: 0 0 2px 0; line-height: 1.2;">
+            a. Nilai <strong>Guaranteed Turnover (GTO)</strong>
+            atas Fasilitas Komersial;
+        </p>
+
+        <p style="text-align: justify; margin: 0 0 2px 0; line-height: 1.2;">
+            b. Tarif Utilitas; dan/atau
+        </p>
+
+        <p style="text-align: justify; margin: 0; line-height: 1.2;">
+            c. Imbalan <strong>Revenue Sharing</strong>;
+        </p>
+
+    </div>
+
+    <p style="text-align: justify; margin: 4px 0 0 0; line-height: 1.2;">
+        Dievaluasi secara periodik setiap
+        <strong>
+            <span data-preview-evaluasi>
+                {{ $periodeEvaluasi }} {{ $satuanEvaluasi }}
+            </span>
+        </strong>
+        masa Perjanjian atau dapat diubah apabila terdapat perubahan
+        ketentuan tarif yang berlaku di lingkungan AP INDONESIA
+        dan disepakati oleh PARA PIHAK.
+    </p>
+
+    {{-- PASAL 4 --}}
+<div style="text-align: center; margin-top: 14px; margin-bottom: 6px; line-height: 1.2;">
+
+    <h4 style="text-align: center; margin: 0 0 2px 0; line-height: 1.2;">
+        <strong>PASAL 4</strong>
+    </h4>
+
+    <h4 style="text-align: center; margin: 0; line-height: 1.2;">
+        <strong>PELAKSANAAN PERJANJIAN</strong>
+    </h4>
+
+</div>
+
+<p style="text-align: justify; margin: 0 0 4px 0; line-height: 1.2;">
+    Dalam hal dilakukan pembangunan dan/atau renovasi fasilitas usaha,
+    maka biaya yang timbul menjadi tanggung jawab MITRA sepenuhnya,
+    dengan ketentuan sebagai berikut:
+</p>
+
+<div style="margin-left: 24px;">
+
+    {{-- POIN A --}}
+    <div style="
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        text-align: justify;
+        margin-bottom: 4px;
+        line-height: 1.2;
+    ">
+
+        <span>a.</span>
+
+        <span>
+            MITRA wajib menyerahkan gambar rancang bangun dan/atau
+            jadwal pelaksanaan pembangunan atau renovasi untuk
+            disetujui AP INDONESIA;
+        </span>
+
+    </div>
 
 
-                    <div class="preview-paper-footer">
-                        Pratinjau dokumen — Halaman 3 dari 4
-                    </div>
+    {{-- POIN B --}}
+        <div style="
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        text-align: justify;
+        line-height: 1.2;
+    ">
 
-                </section>
+        <span>b.</span>
 
+        <div>
+
+            {{-- PILIHAN MILIK MITRA --}}
+            <p
+                data-ownership-option="mitra"
+                style="
+                    margin: 0;
+                    text-align: justify;
+                    {{ $klausulKepemilikan === 'mitra' ? '' : 'display: none;' }}
+                "
+            >
+                Pada akhir Perjanjian disepakati fasilitas usaha yang
+                dibangun oleh MITRA tetap menjadi milik MITRA, dan
+                fasilitas komersial yang dikelola wajib dikembalikan
+                dengan kondisi baik kepada AP INDONESIA
+                selambat-lambatnya 14 (empat belas) hari kalender
+                sejak tanggal berakhirnya Perjanjian, sebagaimana
+                diatur secara teknis dalam Syarat-syarat Umum Perjanjian.
+            </p>
+
+
+            {{-- PILIHAN MILIK AP INDONESIA --}}
+            <p
+                data-ownership-option="ap_indonesia"
+                style="
+                    margin: 0;
+                    text-align: justify;
+                    {{ $klausulKepemilikan === 'ap_indonesia' ? '' : 'display: none;' }}
+                "
+            >
+                Pada akhir perjanjian disepakati fasilitas usaha yang
+                dibangun oleh MITRA menjadi milik AP INDONESIA tanpa
+                kompensasi dalam bentuk apapun, sebagaimana diatur
+                secara teknis dalam Syarat-syarat Umum Perjanjian.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+    <div class="preview-paper-footer" style="text-align: center;">
+        Pratinjau dokumen — Halaman 3 dari 4
+    </div>
+
+</section>
 
                 {{-- HALAMAN 4 --}}
-                <section
-                    class="preview-document-page"
-                    data-page="4"
-                    style="display: none;"
-                >
+<section
+    class="preview-document-page"
+    data-page="4"
+    style="display: none;"
+>
 
-                    <h4>PENUTUP</h4>
+    {{-- =========================================
+         PASAL 5
+         DOKUMEN PERJANJIAN
+    ========================================== --}}
 
-                    <p>
-                        Demikian dokumen perjanjian ini dibuat untuk menjadi
-                        bahan pemeriksaan dan penyelesaian dokumen kontrak
-                        oleh PARA PIHAK.
-                    </p>
+    <div style="text-align: center; margin-bottom: 6px; line-height: 1.2;">
 
-                    <p>
-                        Bagian penandatanganan dan ketentuan final mengikuti
-                        dokumen resmi yang telah disetujui oleh pihak berwenang.
-                    </p>
+    <h4 style="text-align: center; margin: 0 0 2px 0; line-height: 1.2;">
+        <strong>PASAL 5</strong>
+    </h4>
 
+    <h4 style="text-align: center; margin: 0; line-height: 1.2;">
+        <strong>DOKUMEN PERJANJIAN</strong>
+    </h4>
 
-                    <div class="preview-paper-signature">
+    </div>
 
-                        <div>
-                            <strong>PIHAK PERTAMA</strong>
+    <p style="text-align: justify; margin: 0 0 3px 0; line-height: 1.2;">
+        Perjanjian Pokok dan Lampiran Perjanjian merupakan satu
+        kesatuan yang tidak dapat dipisahkan yang terdiri atas :
+    </p>
 
-                            <div class="signature-space"></div>
+    <div
+    id="previewContractAttachments"
+    style="
+        width: 100%;
+        margin-top: 0;
+        margin-bottom: 8px;
+        padding: 0;
+        line-height: 1.2;
+        color: #000000;
+        font-size: 10px;
+        font-weight: normal;
+    "
+>
+</div>
+    {{-- =========================================
+         PASAL 6
+         PEMBERITAHUAN
+    ========================================== --}}
 
-                            <div class="signature-name">
-                                {{ $apIndonesia['penandatangan'] ?: '[Nama Penandatangan AP Indonesia]' }}
-                            </div>
+    <div style="text-align: center; margin-bottom: 6px; line-height: 1.2;">
 
-                            <div>
-                                {{ $apIndonesia['jabatan'] ?: '[Jabatan Penandatangan AP Indonesia]' }}
-                            </div>
+    <h4 style="text-align: center; margin: 0 0 2px 0; line-height: 1.2;">
+        <strong>PASAL 6</strong>
+    </h4>
 
-                            <div>
-                                {{ $apIndonesia['nama'] ?: 'PT ANGKASA PURA INDONESIA' }}
-                            </div>
-                        </div>
+    <h4 style="text-align: center; margin: 0; line-height: 1.2;">
+        <strong>PEMBERITAHUAN</strong>
+    </h4>
 
+    </div>
 
-                        <div>
-                            <strong>PIHAK KEDUA</strong>
-
-                            <div class="signature-space"></div>
-
-                            <div
-                                class="signature-name"
-                                data-preview-field="nama_penandatangan_mitra"
-                            >
-                                {{ $namaPenandatanganMitra ?: '[Nama Penandatangan Mitra]' }}
-                            </div>
-
-                            <div
-                                data-preview-field="jabatan_penandatangan_mitra"
-                            >
-                                {{ $jabatanPenandatanganMitra ?: '[Jabatan Penandatangan]' }}
-                            </div>
-
-                            <div>
-                                {{ $mitra }}
-                            </div>
-                        </div>
-
-                    </div>
+    <p style="text-align: justify; margin: 0 0 4px 0; line-height: 1.2;">
+        Semua surat menyurat atau penyampaian informasi melalui
+        telepon atau faksimili kepada masing-masing PIHAK ditujukan
+        ke alamat sebagai berikut :
+    </p>
 
 
-                    <div class="preview-paper-footer">
-                        Pratinjau dokumen — Halaman 4 dari 4
-                    </div>
+    {{-- PIHAK A: AP INDONESIA --}}
+    <div style="margin-left: 24px; margin-bottom: 5px; line-height: 1.2;">
 
-                </section>
+        <div style="
+        display: grid;
+        grid-template-columns: 20px minmax(0, 1fr);
+        line-height: 1.2;
+    ">
+
+            <span>a.</span>
+
+            <div>
+
+                <strong>
+                    {{ $apIndonesia['nama'] ?: 'PT ANGKASA PURA INDONESIA' }}
+                </strong>
+
+                <div class="preview-notice-row">
+                    <span>Up.</span>
+                    <span>:</span>
+                    <span>
+                        {{ $apIndonesia['penandatangan'] ?: '-' }}
+                    </span>
+                </div>
+
+                <div class="preview-notice-row">
+                    <span>Alamat</span>
+                    <span>:</span>
+                    <span>
+                        {{ $apIndonesia['alamat'] ?: '-' }}
+                    </span>
+                </div>
+
+                <div class="preview-notice-row">
+                    <span>Telepon</span>
+                    <span>:</span>
+                    <span>
+                        {{ $apIndonesia['telepon'] ?: '-' }}
+                    </span>
+                </div>
+
+                <div class="preview-notice-row">
+                    <span>Faksimili</span>
+                    <span>:</span>
+                    <span>
+                        {{ $apIndonesia['fax'] ?: '-' }}
+                    </span>
+                </div>
+
+                <div class="preview-notice-row">
+                    <span>Email</span>
+                    <span>:</span>
+                    <span>
+                        {{ $apIndonesia['email'] ?: '-' }}
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    {{-- PIHAK B: MITRA USAHA --}}
+    <div style="margin-left: 24px; margin-bottom: 6px; line-height: 1.2;">
+
+        <div style="
+            display: grid;
+            grid-template-columns: 20px minmax(0, 1fr);
+            line-height: 1.2;
+        ">
+
+            <span>b.</span>
+
+            <div>
+
+                <strong>
+                    {{ $mitra ?: '[Nama Mitra Usaha]' }}
+                </strong>
+
+                <div class="preview-notice-row">
+                    <span>Up.</span>
+                    <span>:</span>
+                    <span data-preview-field="nama_penandatangan_mitra">
+                        {{ $namaPenandatanganMitra ?: '-' }}
+                    </span>
+                </div>
+
+                <div class="preview-notice-row">
+                    <span>Alamat</span>
+                    <span>:</span>
+                    <span data-preview-field="alamat_mitra_snapshot">
+                        {{ $alamatMitra ?: '-' }}
+                    </span>
+                </div>
+
+                <div class="preview-notice-row">
+                    <span>Telepon</span>
+                    <span>:</span>
+                    <span data-preview-field="telepon_mitra_snapshot">
+                        {{ $teleponMitra ?: '-' }}
+                    </span>
+                </div>
+
+                <div class="preview-notice-row">
+                    <span>Faksimili</span>
+                    <span>:</span>
+                    <span data-preview-field="fax_mitra_snapshot">
+                        {{ $faxMitra ?: '-' }}
+                    </span>
+                </div>
+
+                <div class="preview-notice-row">
+                    <span>Email</span>
+                    <span>:</span>
+                    <span data-preview-field="email_mitra_snapshot">
+                        {{ $emailMitra ?: '-' }}
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    {{-- =========================================
+         PASAL 7
+         PENUTUP
+    ========================================== --}}
+
+    <div style="text-align: center; margin-bottom: 6px; line-height: 1.2;">
+
+    <h4 style="text-align: center; margin: 0 0 2px 0; line-height: 1.2;">
+        <strong>PASAL 7</strong>
+    </h4>
+
+    <h4 style="text-align: center; margin: 0; line-height: 1.2;">
+        <strong>PENUTUP</strong>
+    </h4>
+
+    </div>
+
+    <p style="text-align: justify; margin: 0; line-height: 1.2;">
+        Perjanjian ini ditandatangani oleh PARA PIHAK, dalam
+        rangkap 2 (dua) asli, bermeterai cukup serta masing-masing
+        mempunyai kekuatan hukum sama.
+    </p>
+
+
+    {{-- =========================================
+         TANDA TANGAN PARA PIHAK
+    ========================================== --}}
+
+    <div style="
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        margin-top: 20px;
+        text-align: center;
+        line-height: 1.2;
+    ">
+
+        {{-- PIHAK MITRA --}}
+        <div>
+
+            <strong>
+                {{ $mitra ?: '[Nama Mitra Usaha]' }}
+            </strong>
+
+            <div style="height: 75px;"></div>
+
+            <div style="
+                border-top: 1px solid #000;
+                width: 85%;
+                margin: 0 auto 8px;
+            "></div>
+
+            <strong>
+                {{ $namaPenandatanganMitra ?: '[Nama Penandatangan]' }}
+            </strong>
+
+            <div>
+                {{ $jabatanPenandatanganMitra ?: '[Jabatan]' }}
+            </div>
+
+        </div>
+
+
+        {{-- PIHAK AP INDONESIA --}}
+        <div>
+
+            <strong>
+                {{ $apIndonesia['nama'] ?: 'PT ANGKASA PURA INDONESIA' }}
+            </strong>
+
+            <div style="height: 75px;"></div>
+
+            <div style="
+                border-top: 1px solid #000;
+                width: 85%;
+                margin: 0 auto 8px;
+            "></div>
+
+            <strong>
+                {{ $apIndonesia['penandatangan'] ?: '[Nama Penandatangan]' }}
+            </strong>
+
+            <div>
+                {{ $apIndonesia['jabatan'] ?: '[Jabatan]' }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    {{-- FOOTER HALAMAN 4 --}}
+    <div
+        class="preview-paper-footer"
+        style="text-align: center;"
+    >
+        Pratinjau dokumen — Halaman 4 dari 4
+    </div>
+
+</section>
 
             </div>
 
@@ -2938,6 +3475,7 @@
                     id="konfirmasiDokumen"
                     name="konfirmasi_dokumen"
                     value="1"
+                    @checked(old('konfirmasi_dokumen', $kontrak?->konfirmasi_dokumen ?? false))
                 >
 
                 <span>
@@ -2974,8 +3512,9 @@
 
         {{-- TOMBOL KEMBALI --}}
         <a
-            href="{{ $kontrak ? route('kontrak.show', $kontrak->id) : url()->previous() }}"
+            href="{{ route('kontrak') }}"
             class="btn-form-back"
+            id="btnKembaliDokumen"
         >
             <i class="fas fa-arrow-left"></i>
             Kembali
@@ -3492,258 +4031,334 @@ document.addEventListener('DOMContentLoaded', function () {
     }
         const livePreviewFields = {
 
-        'nama_penandatangan_mitra': '[Nama Penandatangan Mitra]',
+    'nama_penandatangan_mitra': '[Nama Penandatangan Mitra]',
 
-        'jabatan_penandatangan_mitra': '[Jabatan Penandatangan]',
+    'jabatan_penandatangan_mitra': '[Jabatan Penandatangan]',
 
-         'domisili_mitra_snapshot': '-',
-        
-         'periode_evaluasi_tarif': '1',
-
-        'satuan_evaluasi_tarif': 'tahun'
-
-    };
+    'domisili_mitra_snapshot': '-',
+    
+    'fax_mitra_snapshot': '-'
+};
 
 
-    Object.keys(livePreviewFields).forEach(function (fieldName) {
+Object.keys(livePreviewFields).forEach(function (fieldName) {
 
-        const input = document.getElementById(fieldName);
+    const input = document.getElementById(fieldName);
 
-        if (!input) {
-            return;
-        }
+    if (!input) {
+        return;
+    }
 
-        input.addEventListener('input', function () {
-
-            updatePreviewField(
-                fieldName,
-                this.value.trim(),
-                livePreviewFields[fieldName]
-            );
-
-        });
-
-
-        input.addEventListener('change', function () {
-
-            updatePreviewField(
-                fieldName,
-                this.value.trim(),
-                livePreviewFields[fieldName]
-            );
-
-        });
-
+    input.addEventListener('input', function () {
 
         updatePreviewField(
             fieldName,
-            input.value.trim(),
+            this.value.trim(),
             livePreviewFields[fieldName]
         );
 
     });
 
+    input.addEventListener('change', function () {
 
-    /* =========================================
-       LIVE PREVIEW KLAUSUL KEPEMILIKAN
-    ========================================= */
-
-    const ownershipInputs = document.querySelectorAll(
-        'input[name="klausul_kepemilikan_fasilitas"]'
-    );
-
-    const ownershipPreview = document.querySelector(
-        '[data-preview-ownership]'
-    );
-
-
-    function updateOwnershipPreview() {
-
-        const selectedOwnership = document.querySelector(
-            'input[name="klausul_kepemilikan_fasilitas"]:checked'
+        updatePreviewField(
+            fieldName,
+            this.value.trim(),
+            livePreviewFields[fieldName]
         );
 
-        if (!ownershipPreview) {
-            return;
-        }
-
-        if (!selectedOwnership) {
-            ownershipPreview.textContent = '[Belum dipilih]';
-            return;
-        }
-
-        ownershipPreview.textContent =
-            selectedOwnership.value === 'mitra'
-                ? 'Milik Mitra'
-                : 'Milik AP Indonesia';
-
-    }
-
-
-    ownershipInputs.forEach(function (input) {
-
-        input.addEventListener('change', updateOwnershipPreview);
-
     });
 
-    updateOwnershipPreview();
+    updatePreviewField(
+        fieldName,
+        input.value.trim(),
+        livePreviewFields[fieldName]
+    );
 
+});
+
+
+/* =========================================
+   LIVE PREVIEW PERIODE EVALUASI TARIF
+========================================= */
+
+const periodeEvaluasiInput = document.getElementById(
+    'periode_evaluasi_tarif'
+);
+
+const satuanEvaluasiInput = document.getElementById(
+    'satuan_evaluasi_tarif'
+);
+
+const periodeEvaluasiPreview = document.querySelector(
+    '[data-preview-evaluasi]'
+);
+
+
+function updatePeriodeEvaluasiPreview() {
+
+    if (
+        !periodeEvaluasiInput
+        || !satuanEvaluasiInput
+        || !periodeEvaluasiPreview
+    ) {
+        return;
+    }
+
+    const periode = periodeEvaluasiInput.value.trim();
+    const satuan = satuanEvaluasiInput.value.trim();
+
+    periodeEvaluasiPreview.textContent =
+        (periode || '1') + ' ' + (satuan || 'tahun');
+
+}
+
+
+periodeEvaluasiInput?.addEventListener(
+    'input',
+    updatePeriodeEvaluasiPreview
+);
+
+periodeEvaluasiInput?.addEventListener(
+    'change',
+    updatePeriodeEvaluasiPreview
+);
+
+satuanEvaluasiInput?.addEventListener(
+    'change',
+    updatePeriodeEvaluasiPreview
+);
+
+updatePeriodeEvaluasiPreview();
 
     /* =========================================
-       LIVE PREVIEW LAMPIRAN
-    ========================================= */
+   LIVE PREVIEW KLAUSUL KEPEMILIKAN
+========================================= */
 
-    const attachmentInputs = document.querySelectorAll(
-        'input[name="lampiran_perjanjian[]"]'
+const ownershipInputs = document.querySelectorAll(
+    'input[name="klausul_kepemilikan_fasilitas"]'
+);
+
+const ownershipOptions = document.querySelectorAll(
+    '[data-ownership-option]'
+);
+
+
+function updateOwnershipPreview() {
+
+    const selectedOwnership = document.querySelector(
+        'input[name="klausul_kepemilikan_fasilitas"]:checked'
     );
 
-    const attachmentPreview = document.getElementById(
-        'previewAttachmentList'
-    );
+    ownershipOptions.forEach(function (option) {
 
-    const lampiranLainnyaCheckbox = document.getElementById(
-        'lampiranLainnya'
-    );
+        const optionValue = option.dataset.ownershipOption;
 
-    const namaDokumenLainnyaInput = document.getElementById(
-        'nama_dokumen_lainnya'
-    );
-
-    const namaDokumenLainnyaWrapper = document.getElementById(
-        'namaDokumenLainnyaWrapper'
-    );
-
-
-    function updateAttachmentPreview() {
-
-        if (!attachmentPreview) {
-            return;
-        }
-
-        attachmentPreview.innerHTML = '';
-
-        /*
-         * SUP dan BAK berasal dari hidden input.
-         * Keduanya tetap dimasukkan ke preview karena wajib.
-         */
-
-        const selectedAttachments = Array.from(attachmentInputs)
-            .filter(function (input) {
-
-                return input.type === 'hidden' || input.checked;
-
-            })
-            .map(function (input) {
-
-                return input.value;
-
-            });
-
-
-        if (selectedAttachments.length === 0) {
-
-            const item = document.createElement('li');
-
-            item.textContent = '[Lampiran belum dipilih]';
-
-            attachmentPreview.appendChild(item);
-
-            return;
-        }
-
-
-        selectedAttachments.forEach(function (attachment) {
-
-            const item = document.createElement('li');
-
-            const attachmentLabels = {
-
-                'SUP': 'Syarat-Syarat Umum Perjanjian (SUP)',
-
-                'BAK': 'Berita Acara Kesepakatan (BAK)',
-
-                'Denah Fasilitas Komersial': 'Denah Fasilitas Komersial',
-
-                'Perjanjian Tingkat Layanan': 'Perjanjian Tingkat Layanan',
-
-                'Lainnya': 'Dokumen Lainnya'
-
-            };
-
-
-            if (attachment === 'Lainnya') {
-
-                const namaDokumen = namaDokumenLainnyaInput
-                    ? namaDokumenLainnyaInput.value.trim()
-                    : '';
-
-                item.textContent = namaDokumen
-                    ? 'Dokumen Lainnya: ' + namaDokumen
-                    : 'Dokumen Lainnya';
-
-            } else {
-
-                item.textContent =
-                    attachmentLabels[attachment] || attachment;
-
-            }
-
-            attachmentPreview.appendChild(item);
-
-        });
-
-    }
-
-
-    function updateNamaDokumenLainnya() {
-
-        if (!lampiranLainnyaCheckbox || !namaDokumenLainnyaWrapper) {
-            return;
-        }
-
-        const isChecked = lampiranLainnyaCheckbox.checked;
-
-        namaDokumenLainnyaWrapper.style.display =
-            isChecked ? 'flex' : 'none';
-
-        if (namaDokumenLainnyaInput) {
-
-            namaDokumenLainnyaInput.required = isChecked;
-
-            if (!isChecked) {
-                namaDokumenLainnyaInput.value = '';
-            }
-
-        }
-
-        updateAttachmentPreview();
-
-    }
-
-
-    attachmentInputs.forEach(function (input) {
-
-        input.addEventListener('change', function () {
-
-            if (input.id === 'lampiranLainnya') {
-                updateNamaDokumenLainnya();
-            } else {
-                updateAttachmentPreview();
-            }
-
-        });
+        option.style.display =
+            selectedOwnership && selectedOwnership.value === optionValue
+                ? 'block'
+                : 'none';
 
     });
 
-
-    namaDokumenLainnyaInput?.addEventListener(
-        'input',
-        updateAttachmentPreview
-    );
+}
 
 
-    updateNamaDokumenLainnya();
+ownershipInputs.forEach(function (input) {
+
+    input.addEventListener('change', updateOwnershipPreview);
+
+});
+
+updateOwnershipPreview();
+
+
+/* =========================================
+   LIVE PREVIEW LAMPIRAN PASAL 5
+========================================= */
+
+const attachmentInputs = document.querySelectorAll(
+    'input[name="lampiran_perjanjian[]"]'
+);
+
+const lampiranLainnyaCheckbox = document.getElementById(
+    'lampiranLainnya'
+);
+
+const namaDokumenLainnyaInput = document.getElementById(
+    'nama_dokumen_lainnya'
+);
+
+const namaDokumenLainnyaWrapper = document.getElementById(
+    'namaDokumenLainnyaWrapper'
+);
+
+const previewContractAttachments = document.getElementById(
+    'previewContractAttachments'
+);
+
+
+// =========================================
+// UPDATE DAFTAR LAMPIRAN PASAL 5
+// =========================================
+
+function updateAttachmentPreview() {
+
+    if (!previewContractAttachments) {
+        return;
+    }
+
+    // Ambil lampiran wajib dan lampiran opsional yang dipilih.
+    const selectedAttachments = Array.from(attachmentInputs)
+        .filter(function (input) {
+            return input.type === 'hidden' || input.checked;
+        })
+        .map(function (input) {
+            return input.value;
+        });
+
+    // Hilangkan data duplikat.
+    const uniqueAttachments = [...new Set(selectedAttachments)];
+
+    // Urutan lampiran dalam dokumen kontrak.
+    const attachmentOrder = [
+        'SUP',
+        'BAK',
+        'Denah Fasilitas Komersial',
+        'Perjanjian Tingkat Layanan',
+        'Lainnya'
+    ];
+
+    const attachmentLabels = {
+        'SUP': 'Syarat-Syarat Umum Perjanjian (SUP)',
+        'BAK': 'Berita Acara Kesepakatan (BAK)',
+        'Denah Fasilitas Komersial': 'Denah Fasilitas Komersial',
+        'Perjanjian Tingkat Layanan': 'Perjanjian Tingkat Layanan'
+    };
+
+    // Kosongkan daftar sebelum diperbarui.
+    previewContractAttachments.innerHTML = '';
+
+    // Tampilkan lampiran sesuai urutan dan pilihan.
+    const activeAttachments = attachmentOrder.filter(function (attachment) {
+        return uniqueAttachments.includes(attachment);
+    });
+
+    activeAttachments.forEach(function (attachment, index) {
+
+        const row = document.createElement('div');
+
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '20px minmax(0, 1fr)';
+        row.style.marginBottom = '2px';
+        row.style.fontWeight = 'normal';
+        row.style.lineHeight = '1.2';
+
+        // Huruf a, b, c, d, dan seterusnya.
+        const letter = document.createElement('span');
+
+        letter.textContent = String.fromCharCode(97 + index) + '.';
+
+        // Isi nama lampiran.
+        const label = document.createElement('span');
+
+        if (attachment === 'Lainnya') {
+
+            const namaDokumen = namaDokumenLainnyaInput
+                ? namaDokumenLainnyaInput.value.trim()
+                : '';
+
+            label.textContent = namaDokumen
+                ? 'Dokumen Lainnya: ' + namaDokumen
+                : 'Dokumen Lainnya';
+
+        } else {
+
+            label.textContent = attachmentLabels[attachment];
+
+        }
+
+        row.appendChild(letter);
+        row.appendChild(label);
+
+        previewContractAttachments.appendChild(row);
+
+    });
+
+}
+
+
+// =========================================
+// UPDATE INPUT DOKUMEN LAINNYA
+// =========================================
+
+function updateNamaDokumenLainnya() {
+
+    if (!lampiranLainnyaCheckbox || !namaDokumenLainnyaWrapper) {
+        return;
+    }
+
+    const isChecked = lampiranLainnyaCheckbox.checked;
+
+    namaDokumenLainnyaWrapper.style.display = isChecked
+        ? 'flex'
+        : 'none';
+
+    if (namaDokumenLainnyaInput) {
+
+        namaDokumenLainnyaInput.required = isChecked;
+
+        if (!isChecked) {
+            namaDokumenLainnyaInput.value = '';
+        }
+
+    }
+
     updateAttachmentPreview();
+
+}
+
+
+// =========================================
+// EVENT CHECKBOX LAMPIRAN
+// =========================================
+
+attachmentInputs.forEach(function (input) {
+
+    input.addEventListener('change', function () {
+
+        if (input.id === 'lampiranLainnya') {
+
+            updateNamaDokumenLainnya();
+
+        } else {
+
+            updateAttachmentPreview();
+
+        }
+
+    });
+
+});
+
+
+// =========================================
+// EVENT INPUT NAMA DOKUMEN LAINNYA
+// =========================================
+
+namaDokumenLainnyaInput?.addEventListener(
+    'input',
+    updateAttachmentPreview
+);
+
+
+// =========================================
+// TAMPILKAN PREVIEW AWAL
+// =========================================
+
+updateNamaDokumenLainnya();
+updateAttachmentPreview();
+
         /* =========================================
        LIVE PREVIEW LOGO MITRA
     ========================================= */
@@ -3803,10 +4418,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
 
-        // Batas ukuran logo maksimal 5 MB.
-        if (file.size > 5 * 1024 * 1024) {
+        // Batas ukuran logo maksimal 10 MB.
+        if (file.size > 10 * 1024 * 1024) {
 
-            alert('Ukuran logo maksimal 5 MB.');
+            alert('Ukuran logo maksimal 10 MB.');
 
             this.value = '';
 
@@ -3965,28 +4580,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     /* =========================================
-   SIMPAN DATA LALU UNDUH DOKUMEN
+   SIMPAN DRAFT DOKUMEN
 ========================================= */
 
-async function saveAndDownload(downloadUrl) {
+async function saveDraftDokumen() {
 
     if (!documentForm) {
         alert('Form dokumen tidak ditemukan.');
-        return;
+        return false;
     }
 
     const formData = new FormData(documentForm);
 
+    // Hapus method PUT dari form agar request tetap POST.
+    formData.delete('_method');
+
+    // Checkbox berada di luar form, jadi harus ditambahkan manual.
+    formData.set(
+        'konfirmasi_dokumen',
+        confirmationCheckbox && confirmationCheckbox.checked ? '1' : '0'
+    );
+
     try {
 
-        const response = await fetch(documentForm.action, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            },
-            body: formData
-        });
+        const response = await fetch(
+            @json(route('kontrak.dokumen.draft', $kontrak->id)),
+            {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            }
+        );
 
         const data = await response.json().catch(() => ({}));
 
@@ -3994,43 +4621,50 @@ async function saveAndDownload(downloadUrl) {
 
             if (data.errors) {
                 const firstError = Object.values(data.errors)[0];
-                alert(Array.isArray(firstError) ? firstError[0] : firstError);
+
+                alert(
+                    Array.isArray(firstError)
+                        ? firstError[0]
+                        : firstError
+                );
             } else {
-                alert(data.message || 'Data dokumen gagal disimpan.');
+                alert(
+                    data.message || 'Draft dokumen gagal disimpan.'
+                );
             }
 
-            return;
+            return false;
         }
 
-        // Jika penyimpanan berhasil, lanjutkan unduhan.
-        window.location.href = downloadUrl;
-
-        closeExportModal();
+        return true;
 
     } catch (error) {
 
         console.error(error);
 
-        alert('Terjadi kesalahan saat menyimpan dokumen.');
+        alert('Terjadi kesalahan saat menyimpan draft dokumen.');
 
+        return false;
     }
 }
-
 
 /* =========================================
    EXPORT WORD
 ========================================= */
 
 document.getElementById('exportWordButton')
-    ?.addEventListener('click', function () {
+    ?.addEventListener('click', async function () {
 
-        @if($kontrak)
-            saveAndDownload(
-                @json(route('kontrak.word', $kontrak->id))
-            );
-        @else
-            alert('Data kontrak belum tersedia.');
-        @endif
+        const berhasil = await saveDraftDokumen();
+
+        if (!berhasil) {
+            return;
+        }
+
+        window.location.href =
+            @json(route('kontrak.word', $kontrak->id));
+
+        closeExportModal();
 
     });
 
@@ -4040,47 +4674,45 @@ document.getElementById('exportWordButton')
 ========================================= */
 
 document.getElementById('exportPdfButton')
-    ?.addEventListener('click', function () {
+    ?.addEventListener('click', async function () {
 
-        @if($kontrak)
-            saveAndDownload(
-                @json(route('kontrak.pdf', $kontrak->id))
-            );
-        @else
-            alert('Data kontrak belum tersedia.');
-        @endif
+        const berhasil = await saveDraftDokumen();
+
+        if (!berhasil) {
+            return;
+        }
+
+        window.location.href =
+            @json(route('kontrak.pdf', $kontrak->id));
+
+        closeExportModal();
 
     });
 
-    
+
 /* =========================================
    LANJUT KE UPLOAD DOKUMEN
 ========================================= */
 
 document.getElementById('btnLanjutUpload')
-    ?.addEventListener('click', function () {
+    ?.addEventListener('click', async function () {
 
         if (!validateDocumentForm()) {
             return;
         }
 
-        @if($kontrak)
+        const berhasil = await saveDraftDokumen();
 
-            window.location.href =
-                @json(route('kontrak.uploadFinal', $kontrak->id));
+        if (!berhasil) {
+            return;
+        }
 
-        @else
-
-            alert(
-                'Data kontrak belum tersedia. Simpan data kerja sama terlebih dahulu.'
-            );
-
-        @endif
+        window.location.href =
+            @json(route('kontrak.uploadFinal', $kontrak->id));
 
     });
 
 });
-</script>
-{{-- PENUTUP HALAMAN --}}
+</script>{{-- PENUTUP HALAMAN --}}
 </div>
 @endsection

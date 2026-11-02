@@ -169,11 +169,24 @@ Route::middleware('auth')->group(function () {
         [KontrakController::class, 'store']
     )->name('kontrak.store');
 
+    // Menampilkan logo Mitra yang tersimpan secara privat
+    Route::get(
+        '/kontrak/{id}/logo-mitra',
+        [KontrakController::class, 'tampilkanLogoMitra']
+    )->name('kontrak.logoMitra');
+
     // Menyimpan perubahan formulir kontrak
+        // Menyimpan perubahan formulir kontrak
     Route::put(
         '/kontrak/{id}/dokumen',
         [KontrakController::class, 'updateDokumen']
     )->name('kontrak.dokumen.update');
+
+    // Menyimpan draft dokumen kontrak
+    Route::post(
+        '/kontrak/{id}/dokumen/draft',
+        [KontrakController::class, 'simpanDraftDokumen']
+    )->name('kontrak.dokumen.draft');
 
     // Mengunduh dokumen kontrak Word
     Route::get(
@@ -194,7 +207,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get(
         '/kontrak/{id}/acc',
-        [KontrakController::class, 'acc']
+        [KontrakController::class, 'document']
     )->name('kontrak.acc');
 
     Route::post(
@@ -217,7 +230,25 @@ Route::middleware('auth')->group(function () {
         [KontrakController::class, 'formUploadFinal']
     )->name('kontrak.uploadFinal');
 
-    // Memproses upload dokumen final
+    // Menyimpan PDF ke penyimpanan sementara
+    Route::post(
+        '/kontrak/{id}/upload-final/temp',
+        [KontrakController::class, 'storeUploadFinalTemp']
+    )->name('kontrak.uploadFinal.temp');
+
+    // Menampilkan PDF sementara
+    Route::get(
+        '/kontrak/{id}/upload-final/temp/preview',
+        [KontrakController::class, 'previewUploadFinalTemp']
+    )->name('kontrak.uploadFinal.temp.preview');
+
+    // Menghapus PDF sementara
+    Route::delete(
+        '/kontrak/{id}/upload-final/temp',
+        [KontrakController::class, 'deleteUploadFinalTemp']
+    )->name('kontrak.uploadFinal.temp.delete');
+
+    // Memproses penyimpanan dokumen final
     Route::post(
         '/kontrak/{id}/upload-final',
         [KontrakController::class, 'storeUploadFinal']

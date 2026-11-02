@@ -15,6 +15,7 @@ class MasterPerusahaan extends Model
     'nama_penandatangan',
     'jabatan_penandatangan',
     'telepon',
+    'fax',
     'email',
-    ];
+];
 }

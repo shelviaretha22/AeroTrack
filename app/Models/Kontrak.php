@@ -33,6 +33,9 @@ class Kontrak extends Model
         'periode_evaluasi_tarif',
         'satuan_evaluasi_tarif',
         'klausul_kepemilikan_fasilitas',
+        'konfirmasi_dokumen',
+        'progress_tahap',
+        'nama_mitra_snapshot',
 
         // =====================================
         // SNAPSHOT IDENTITAS DAN KONTAK MITRA
@@ -99,6 +102,7 @@ class Kontrak extends Model
 
         // Boolean
         'final_signature_confirmed' => 'boolean',
+        'konfirmasi_dokumen' => 'boolean',
 
         // Angka
         'periode_evaluasi_tarif' => 'integer',

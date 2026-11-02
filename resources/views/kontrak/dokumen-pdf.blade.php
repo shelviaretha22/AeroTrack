@@ -8,9 +8,15 @@
         body { background: #fff; color: #1a1a1a;
             font-family: "Times New Roman", "DejaVu Serif", serif; font-size: 10.5pt; line-height: 1.4; }
 
-        .preview-document-page { page-break-after: always; }
-        .preview-document-page:last-child { page-break-after: auto; }
+        .preview-document-page {
+            page-break-after: always;
+            break-after: page;
+        }
 
+        .preview-document-page:last-child {
+            page-break-after: auto;
+            break-after: auto;
+        }
         .preview-paper-header { margin-bottom: 14px; }
         .preview-paper-logos { width: 100%; height: 62px; margin-bottom: 6px; }
         .preview-paper-logo-injourney { float: left; width: 120px; height: 60px; }
@@ -654,206 +660,240 @@
                 </section>
 
 
-                {{-- HALAMAN 2 --}}
-                <section
-                    class="preview-document-page"
-                >
+                
+{{-- =========================================
+     HALAMAN 2
+     PENDAHULUAN DAN PASAL 1
+========================================= --}}
+<section class="preview-document-page">
 
-                    <h4>Pasal 2</h4>
-                    <h4>Lokasi dan Fasilitas</h4>
+    <p>
+        PARA PIHAK terlebih dahulu menerangkan hal-hal sebagai berikut:
+    </p>
 
-                    <p>
-                        Pelaksanaan kegiatan usaha dilakukan pada lokasi
-                        fasilitas komersial yang telah disepakati oleh PARA PIHAK.
-                    </p>
+    <p>
+        a. AP INDONESIA merupakan perseroan terbatas yang bergerak di
+        bidang pelayanan jasa kebandarudaraan.
+    </p>
 
-                    <p>
-                        Lokasi fasilitas:
-                        <strong>{{ $namaLokasi }}</strong>,
-                        Terminal {{ $terminal }},
-                        Lantai {{ $lantai }},
-                        Kode Ruang {{ $kodeRuang }}.
-                    </p>
+    <p>
+        b. MITRA dalam rangka melaksanakan kegiatan usahanya bermaksud
+        memanfaatkan Fasilitas Komersial milik AP INDONESIA.
+    </p>
 
-                    <p>
-                        Luas fasilitas:
-                        <strong>{{ $luasFasilitas ?: '-' }}</strong>.
-                    </p>
+    <p>
+        c. Bahwa PARA PIHAK telah menyepakati pemanfaatan Fasilitas
+        Komersial sebagaimana dituangkan dalam Berita Acara Kesepakatan
+        {{ $kerjaSama?->nomor_bak ?? $kerjaSama?->nomor_berita_acara ?? '-' }}
+        (selanjutnya disebut “Berita Acara Kesepakatan”) dan dokumen lain
+        sebagaimana relevan.
+    </p>
 
+    <p>
+        Berdasarkan hal-hal tersebut di atas, PARA PIHAK menyatakan
+        sepakat untuk menandatangani Perjanjian Pokok Tentang Kerja Sama
+        Pemanfaatan Fasilitas Komersial PT Angkasa Pura Indonesia untuk
+        Kegiatan Usaha {{ $jenisUsaha }} di {{ $namaLokasi }}
+        (selanjutnya disebut “Perjanjian Pokok”), dengan ketentuan dan
+        syarat-syarat sebagai berikut:
+    </p>
 
-                    <h4>Pasal 3</h4>
-                    <h4>Jangka Waktu Perjanjian</h4>
+    <h4>PASAL 1</h4>
+    <h4>POKOK PERJANJIAN</h4>
 
-                    <p>
-                        Jangka waktu kerja sama mengikuti periode yang telah
-                        ditetapkan dalam data kerja sama dan dokumen perjanjian
-                        yang disepakati oleh PARA PIHAK.
-                    </p>
+    <p>
+        (1) AP INDONESIA memberikan izin pemanfaatan Fasilitas Komersial
+        kepada MITRA untuk melakukan kegiatan usaha, dan MITRA sepakat
+        untuk memanfaatkan Fasilitas Komersial milik AP INDONESIA,
+        dengan rincian sebagaimana terlampir pada Perjanjian Pokok ini.
+    </p>
 
-                    <p>
-                        Tanggal mulai:
-                        <strong>{{ $tanggalMulai }}</strong>.
-                    </p>
+    <p>
+        (2) Bentuk Kerja Sama Pemanfaatan Fasilitas Komersial adalah:
+        <strong>{{ $kerjaSama?->bentuk_kerja_sama ?? '-' }}</strong>.
+    </p>
 
-                    <p>
-                        Tanggal berakhir:
-                        <strong>{{ $tanggalBerakhir }}</strong>.
-                    </p>
+    <p>
+        (3) Atas pemanfaatan Fasilitas Komersial sebagaimana tersebut
+        pada ayat (1) Pasal ini, MITRA bersedia membayar Biaya
+        Sewa/Pemanfaatan dan/atau Bangun Guna Serah/BGS dan/atau
+        Bangun Serah Guna/BSG dan/atau Revenue Sharing dan/atau
+        Wholesales dan/atau bentuk kerja sama lainnya yang
+        menguntungkan Perusahaan atau kombinasi bentuk kerja sama,
+        berdasarkan Peraturan Direksi yang berlaku, dengan detail
+        rincian dan cara pembayaran sebagaimana terlampir pada
+        Perjanjian Pokok ini.
+    </p>
 
+    <div class="preview-paper-footer">
+        Halaman 2 dari 4
+    </div>
 
-                    <h4>Pasal 4</h4>
-                    <h4>Evaluasi Tarif</h4>
-
-                    <p>
-                        Evaluasi tarif dilakukan setiap
-                        <strong>
-                            {{ $periodeEvaluasi }}
-                        </strong>
-                        <strong>
-                            {{ $satuanEvaluasi }}
-                        </strong>
-                        sesuai ketentuan dan kesepakatan PARA PIHAK.
-                    </p>
-
-
-                    <div class="preview-paper-footer">
-                        Halaman 2 dari 4
-                    </div>
-
-                </section>
-
-                {{-- HALAMAN 3 --}}
-                <section
-                    class="preview-document-page"
-                >
-
-                    <h4>Pasal 5</h4>
-                    <h4>Hak dan Kewajiban Para Pihak</h4>
-
-                    <p>
-                        PARA PIHAK melaksanakan hak dan kewajiban masing-masing
-                        berdasarkan ketentuan yang disepakati dalam perjanjian
-                        dan dokumen lampiran yang menjadi bagian dari perjanjian.
-                    </p>
+</section>
 
 
-                    <h4>Pasal 6</h4>
-                    <h4>Kepemilikan Fasilitas</h4>
+{{-- =========================================
+     HALAMAN 3
+     PASAL 2, PASAL 3, DAN PASAL 4
+========================================= --}}
+<section class="preview-document-page">
 
-                    <p>
-                        Ketentuan kepemilikan fasilitas yang digunakan dalam
-                        pelaksanaan kerja sama mengikuti pilihan klausul yang
-                        ditetapkan dalam pengisian data kontrak.
-                    </p>
+    <h4>PASAL 2</h4>
+    <h4>JANGKA WAKTU PERJANJIAN</h4>
 
-                    <p>
-                        Pilihan kepemilikan fasilitas:
-                        <strong>
-                            {{ $klausulKepemilikanText ?: '[Belum dipilih]' }}
-                        </strong>.
-                    </p>
+    @php
+        $durasiBulan = (
+            $kerjaSama?->tanggal_mulai &&
+            $kerjaSama?->tanggal_berakhir
+        )
+            ? \Illuminate\Support\Carbon::parse(
+                $kerjaSama->tanggal_mulai
+            )->diffInMonths(
+                \Illuminate\Support\Carbon::parse(
+                    $kerjaSama->tanggal_berakhir
+                )
+            )
+            : null;
+    @endphp
 
-
-                    <h4>Pasal 7</h4>
-                    <h4>Ketentuan Penutup</h4>
-
-                    <p>
-                        Hal-hal yang belum diatur dalam perjanjian ini akan
-                        mengikuti ketentuan dalam dokumen pendukung dan
-                        kesepakatan tertulis PARA PIHAK.
-                    </p>
-
-                    <p>
-                        Dokumen lampiran yang dipilih sebagai bagian dari
-                        perjanjian:
-                    </p>
-
-                    <ul class="preview-paper-list">
-
-                        @forelse($lampiranTerpilih as $lampiran)
-                            <li>{{ $daftarLampiran[$lampiran] ?? $lampiran }}</li>
-                        @empty
-                            <li>[Lampiran belum dipilih]</li>
-                        @endforelse
-
-                    </ul>
+    <p>
+        Perjanjian ini berlaku untuk jangka waktu
+        <strong>{{ $durasiBulan ?? '-' }} bulan</strong>
+        terhitung sejak {{ $tanggalMulai }}
+        sampai dengan {{ $tanggalBerakhir }}.
+    </p>
 
 
-                    <div class="preview-paper-footer">
-                        Halaman 3 dari 4
-                    </div>
+    <h4>PASAL 3</h4>
+    <h4>PENINJAUAN TARIF</h4>
 
-                </section>
+    <p>Besaran:</p>
 
+    <p>
+        a. Tarif Biaya Sewa/Pemanfaatan/Kompensasi atas Fasilitas
+        Komersial;
+    </p>
 
-                {{-- HALAMAN 4 --}}
-                <section
-                    class="preview-document-page"
-                >
+    <p>
+        b. Tarif Utilitas; dan/atau
+    </p>
 
-                    <h4>PENUTUP</h4>
+    <p>
+        c. Imbalan Revenue Sharing;
+    </p>
 
-                    <p>
-                        Demikian dokumen perjanjian ini dibuat untuk menjadi
-                        bahan pemeriksaan dan penyelesaian dokumen kontrak
-                        oleh PARA PIHAK.
-                    </p>
-
-                    <p>
-                        Bagian penandatanganan dan ketentuan final mengikuti
-                        dokumen resmi yang telah disetujui oleh pihak berwenang.
-                    </p>
-
-
-                    <div class="preview-paper-signature">
-
-                        <div>
-                            <strong>PIHAK PERTAMA</strong>
-
-                            <div class="signature-space"></div>
-
-                            <div class="signature-name">
-                                {{ $apIndonesia['penandatangan'] ?: '[Nama Penandatangan AP Indonesia]' }}
-                            </div>
-
-                            <div>
-                                {{ $apIndonesia['jabatan'] ?: '[Jabatan Penandatangan AP Indonesia]' }}
-                            </div>
-
-                            <div>
-                                {{ $apIndonesia['nama'] ?: 'PT ANGKASA PURA INDONESIA' }}
-                            </div>
-                        </div>
+    <p>
+        Dievaluasi secara periodik setiap
+        <strong>{{ $periodeEvaluasi }} {{ $satuanEvaluasi }}</strong>
+        masa Perjanjian atau dapat diubah apabila terdapat perubahan
+        ketentuan tarif yang berlaku di lingkungan AP INDONESIA dan
+        disepakati oleh PARA PIHAK.
+    </p>
 
 
-                        <div>
-                            <strong>PIHAK KEDUA</strong>
+    <h4>PASAL 4</h4>
+    <h4>PELAKSANAAN PERJANJIAN</h4>
 
-                            <div class="signature-space"></div>
+    <p>
+        Dalam hal dilakukan pembangunan dan/atau renovasi fasilitas
+        usaha, maka biaya yang timbul menjadi tanggung jawab MITRA
+        sepenuhnya, dengan ketentuan sebagai berikut:
+    </p>
 
-                            <div
-                                class="signature-name"
-                            >
-                                {{ $namaPenandatanganMitra ?: '[Nama Penandatangan Mitra]' }}
-                            </div>
+    <p>
+        a. MITRA wajib menyerahkan gambar rancang bangun dan/atau
+        jadwal pelaksanaan pembangunan atau renovasi untuk disetujui
+        AP INDONESIA;
+    </p>
 
-                            <div
-                            >
-                                {{ $jabatanPenandatanganMitra ?: '[Jabatan Penandatangan]' }}
-                            </div>
+    @if($klausulKepemilikan === 'mitra')
 
-                            <div>
-                                {{ $mitra }}
-                            </div>
-                        </div>
+        <p>
+            b. Pada akhir Perjanjian disepakati fasilitas usaha yang
+            dibangun oleh MITRA tetap menjadi milik MITRA, dan fasilitas
+            komersial yang dikelola wajib dikembalikan dengan kondisi
+            baik kepada AP INDONESIA selambat-lambatnya 14 (empat belas)
+            hari kalender sejak tanggal berakhirnya Perjanjian,
+            sebagaimana diatur secara teknis dalam Syarat-syarat Umum
+            Perjanjian.
+        </p>
 
-                    </div>
+    @elseif($klausulKepemilikan === 'ap_indonesia')
+
+        <p>
+            Pada akhir Perjanjian disepakati fasilitas usaha yang
+            dibangun oleh MITRA menjadi milik AP INDONESIA tanpa
+            kompensasi dalam bentuk apapun, sebagaimana diatur secara
+            teknis dalam Syarat-syarat Umum Perjanjian.
+        </p>
+
+    @else
+
+        <p>
+            b. Klausul kepemilikan fasilitas belum ditentukan.
+        </p>
+
+    @endif
+
+    <div class="preview-paper-footer">
+        Halaman 3 dari 4
+    </div>
+
+</section>
 
 
-                    <div class="preview-paper-footer">
-                        Halaman 4 dari 4
-                    </div>
+{{-- =========================================
+     HALAMAN 5
+     PASAL 7 DAN TANDA TANGAN
+========================================= --}}
 
-                </section>
+<section class="preview-document-page">
+
+    <h4>PASAL 7</h4>
+    <h4>PENUTUP</h4>
+
+    <p>
+        Perjanjian ini ditandatangani oleh PARA PIHAK,
+        dalam rangkap 2 (dua) asli, bermeterai cukup serta
+        masing-masing mempunyai kekuatan hukum sama.
+    </p>
+
+    <div class="preview-paper-signature">
+
+        <div>
+            <strong>{{ $mitra }}</strong>
+
+            <div class="signature-space"></div>
+
+            <div class="signature-name">
+                {{ $namaPenandatanganMitra ?: '-' }}
+            </div>
+
+            <div>
+                {{ $jabatanPenandatanganMitra ?: '-' }}
+            </div>
+        </div>
+
+        <div>
+            <strong>PT ANGKASA PURA INDONESIA</strong>
+
+            <div class="signature-space"></div>
+
+            <div class="signature-name">
+                {{ $apIndonesia['penandatangan'] ?: '-' }}
+            </div>
+
+            <div>
+                {{ $apIndonesia['jabatan'] ?: '-' }}
+            </div>
+        </div>
+
+    </div>
+
+    <div class="preview-paper-footer">
+        Halaman 5 dari 5
+    </div>
+
+</section>
 </body>
 </html>
