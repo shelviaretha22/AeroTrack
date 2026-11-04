@@ -288,6 +288,24 @@
 
                 $totalTenant = $daftarTagihan->sum('jumlah_tagihan');
 
+                // Masa kontrak (dari data Kerja Sama).
+                $kontrakMulai = $kerjaSama?->tanggal_mulai
+                    ? \Carbon\Carbon::parse($kerjaSama->tanggal_mulai)->locale('id')
+                    : null;
+                $kontrakBerakhir = $kerjaSama?->tanggal_berakhir
+                    ? \Carbon\Carbon::parse($kerjaSama->tanggal_berakhir)->locale('id')
+                    : null;
+                $durasiKontrak = null;
+                if ($kontrakMulai && $kontrakBerakhir) {
+                    $selisih = $kontrakMulai->copy()->startOfDay()
+                        ->diff($kontrakBerakhir->copy()->addDay()->startOfDay());
+                    $totalBulan = $selisih->y * 12 + $selisih->m;
+                    $durasiKontrak = trim(
+                        ($totalBulan > 0 ? $totalBulan . ' bulan' : '')
+                        . ($selisih->d > 0 ? ' ' . $selisih->d . ' hari' : '')
+                    );
+                }
+
                 $sudahDiberikan = $daftarTagihan
                     ->where('status_invoice', true)
                     ->count();
@@ -323,6 +341,23 @@
 
                             <p class="mt-1 text-xs text-[#A0B3B0]">
                                 {{ $kerjaSama->nomor_kerja_sama ?? '-' }}
+                            </p>
+
+                            {{-- MASA KONTRAK --}}
+                            <p class="mt-2 inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#527D82]">
+                                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                                    <path d="M16 2v4M8 2v4M3 10h18"/>
+                                </svg>
+                                <span class="font-semibold">Masa kontrak:</span>
+                                <span>
+                                    {{ $kontrakMulai ? $kontrakMulai->isoFormat('D MMMM Y') : '-' }}
+                                    s/d
+                                    {{ $kontrakBerakhir ? $kontrakBerakhir->isoFormat('D MMMM Y') : 'Tidak ditentukan' }}
+                                </span>
+                                @if ($durasiKontrak)
+                                    <span class="text-[#8BA5A2]">({{ $durasiKontrak }})</span>
+                                @endif
                             </p>
                         </div>
 

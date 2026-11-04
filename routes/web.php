@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\KontrakController;
 use App\Http\Controllers\KerjaSamaController;
@@ -10,7 +11,6 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AktivasiController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PendapatanController;
-use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -409,10 +409,16 @@ Route::middleware('auth')->group(function () {
         [ProfileController::class, 'updatePhoto']
     )->name('profile.photo.update');
 
-        Route::patch(
+    Route::patch(
         '/profile/preferences',
         [ProfileController::class, 'updatePreferences']
     )->name('profile.preferences.update');
+
+    // Simpan tema terang/gelap langsung saat dipilih
+    Route::patch(
+        '/profile/tema',
+        [ProfileController::class, 'updateTheme']
+    )->name('profile.theme.update');
 
     // Keluarkan akun dari perangkat/sesi lain
     Route::post(

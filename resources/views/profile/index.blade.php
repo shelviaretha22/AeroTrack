@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('page-title', 'Profile & Pengaturan')
@@ -462,23 +461,45 @@
             @csrf
             @method('PATCH')
 
-            <div class="preference-row">
+            <div class="preference-row" style="align-items: flex-start;">
                 <div class="preference-description">
                     <h3>Tampilan Aplikasi</h3>
-                    <p>Pilih tampilan yang nyaman digunakan.</p>
+                    <p>Pilih tema terang atau gelap. Pilihan langsung tersimpan dan berlaku di semua halaman.</p>
                 </div>
 
-                <select name="theme_preference" aria-label="Tampilan aplikasi">
-                    <option
-                        value="light"
-                        @selected(old('theme_preference', auth()->user()->theme_preference ?? 'light') === 'light')
-                    >
-                        Terang
-                    </option>
-                    <option value="dark" disabled>
-                        Gelap (segera hadir)
-                    </option>
-                </select>
+                @php $tema = old('theme_preference', auth()->user()->theme_preference ?? 'light'); @endphp
+                <div class="grid w-full max-w-[360px] grid-cols-2 gap-3">
+                    @foreach ([['light', 'Terang', 'Cerah, nyaman di ruangan terang'], ['dark', 'Gelap', 'Redup, nyaman di malam hari']] as [$nilai, $nama, $ket])
+                        <label class="cursor-pointer">
+                            <input type="radio" name="theme_preference" value="{{ $nilai }}" class="peer sr-only"
+                                   @checked($tema === $nilai)
+                                   onchange="pilihTema(this)">
+                            <div class="rounded-2xl border border-[#DCE6E4] bg-white p-2.5 transition peer-checked:border-[#527D82] peer-checked:ring-2 peer-checked:ring-[#527D82]/30 peer-focus-visible:ring-2">
+                                @if ($nilai === 'light')
+                            <div class="flex h-16 w-full overflow-hidden rounded-lg border border-black/10" style="background: rgb(243,246,245)">
+                                <div class="w-5" style="background: rgb(54,95,101)"></div>
+                                <div class="flex-1 space-y-1.5 p-2">
+                                    <div class="h-1.5 w-10 rounded" style="background: rgb(54,95,101)"></div>
+                                    <div class="h-4 rounded" style="background: rgb(255,255,255)"></div>
+                                    <div class="h-1.5 w-7 rounded" style="background: rgb(184,206,202)"></div>
+                                </div>
+                            </div>
+                                @else
+                            <div class="flex h-16 w-full overflow-hidden rounded-lg border border-black/10" style="background: rgb(14,26,28)">
+                                <div class="w-5" style="background: rgb(17,35,38)"></div>
+                                <div class="flex-1 space-y-1.5 p-2">
+                                    <div class="h-1.5 w-10 rounded" style="background: rgb(143,195,189)"></div>
+                                    <div class="h-4 rounded" style="background: rgb(22,36,39)"></div>
+                                    <div class="h-1.5 w-7 rounded" style="background: rgb(60,90,95)"></div>
+                                </div>
+                            </div>
+                                @endif
+                                <p class="mt-2 text-sm font-bold text-[#365F65]">{{ $nama }}</p>
+                                <p class="text-[11px] leading-snug text-[#8BA5A2]">{{ $ket }}</p>
+                            </div>
+                        </label>
+                    @endforeach
+                </div>
             </div>
 
             <div class="preference-row">
@@ -535,34 +556,6 @@
         </form>
     </section>
 
-       </section>
-
-    {{-- IDENTITAS PERUSAHAAN --}}
-    <section class="profile-card">
-        <div class="section-heading">
-            <div class="section-icon">🏢</div>
-            <div>
-                <h2>Identitas Perusahaan</h2>
-                <p>Kelola informasi perusahaan yang digunakan dalam dokumen kontrak AeroTrack.</p>
-            </div>
-        </div>
-
-        <div class="preference-row">
-            <div class="preference-description">
-                <h3>Master Perusahaan</h3>
-                <p>
-                    Atur nama perusahaan, alamat, domisili, serta informasi
-                    penandatangan sebagai Pihak Pertama dalam dokumen kontrak.
-                </p>
-            </div>
-
-            <a href="{{ route('profile.perusahaan.edit') }}" class="btn-primary">
-                Kelola Identitas
-            </a>
-        </div>
-    </section>
-
-    {{-- INFORMASI SISTEM --}}
     <section class="profile-card system-info">
         <div class="system-info-icon">i</div>
         <div>
@@ -576,6 +569,22 @@
     </section>
 
 </div>
+
+<script>
+    function pilihTema(el) {
+        document.documentElement.dataset.theme = el.value;
+
+        fetch("{{ route('profile.theme.update') }}", {
+            method: 'PATCH',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ theme_preference: el.value }),
+        }).catch(() => {});
+    }
+</script>
 
 <style>
     .profile-page {

@@ -1,0 +1,258 @@
+/* =========================================================
+   AeroTrack - Tema Gelap
+   Aktif hanya bila <html data-theme="dark">. Mode terang tidak berubah.
+   Warna di aplikasi ditulis langsung (bg-[#F3F6F5] dst), jadi di sini
+   dipetakan ulang per warna. Halaman PDF tidak ikut (tidak pakai layout).
+   ========================================================= */
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --d-bg: #0E1A1C;
+    --d-surface: #162427;
+    --d-surface-2: #1B2D30;
+    --d-surface-3: #243A3E;
+    --d-border: #2C4246;
+    --d-text: #DCEBE8;
+    --d-text-2: #A9C4C0;
+    --d-muted: #7F9B98;
+    --d-accent: #8FC3BD;
+}
+
+/* ---------- Dasar ---------- */
+html[data-theme="dark"] body { background-color: var(--d-bg); color: var(--d-text); }
+html[data-theme="dark"] aside { background-color: #112326; border-right: 1px solid var(--d-border); }
+html[data-theme="dark"] header { background-color: var(--d-surface); border-color: var(--d-border); }
+html[data-theme="dark"] ::placeholder { color: var(--d-muted); opacity: 1; }
+html[data-theme="dark"] option { background: var(--d-surface); color: var(--d-text); }
+html[data-theme="dark"] :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=submit]):not([type=button]):not([type=file]), select, textarea) {
+    background-color: var(--d-surface-2); color: var(--d-text); border-color: var(--d-border);
+}
+html[data-theme="dark"] :is(input, select, textarea):disabled { background-color: var(--d-surface); color: var(--d-muted); }
+
+/* ---------- Latar ---------- */
+html[data-theme="dark"] [class~="bg-white" i], html[data-theme="dark"] [class~="bg-[#FFFFFF]" i], html[data-theme="dark"] [class~="bg-[#fff]" i] { background-color: var(--d-surface); }
+html[data-theme="dark"] [class~="bg-white/60" i], html[data-theme="dark"] [class~="bg-white/70" i] { background-color: rgba(255,255,255,.06); }
+html[data-theme="dark"] [class~="bg-[#F3F6F5]" i] { background-color: var(--d-bg); }
+html[data-theme="dark"] [class~="bg-[#F8FAF9]" i], html[data-theme="dark"] [class~="bg-[#F7F9F8]" i], html[data-theme="dark"] [class~="bg-gray-50" i] { background-color: var(--d-surface-2); }
+html[data-theme="dark"] [class~="bg-[#E2EBE9]" i], html[data-theme="dark"] [class~="bg-[#E7EFEC]" i], html[data-theme="dark"] [class~="bg-[#EAF2F1]" i], html[data-theme="dark"] [class~="bg-[#DCE6E4]" i], html[data-theme="dark"] [class~="bg-gray-100" i] { background-color: var(--d-surface-3); }
+html[data-theme="dark"] [class~="bg-[#DCE9E6]" i], html[data-theme="dark"] [class~="bg-[#DCE9E7]" i] { background-color: #1B3236; }
+html[data-theme="dark"] [class~="bg-[#FBF1DC]" i] { background-color: #3A3220; }
+html[data-theme="dark"] [class~="bg-red-50" i] { background-color: rgba(239,68,68,.14); }
+html[data-theme="dark"] [class~="bg-green-50" i] { background-color: rgba(34,197,94,.14); }
+html[data-theme="dark"] [class~="bg-amber-50" i], html[data-theme="dark"] [class~="bg-orange-50" i], html[data-theme="dark"] [class~="bg-yellow-50" i] { background-color: rgba(245,158,11,.14); }
+html[data-theme="dark"] [class~="bg-blue-50" i] { background-color: rgba(59,130,246,.16); }
+html[data-theme="dark"] [class~="hover:bg-[#F8FAF9]" i]:hover, html[data-theme="dark"] [class~="hover:bg-[#F3F6F5]" i]:hover, html[data-theme="dark"] [class~="hover:bg-gray-50" i]:hover { background-color: var(--d-surface-2); }
+html[data-theme="dark"] [class~="hover:bg-gray-100" i]:hover, html[data-theme="dark"] [class~="hover:bg-[#E2EBE9]" i]:hover { background-color: var(--d-surface-3); }
+
+/* ---------- Border ---------- */
+html[data-theme="dark"] [class~="border-[#DCE6E4]" i], html[data-theme="dark"] [class~="border-[#E2EBE9]" i], html[data-theme="dark"] [class~="border-[#C9DAD7]" i], html[data-theme="dark"] [class~="border-[#EBD9AE]" i], html[data-theme="dark"] [class~="border-gray-100" i], html[data-theme="dark"] [class~="border-gray-200" i], html[data-theme="dark"] [class~="border-gray-300" i], html[data-theme="dark"] [class~="border-white" i], html[data-theme="dark"] [class~="border-[#E7EFEC]" i] { border-color: var(--d-border); }
+html[data-theme="dark"] [class~="border-red-200" i] { border-color: rgba(239,68,68,.4); }
+html[data-theme="dark"] [class~="border-green-200" i] { border-color: rgba(34,197,94,.4); }
+html[data-theme="dark"] [class~="border-amber-200" i] { border-color: rgba(245,158,11,.4); }
+
+/* ---------- Teks ---------- */
+html[data-theme="dark"] [class~="text-[#365F65]" i], html[data-theme="dark"] [class~="text-[#294F55]" i], html[data-theme="dark"] [class~="text-gray-800" i], html[data-theme="dark"] [class~="text-gray-900" i] { color: var(--d-text); }
+html[data-theme="dark"] [class~="text-[#527D82]" i], html[data-theme="dark"] [class~="text-gray-600" i], html[data-theme="dark"] [class~="text-gray-700" i] { color: var(--d-text-2); }
+html[data-theme="dark"] [class~="text-[#8BA5A2]" i], html[data-theme="dark"] [class~="text-[#7A9290]" i], html[data-theme="dark"] [class~="text-[#A0B3B0]" i], html[data-theme="dark"] [class~="text-[#78908D]" i], html[data-theme="dark"] [class~="text-gray-400" i], html[data-theme="dark"] [class~="text-gray-500" i] { color: var(--d-muted); }
+html[data-theme="dark"] [class~="text-red-500" i], html[data-theme="dark"] [class~="text-red-600" i], html[data-theme="dark"] [class~="text-red-700" i] { color: #FCA5A5; }
+html[data-theme="dark"] [class~="text-green-600" i], html[data-theme="dark"] [class~="text-green-700" i] { color: #86EFAC; }
+html[data-theme="dark"] [class~="text-amber-700" i], html[data-theme="dark"] [class~="text-orange-500" i] { color: #FCD34D; }
+html[data-theme="dark"] [class~="text-blue-600" i], html[data-theme="dark"] [class~="text-blue-700" i] { color: #93C5FD; }
+html[data-theme="dark"] [class~="text-[#B96B60]" i] { color: #E19A8F; }
+html[data-theme="dark"] [class~="divide-[#E2EBE9]" i] > * + * { border-color: var(--d-border); }
+
+/* ---------- Style inline (halaman yang ditulis dengan style="...") ---------- */
+html[data-theme="dark"] [style*="background: white" i], html[data-theme="dark"] [style*="background:white" i], html[data-theme="dark"] [style*="background: #ffffff" i], html[data-theme="dark"] [style*="background:#ffffff" i], html[data-theme="dark"] [style*="background: #fff;" i], html[data-theme="dark"] [style*="background:#fff;" i] { background: var(--d-surface) !important; }
+html[data-theme="dark"] [style*="background: #f7f9f8" i], html[data-theme="dark"] [style*="background:#f7f9f8" i], html[data-theme="dark"] [style*="background: #f8faf9" i], html[data-theme="dark"] [style*="background:#f8faf9" i] { background: var(--d-surface-2) !important; }
+html[data-theme="dark"] [style*="background: #f3f6f5" i], html[data-theme="dark"] [style*="background:#f3f6f5" i] { background: var(--d-bg) !important; }
+html[data-theme="dark"] [style*="background: #fef2f2" i], html[data-theme="dark"] [style*="background:#fef2f2" i] { background: rgba(239,68,68,.14) !important; }
+html[data-theme="dark"] [style*=" color: #365f65" i], html[data-theme="dark"] [style*=" color:#365f65" i], html[data-theme="dark"] [style*=";color:#365f65" i], html[data-theme="dark"] [style^="color: #365f65" i], html[data-theme="dark"] [style^="color:#365f65" i], html[data-theme="dark"] [style*=" color: #294f55" i], html[data-theme="dark"] [style*=" color:#294f55" i], html[data-theme="dark"] [style*=";color:#294f55" i], html[data-theme="dark"] [style^="color: #294f55" i], html[data-theme="dark"] [style^="color:#294f55" i], html[data-theme="dark"] [style*=" color: #222" i], html[data-theme="dark"] [style*=" color:#222" i], html[data-theme="dark"] [style*=";color:#222" i], html[data-theme="dark"] [style^="color: #222" i], html[data-theme="dark"] [style^="color:#222" i] { color: var(--d-text) !important; }
+html[data-theme="dark"] [style*=" color: #527d82" i], html[data-theme="dark"] [style*=" color:#527d82" i], html[data-theme="dark"] [style*=";color:#527d82" i], html[data-theme="dark"] [style^="color: #527d82" i], html[data-theme="dark"] [style^="color:#527d82" i] { color: var(--d-text-2) !important; }
+html[data-theme="dark"] [style*=" color: #8ba5a2" i], html[data-theme="dark"] [style*=" color:#8ba5a2" i], html[data-theme="dark"] [style*=";color:#8ba5a2" i], html[data-theme="dark"] [style^="color: #8ba5a2" i], html[data-theme="dark"] [style^="color:#8ba5a2" i], html[data-theme="dark"] [style*=" color: #7a9290" i], html[data-theme="dark"] [style*=" color:#7a9290" i], html[data-theme="dark"] [style*=";color:#7a9290" i], html[data-theme="dark"] [style^="color: #7a9290" i], html[data-theme="dark"] [style^="color:#7a9290" i], html[data-theme="dark"] [style*=" color: #78908d" i], html[data-theme="dark"] [style*=" color:#78908d" i], html[data-theme="dark"] [style*=";color:#78908d" i], html[data-theme="dark"] [style^="color: #78908d" i], html[data-theme="dark"] [style^="color:#78908d" i] { color: var(--d-muted) !important; }
+html[data-theme="dark"] [style*=" color: #b91c1c" i], html[data-theme="dark"] [style*=" color:#b91c1c" i], html[data-theme="dark"] [style*=";color:#b91c1c" i], html[data-theme="dark"] [style^="color: #b91c1c" i], html[data-theme="dark"] [style^="color:#b91c1c" i], html[data-theme="dark"] [style*=" color: #a33232" i], html[data-theme="dark"] [style*=" color:#a33232" i], html[data-theme="dark"] [style*=";color:#a33232" i], html[data-theme="dark"] [style^="color: #a33232" i], html[data-theme="dark"] [style^="color:#a33232" i] { color: #FCA5A5 !important; }
+html[data-theme="dark"] [style*=" color: #166534" i], html[data-theme="dark"] [style*=" color:#166534" i], html[data-theme="dark"] [style*=";color:#166534" i], html[data-theme="dark"] [style^="color: #166534" i], html[data-theme="dark"] [style^="color:#166534" i] { color: #86EFAC !important; }
+html[data-theme="dark"] [style*=" color: #92400e" i], html[data-theme="dark"] [style*=" color:#92400e" i], html[data-theme="dark"] [style*=";color:#92400e" i], html[data-theme="dark"] [style^="color: #92400e" i], html[data-theme="dark"] [style^="color:#92400e" i] { color: #FCD34D !important; }
+
+/* ---------- Donut / grafik SVG ---------- */
+html[data-theme="dark"] circle[stroke="#E7EFEC" i] { stroke: var(--d-surface-3); }
+
+/* ---------- Halaman Profil (CSS kustom) ---------- */
+html[data-theme="dark"] .profile-page { --profile-text: var(--d-text); --profile-border: var(--d-border); --profile-muted: var(--d-muted); --profile-bg: var(--d-bg); }
+html[data-theme="dark"] :is(.profile-card, .btn-secondary, .system-info-icon) { background-color: var(--d-surface); border-color: var(--d-border); color: var(--d-text); }
+html[data-theme="dark"] .btn-secondary:hover { background-color: var(--d-surface-2); }
+html[data-theme="dark"] :is(.profile-role, .profile-role-small, .section-icon, .avatar-placeholder) { background-color: var(--d-surface-3); color: var(--d-accent); border-color: var(--d-border); }
+html[data-theme="dark"] .profile-avatar { border-color: var(--d-surface-3); }
+html[data-theme="dark"] .system-info { background-color: var(--d-surface-2); }
+html[data-theme="dark"] :is(.form-group input, .preference-row select) { background-color: var(--d-surface-2); color: var(--d-text); border-color: var(--d-border); }
+html[data-theme="dark"] .form-group label { color: var(--d-text-2); }
+html[data-theme="dark"] :is(.form-footer, .preference-row) { border-color: var(--d-border); }
+html[data-theme="dark"] .slider { background-color: #3A5357; }
+html[data-theme="dark"] .alert-success { background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.4); color: #86EFAC; }
+html[data-theme="dark"] .alert-error { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.4); color: #FCA5A5; }
+
+/* ---------- Wizard kontrak (dokumen, preview, upload-final) ---------- */
+html[data-theme="dark"] :is(.dokumen-page, .preview-page) { color: var(--d-text); }
+html[data-theme="dark"] :is(.dokumen-page .page-title, .dokumen-page .page-subtitle, .delete-modal-header h3) { color: var(--d-text); }
+html[data-theme="dark"] :is(.preview-back a, .contract-step, .preview-message) { color: var(--d-text-2); }
+html[data-theme="dark"] :is(.dokumen-page .contract-step.active, .contract-step.active) { color: var(--d-accent); }
+html[data-theme="dark"] :is(.step-line, .dokumen-page .step-line) { background: var(--d-border); }
+html[data-theme="dark"] :is(.step-number) { background-color: var(--d-surface-3); border-color: var(--d-border); }
+html[data-theme="dark"] :is(.pdf-viewer, .pdf-stage, .pdf-empty, .preview-checklist, .preview-button) { background-color: var(--d-surface-2); border-color: var(--d-border); color: var(--d-text-2); }
+html[data-theme="dark"] .preview-button.primary { background-color: #0d8d7e; border-color: #0d8d7e; color: #fff; }
+html[data-theme="dark"] .preview-button:hover:not(:disabled) { background-color: var(--d-surface-3); }
+html[data-theme="dark"] :is(.delete-modal, .delete-modal-cancel) { background: var(--d-surface); border-color: var(--d-border); color: var(--d-text); }
+html[data-theme="dark"] .delete-modal-close { background: var(--d-surface-3); color: var(--d-text); }
+html[data-theme="dark"] .delete-modal-description { color: var(--d-muted); }
+/* Kertas dokumen & PDF tetap putih supaya terbaca seperti aslinya */
+html[data-theme="dark"] :is(#contract-pdf, .preview-paper-area, .pdf-mode .preview-paper-area) { background: #fff; color: #1B1B18; }
+
+/* ---------- Scrollbar ---------- */
+html[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #355055; }
+
+/* =========================================================
+   Tambahan: warna yang belum punya padanan (dibuat otomatis dari
+   daftar warna yang dipakai di resources/views). Warna terang untuk
+   latar/border diturunkan, teks gelap dinaikkan, hue tetap sama.
+   ========================================================= */
+/* Latar terang */
+html[data-theme="dark"] [class~="bg-[#b8ceca]" i] { background-color: #3A5357; }
+html[data-theme="dark"] [class~="bg-[#d1fae5]" i] { background-color: #1F372B; }
+html[data-theme="dark"] [class~="bg-[#d9e5e3]" i] { background-color: #233331; }
+html[data-theme="dark"] [class~="bg-[#dcece6]" i] { background-color: #1F372E; }
+html[data-theme="dark"] [class~="bg-[#e1eae8]" i] { background-color: #243330; }
+html[data-theme="dark"] [class~="bg-[#e4f2ec]" i] { background-color: #1F372D; }
+html[data-theme="dark"] [class~="bg-[#e5f5ef]" i] { background-color: #1F372E; }
+html[data-theme="dark"] [class~="bg-[#e8f0ee]" i] { background-color: #223430; }
+html[data-theme="dark"] [class~="bg-[#e8f0ef]" i] { background-color: #223432; }
+html[data-theme="dark"] [class~="bg-[#e8f3ee]" i] { background-color: #1F372C; }
+html[data-theme="dark"] [class~="bg-[#eaf0f4]" i] { background-color: #1F2E37; }
+html[data-theme="dark"] [class~="bg-[#eaf1f0]" i] { background-color: #233432; }
+html[data-theme="dark"] [class~="bg-[#eaf4ef]" i] { background-color: #1F372B; }
+html[data-theme="dark"] [class~="bg-[#eaf7f2]" i] { background-color: #1F372E; }
+html[data-theme="dark"] [class~="bg-[#edf2f1]" i] { background-color: #243230; }
+html[data-theme="dark"] [class~="bg-[#edf6f4]" i] { background-color: #1F3732; }
+html[data-theme="dark"] [class~="bg-[#eef1f0]" i] { background-color: #27302D; }
+html[data-theme="dark"] [class~="bg-[#eef2f1]" i] { background-color: #26312E; }
+html[data-theme="dark"] [class~="bg-[#eef3f2]" i] { background-color: #243330; }
+html[data-theme="dark"] [class~="bg-[#eef6f3]" i] { background-color: #1F372E; }
+html[data-theme="dark"] [class~="bg-[#f0f6ff]" i] { background-color: #1F2937; }
+html[data-theme="dark"] [class~="bg-[#f0f9f7]" i] { background-color: #1F3732; }
+html[data-theme="dark"] [class~="bg-[#f1f5f4]" i] { background-color: #24332F; }
+html[data-theme="dark"] [class~="bg-[#f4f7f9]" i] { background-color: #1F2E37; }
+html[data-theme="dark"] [class~="bg-[#f4f8f7]" i] { background-color: #223530; }
+html[data-theme="dark"] [class~="bg-[#f4f8fa]" i] { background-color: #1F2F37; }
+html[data-theme="dark"] [class~="bg-[#f8fbfa]" i] { background-color: #20372F; }
+html[data-theme="dark"] [class~="bg-[#f8fbfd]" i] { background-color: #1F2E37; }
+html[data-theme="dark"] [class~="bg-[#f9fbfa]" i] { background-color: #23342B; }
+html[data-theme="dark"] [class~="bg-[#fafcfd]" i] { background-color: #1F2F37; }
+html[data-theme="dark"] [class~="bg-[#fce7e7]" i] { background-color: #371F1F; }
+html[data-theme="dark"] [class~="bg-[#fceeee]" i] { background-color: #371F1F; }
+html[data-theme="dark"] [class~="bg-[#fee2e2]" i] { background-color: #371F1F; }
+html[data-theme="dark"] [class~="bg-[#fff0d9]" i] { background-color: #372E1F; }
+html[data-theme="dark"] [class~="bg-[#fff4d9]" i] { background-color: #37301F; }
+html[data-theme="dark"] [class~="bg-[#fff4df]" i] { background-color: #372F1F; }
+html[data-theme="dark"] [class~="bg-[#fff4ef]" i] { background-color: #37271F; }
+html[data-theme="dark"] [class~="bg-[#fff4f2]" i] { background-color: #37231F; }
+html[data-theme="dark"] [class~="bg-[#fff8e7]" i] { background-color: #37301F; }
+html[data-theme="dark"] [class~="bg-[#fff9e9]" i] { background-color: #37311F; }
+/* Latar terang (hover) */
+html[data-theme="dark"] [class~="hover:bg-[#dce6e4]" i]:hover { background-color: #243330; }
+html[data-theme="dark"] [class~="hover:bg-[#dce9e6]" i]:hover { background-color: #213531; }
+html[data-theme="dark"] [class~="hover:bg-[#dce9e7]" i]:hover { background-color: #213532; }
+html[data-theme="dark"] [class~="hover:bg-[#dceae7]" i]:hover { background-color: #213632; }
+html[data-theme="dark"] [class~="hover:bg-[#dcece6]" i]:hover { background-color: #1F372E; }
+html[data-theme="dark"] [class~="hover:bg-[#e1ebe8]" i]:hover { background-color: #23342F; }
+html[data-theme="dark"] [class~="hover:bg-[#e8f0ee]" i]:hover { background-color: #223430; }
+html[data-theme="dark"] [class~="hover:bg-[#eaf2f1]" i]:hover { background-color: #213633; }
+html[data-theme="dark"] [class~="hover:bg-[#eef6f3]" i]:hover { background-color: #1F372E; }
+html[data-theme="dark"] [class~="hover:bg-[#f0f9f7]" i]:hover { background-color: #1F3732; }
+html[data-theme="dark"] [class~="hover:bg-[#f1f8f7]" i]:hover { background-color: #1F3734; }
+html[data-theme="dark"] [class~="hover:bg-[#f4f8f7]" i]:hover { background-color: #223530; }
+html[data-theme="dark"] [class~="hover:bg-[#f5f8f7]" i]:hover { background-color: #24332E; }
+html[data-theme="dark"] [class~="hover:bg-[#f5f8fa]" i]:hover { background-color: #1F2E37; }
+html[data-theme="dark"] [class~="hover:bg-[#f8dcdc]" i]:hover { background-color: #371F1F; }
+html[data-theme="dark"] [class~="hover:bg-[#fafcfb]" i]:hover { background-color: #21362B; }
+html[data-theme="dark"] [class~="hover:bg-[#fde5e1]" i]:hover { background-color: #37231F; }
+/* Border terang */
+html[data-theme="dark"] [class~="border-[#b8c9d3]" i] { border-color: #31444F; }
+html[data-theme="dark"] [class~="border-[#b8ceca]" i] { border-color: #344B47; }
+html[data-theme="dark"] [class~="border-[#b9ded5]" i] { border-color: #305048; }
+html[data-theme="dark"] [class~="border-[#c7ddea]" i] { border-color: #304450; }
+html[data-theme="dark"] [class~="border-[#c8d7e0]" i] { border-color: #304450; }
+html[data-theme="dark"] [class~="border-[#c8d8d5]" i] { border-color: #354B47; }
+html[data-theme="dark"] [class~="border-[#c9ddd9]" i] { border-color: #314E48; }
+html[data-theme="dark"] [class~="border-[#cbd9e3]" i] { border-color: #304250; }
+html[data-theme="dark"] [class~="border-[#cfe0dc]" i] { border-color: #324D47; }
+html[data-theme="dark"] [class~="border-[#cfe2fa]" i] { border-color: #303E50; }
+html[data-theme="dark"] [class~="border-[#d8e2e9]" i] { border-color: #304350; }
+html[data-theme="dark"] [class~="border-[#dde6ec]" i] { border-color: #304350; }
+html[data-theme="dark"] [class~="border-[#ddeaf0]" i] { border-color: #304650; }
+html[data-theme="dark"] [class~="border-[#e0eaf0]" i] { border-color: #304450; }
+html[data-theme="dark"] [class~="border-[#e6edf2]" i] { border-color: #304250; }
+html[data-theme="dark"] [class~="border-[#e6eeec]" i] { border-color: #344C46; }
+html[data-theme="dark"] [class~="border-[#e7d9b5]" i] { border-color: #504730; }
+html[data-theme="dark"] [class~="border-[#e8efed]" i] { border-color: #344B45; }
+html[data-theme="dark"] [class~="border-[#f0d5c9]" i] { border-color: #503A30; }
+/* Border terang (hover) */
+html[data-theme="dark"] [class~="hover:border-[#b6c7c4]" i]:hover { border-color: #374845; }
+/* Teks & ikon gelap */
+html[data-theme="dark"] [class~="text-[#047857]" i] { color: #98E1CC; }
+html[data-theme="dark"] [class~="text-[#087f73]" i] { color: #98E1DA; }
+html[data-theme="dark"] [class~="text-[#142344]" i] { color: #99AFE1; }
+html[data-theme="dark"] [class~="text-[#16877f]" i] { color: #98E1DC; }
+html[data-theme="dark"] [class~="text-[#17695f]" i] { color: #98E1D8; }
+html[data-theme="dark"] [class~="text-[#287451]" i] { color: #9CDDBF; }
+html[data-theme="dark"] [class~="text-[#29405c]" i] { color: #A3BAD6; }
+html[data-theme="dark"] [class~="text-[#29466f]" i] { color: #9EB7DB; }
+html[data-theme="dark"] [class~="text-[#39745c]" i] { color: #A6D3C1; }
+html[data-theme="dark"] [class~="text-[#49617d]" i] { color: #ABBBCE; }
+html[data-theme="dark"] [class~="text-[#4d856f]" i] { color: #ABCEC0; }
+html[data-theme="dark"] [class~="text-[#55736f]" i] { color: #ACCDC9; }
+html[data-theme="dark"] [class~="text-[#60718a]" i] { color: #ACBACD; }
+html[data-theme="dark"] [class~="text-[#607d79]" i] { color: #ACCDC9; }
+html[data-theme="dark"] [class~="text-[#64748b]" i] { color: #ACBACD; }
+html[data-theme="dark"] [class~="text-[#725c2e]" i] { color: #D9C7A1; }
+html[data-theme="dark"] [class~="text-[#8a6a17]" i] { color: #E1CD98; }
+html[data-theme="dark"] [class~="text-[#9a4f35]" i] { color: #DDAD9C; }
+html[data-theme="dark"] [class~="text-[#9a7428]" i] { color: #E1C998; }
+html[data-theme="dark"] [class~="text-[#a16207]" i] { color: #E1C398; }
+html[data-theme="dark"] [class~="text-[#b54b4b]" i] { color: #D8A1A1; }
+html[data-theme="dark"] [class~="text-[#b91c1c]" i] { color: #E19898; }
+/* Teks & ikon gelap (hover) */
+html[data-theme="dark"] [class~="hover:text-[#294f55]" i]:hover { color: #A6CED4; }
+html[data-theme="dark"] [class~="hover:text-[#365f65]" i]:hover { color: #A9CCD1; }
+
+/* ---------- Warna Tailwind bernama yang belum dipetakan ---------- */
+html[data-theme="dark"] [class~="bg-emerald-50" i] { background-color: rgba(16,185,129,.14); }
+html[data-theme="dark"] [class~="bg-teal-50" i] { background-color: rgba(20,184,166,.14); }
+html[data-theme="dark"] [class~="bg-indigo-50" i] { background-color: rgba(99,102,241,.16); }
+html[data-theme="dark"] [class~="bg-purple-50" i] { background-color: rgba(168,85,247,.14); }
+html[data-theme="dark"] [class~="bg-red-100" i] { background-color: rgba(239,68,68,.22); }
+html[data-theme="dark"] [class~="bg-red-50/50" i] { background-color: rgba(239,68,68,.08); }
+html[data-theme="dark"] [class~="hover:bg-red-50" i]:hover { background-color: rgba(239,68,68,.16); }
+html[data-theme="dark"] [class~="hover:bg-amber-50" i]:hover { background-color: rgba(245,158,11,.16); }
+html[data-theme="dark"] [class~="hover:bg-white" i]:hover, html[data-theme="dark"] [class~="focus:bg-white" i]:focus { background-color: var(--d-surface-2); }
+html[data-theme="dark"] [class~="focus:bg-gray-50" i]:focus, html[data-theme="dark"] [class~="focus:bg-gray-100" i]:focus { background-color: var(--d-surface-3); }
+html[data-theme="dark"] [class~="focus:bg-indigo-100" i]:focus { background-color: rgba(99,102,241,.22); }
+html[data-theme="dark"] [class~="border-blue-200" i] { border-color: rgba(59,130,246,.4); }
+html[data-theme="dark"] [class~="border-emerald-200" i], html[data-theme="dark"] [class~="border-emerald-300" i] { border-color: rgba(16,185,129,.4); }
+html[data-theme="dark"] [class~="hover:border-emerald-300" i]:hover { border-color: rgba(16,185,129,.6); }
+html[data-theme="dark"] [class~="hover:border-amber-300" i]:hover { border-color: rgba(245,158,11,.6); }
+html[data-theme="dark"] [class~="hover:border-gray-300" i]:hover, html[data-theme="dark"] [class~="focus:border-gray-300" i]:focus { border-color: #3A5357; }
+html[data-theme="dark"] [class~="divide-gray-100" i] > * + * { border-color: var(--d-border); }
+html[data-theme="dark"] [class~="text-emerald-700" i], html[data-theme="dark"] [class~="text-emerald-800" i] { color: #6EE7B7; }
+html[data-theme="dark"] [class~="text-teal-700" i] { color: #5EEAD4; }
+html[data-theme="dark"] [class~="text-green-800" i] { color: #86EFAC; }
+html[data-theme="dark"] [class~="text-blue-800" i] { color: #93C5FD; }
+html[data-theme="dark"] [class~="text-amber-800" i] { color: #FCD34D; }
+html[data-theme="dark"] [class~="text-orange-700" i] { color: #FDBA74; }
+html[data-theme="dark"] [class~="text-indigo-700" i], html[data-theme="dark"] [class~="focus:text-indigo-800" i]:focus { color: #A5B4FC; }
+html[data-theme="dark"] [class~="text-purple-600" i] { color: #D8B4FE; }
+html[data-theme="dark"] [class~="hover:text-gray-700" i]:hover, html[data-theme="dark"] [class~="hover:text-gray-800" i]:hover, html[data-theme="dark"] [class~="hover:text-gray-900" i]:hover, html[data-theme="dark"] [class~="focus:text-gray-700" i]:focus, html[data-theme="dark"] [class~="focus:text-gray-800" i]:focus { color: var(--d-text); }
+html[data-theme="dark"] [class~="hover:text-gray-500" i]:hover, html[data-theme="dark"] [class~="focus:text-gray-500" i]:focus { color: var(--d-text-2); }
+html[data-theme="dark"] [class~="hover:text-red-600" i]:hover { color: #FCA5A5; }
+html[data-theme="dark"] [class~="ring-white" i] { --tw-ring-color: var(--d-surface); }
+html[data-theme="dark"] [class~="ring-red-200" i] { --tw-ring-color: rgba(239,68,68,.4); }
+html[data-theme="dark"] [class~="ring-emerald-300" i] { --tw-ring-color: rgba(16,185,129,.5); }
+
+/* Ikon / teks yang memakai warna brand gelap sebagai warna aktif */
+html[data-theme="dark"] svg[class*="text-[#365F65]" i], html[data-theme="dark"] svg[class*="text-[#294F55]" i] { color: var(--d-accent); }

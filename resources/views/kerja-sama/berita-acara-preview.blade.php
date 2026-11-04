@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('page-title', 'Kerja Sama')
+
 @section('content')
 <div style="padding: 24px; background: #f3f6f5; min-height: 100vh; color: #365f65;">
 
@@ -21,11 +23,6 @@
                 <a href="{{ route('kerja-sama') }}"
                    style="padding: 10px 16px; border: 1px solid #365f65; border-radius: 6px; text-decoration: none; color: #365f65; background: white;">
                     Kembali
-                </a>
-
-                <a href="{{ route('kerja-sama.berita-acara.download', $kerjaSama->id) }}"
-                   style="padding: 10px 16px; border-radius: 6px; text-decoration: none; color: white; background: #365f65;">
-                    Unduh PDF
                 </a>
             </div>
         </div>

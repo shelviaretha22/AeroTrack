@@ -230,6 +230,20 @@ class ProfileController extends Controller
         );
     }
 
+    // Simpan tema saja (dipanggil langsung saat pilihan Terang/Gelap diklik)
+    public function updateTheme(Request $request)
+    {
+        $validated = $request->validate([
+            'theme_preference' => ['required', Rule::in(['light', 'dark'])],
+        ]);
+
+        $request->user()->update([
+            'theme_preference' => $validated['theme_preference'],
+        ]);
+
+        return response()->json(['theme' => $validated['theme_preference']]);
+    }
+
     public function updatePreferences(Request $request)
     {
         $validated = $request->validate([

@@ -12,7 +12,7 @@
 
     $statusKontrakDok = !$kontrak
         ? 'Belum Dibuat'
-        : (($kontrak->status === 'Selesai' && $kontrak->final_pdf_path) ? 'Selesai (final diunggah)' : 'Dalam Proses');
+        : ($kontrak->finalTersedia() ?'Selesai (final diunggah)' : 'Dalam Proses');
 
     $badgeAktivasi = match ($statusAktivasi) {
         'Disetujui' => 'bg-green-50 text-green-700',
