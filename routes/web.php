@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -10,6 +9,8 @@ use App\Http\Controllers\KerjaSamaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AktivasiController;
 use App\Http\Controllers\NotifikasiController;
+use App\Http\Controllers\PendapatanController;
+use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,9 +24,9 @@ Route::get('/', function () {
 });
 
 // DASHBOARD
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware('auth')->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware('auth')
+    ->name('dashboard');
 
 // ================================
 // MANAGEMENT MENU
@@ -118,6 +119,20 @@ Route::get(
     [KerjaSamaController::class, 'lihatBeritaAcaraFinal']
 )->middleware('auth')
     ->name('kerja-sama.berita-acara.final');
+
+// Simpan hasil edit Berita Acara
+Route::put(
+    '/kerja-sama/{id}/berita-acara/simpan',
+    [KerjaSamaController::class, 'simpanBeritaAcara']
+)->middleware('auth')
+    ->name('kerja-sama.berita-acara.simpan');
+
+// Download Berita Acara Word
+Route::get(
+    '/kerja-sama/{id}/berita-acara/word',
+    [KerjaSamaController::class, 'downloadBeritaAcaraWord']
+)->middleware('auth')
+    ->name('kerja-sama.berita-acara.word');
 
 // ================================
 // DETAIL, EDIT, UPDATE, DELETE
@@ -344,10 +359,20 @@ Route::middleware('auth')->group(function () {
 // PENDAPATAN
 // ================================
 
-Route::get('/pendapatan', function () {
-    return view('pendapatan.index');
-})->middleware('auth')
-    ->name('pendapatan');
+Route::middleware('auth')->group(function () {
+
+    // Halaman Pendapatan
+    Route::get(
+        '/pendapatan',
+        [PendapatanController::class, 'index']
+    )->name('pendapatan');
+
+    // Update status invoice
+    Route::patch(
+        '/pendapatan/{id}/status-invoice',
+        [PendapatanController::class, 'updateStatusInvoice']
+    )->name('pendapatan.status-invoice');
+});
 
 // ================================
 // LAPORAN
