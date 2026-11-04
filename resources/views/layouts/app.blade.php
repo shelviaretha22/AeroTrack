@@ -274,8 +274,9 @@
 
                     {{-- PENDAPATAN --}}
                     <a
-                        href="#"
-                        class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition"
+                        href="{{ route('pendapatan') }}"
+                        @click="sidebarOpen = false"
+                        class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium {{ request()->routeIs('pendapatan*') ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white' }} transition"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"

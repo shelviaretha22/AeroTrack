@@ -9,6 +9,9 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Models\MasterPerusahaan;
+use App\Services\BeritaAcaraDokumen;
+use PhpOffice\PhpWord\IOFactory;
 
 class KerjaSamaController extends Controller
 {
@@ -70,8 +73,7 @@ class KerjaSamaController extends Controller
         return view('kerja-sama.create');
     }
 
-
-/**
+    /**
  * Menyimpan Kerja Sama baru.
  */
 public function store(Request $request)
@@ -82,10 +84,6 @@ public function store(Request $request)
         'jenis_usaha' => [
             'required',
             'in:F&B,Retail,Service,Lounge,Duty Free,UMKM',
-        ],
-        'bentuk_kerja_sama' => [
-            'required',
-            'in:Revenue Sharing,MGRS',
         ],
         'tanggal_pengajuan' => ['required', 'date'],
         'tanggal_mulai' => ['nullable', 'date'],
@@ -100,8 +98,8 @@ public function store(Request $request)
     ]);
 
     DB::transaction(function () use ($validated) {
-        // Cari nomor kerja sama terbesar yang sudah digunakan.
         $nomorTerakhir = KerjaSama::whereNotNull('nomor_kerja_sama')
+            ->lockForUpdate()
             ->pluck('nomor_kerja_sama')
             ->map(function ($nomor) {
                 if (preg_match('/^KS-(\d+)$/', $nomor, $matches)) {
@@ -112,7 +110,6 @@ public function store(Request $request)
             })
             ->max() ?? 0;
 
-        // Buat nomor berikutnya secara otomatis.
         $nomorBaru = 'KS-' . str_pad(
             $nomorTerakhir + 1,
             3,
@@ -120,11 +117,13 @@ public function store(Request $request)
             STR_PAD_LEFT
         );
 
-        // Simpan data kerja sama baru.
         $kerjaSama = new KerjaSama();
+
         $kerjaSama->fill($validated);
 
-        // Nomor dan status ditentukan oleh sistem.
+        // Bentuk kerja sama ditetapkan otomatis.
+        $kerjaSama->bentuk_kerja_sama = 'Revenue Sharing';
+
         $kerjaSama->nomor_kerja_sama = $nomorBaru;
         $kerjaSama->status = 'Draft';
 
@@ -135,7 +134,6 @@ public function store(Request $request)
         ->route('kerja-sama')
         ->with('success', 'Data kerja sama berhasil disimpan.');
 }
-
 
     /**
      * Detail Kerja Sama.
@@ -169,36 +167,32 @@ public function store(Request $request)
         $kerjaSama = KerjaSama::findOrFail($id);
 
         $validated = $request->validate([
-            'mitra_usaha' => ['required', 'string', 'max:255'],
-            'brand' => ['nullable', 'string', 'max:255'],
-            'jenis_usaha' => [
-                'required',
-                'in:F&B,Retail,Service,Lounge,Duty Free,UMKM',
-            ],
-            'bentuk_kerja_sama' => [
-                'required',
-                'in:Revenue Sharing,MGRS',
-            ],
-            'tanggal_pengajuan' => ['required', 'date'],
-            'tanggal_mulai' => ['nullable', 'date'],
-            'tanggal_berakhir' => [
-                'nullable',
-                'date',
-                'after_or_equal:tanggal_mulai',
-            ],
-            'pic_commercial' => ['required', 'string', 'max:255'],
-
-            // Jabatan PIC Commercial boleh dikosongkan.
-            'jabatan_pic_commercial' => ['nullable', 'string', 'max:255'],
-
-            'catatan' => ['nullable', 'string'],
-        ]);
+    'mitra_usaha' => ['required', 'string', 'max:255'],
+    'brand' => ['nullable', 'string', 'max:255'],
+    'jenis_usaha' => [
+        'required',
+        'in:F&B,Retail,Service,Lounge,Duty Free,UMKM',
+    ],
+    'tanggal_pengajuan' => ['required', 'date'],
+    'tanggal_mulai' => ['nullable', 'date'],
+    'tanggal_berakhir' => [
+        'nullable',
+        'date',
+        'after_or_equal:tanggal_mulai',
+    ],
+    'pic_commercial' => ['required', 'string', 'max:255'],
+    'jabatan_pic_commercial' => ['nullable', 'string', 'max:255'],
+    'catatan' => ['nullable', 'string'],
+]);
 
         // Status dan path BA tidak boleh diubah dari form edit.
         unset(
             $validated['status'],
             $validated['berita_acara_path']
         );
+
+        // Bentuk kerja sama ditetapkan otomatis.
+        $validated['bentuk_kerja_sama'] = 'Revenue Sharing';
 
         $kerjaSama->update($validated);
 
@@ -208,8 +202,8 @@ public function store(Request $request)
     }
 
     /**
-     * Membuat dan menyimpan PDF BA jika belum tersedia,
-     * kemudian menampilkan halaman preview.
+     * Membuat PDF jika belum tersedia
+     * dan menampilkan halaman editor BA.
      */
     public function beritaAcara($id)
     {
@@ -230,34 +224,21 @@ public function store(Request $request)
 
         $path = $kerjaSama->berita_acara_path;
 
-        // Buat ulang PDF jika file belum ada.
+        // Generate PDF awal jika belum tersedia.
         if (
             !$path ||
             !Storage::disk('local')->exists($path)
         ) {
-            $pdf = Pdf::loadView(
-                'kerja-sama.berita-acara-pdf',
-                [
-                    'kerjaSama' => $kerjaSama,
-                    'tenant' => $tenant,
-                    'lokasi' => $lokasi,
-                    'tanggalCetak' => now(),
-                ]
-            )->setPaper('a4', 'portrait');
+            $konten = $this->kontenBeritaAcara($kerjaSama);
 
-            $path = 'berita-acara/BA-KS-'
-                . $kerjaSama->id
-                . '.pdf';
+            try {
+                $path = $this->simpanPdfBeritaAcara($kerjaSama, $konten);
+            } catch (\Throwable $e) {
+                report($e);
+                $path = null;
+            }
 
-            $tersimpan = Storage::disk('local')->put(
-                $path,
-                $pdf->output()
-            );
-
-            if (
-                !$tersimpan ||
-                !Storage::disk('local')->exists($path)
-            ) {
+            if (!$path || !Storage::disk('local')->exists($path)) {
                 return redirect()
                     ->route('kerja-sama')
                     ->with(
@@ -266,24 +247,25 @@ public function store(Request $request)
                     );
             }
 
-            // Status baru diubah setelah file berhasil disimpan.
             $kerjaSama->berita_acara_path = $path;
             $kerjaSama->status = 'Aktivasi';
             $kerjaSama->save();
         } elseif ($kerjaSama->status !== 'Aktivasi') {
-            // Sinkronkan status jika file sudah ada.
             $kerjaSama->status = 'Aktivasi';
             $kerjaSama->save();
         }
 
+        // Konten editor: hasil simpan, atau template jika belum pernah disimpan.
+        $editorContent = $this->kontenBeritaAcara($kerjaSama);
+
         return view(
             'kerja-sama.berita-acara-preview',
-            compact('kerjaSama')
+            compact('kerjaSama', 'editorContent')
         );
     }
 
     /**
-     * Menampilkan file PDF BA di browser.
+     * Menampilkan PDF BA di browser.
      */
     public function lihatPdfBeritaAcara($id)
     {
@@ -328,7 +310,7 @@ public function store(Request $request)
     }
 
     /**
-     * Mengunggah BA final yang sudah ditandatangani di luar sistem.
+     * Mengunggah BA final yang sudah ditandatangani.
      */
     public function unggahBeritaAcaraFinal(Request $request, $id)
     {
@@ -341,7 +323,6 @@ public function store(Request $request)
             );
         }
 
-        // BA final hanya boleh diunggah satu kali.
         if ($kerjaSama->baFinalTersedia()) {
             return back()->with(
                 'error',
@@ -383,11 +364,164 @@ public function store(Request $request)
     {
         $kerjaSama = KerjaSama::findOrFail($id);
 
-        abort_unless($kerjaSama->baFinalTersedia(), 404, 'BA final belum diunggah.');
+        abort_unless(
+            $kerjaSama->baFinalTersedia(),
+            404,
+            'BA final belum diunggah.'
+        );
 
         return response()->file(
-            Storage::disk('local')->path($kerjaSama->berita_acara_final_path)
+            Storage::disk('local')->path(
+                $kerjaSama->berita_acara_final_path
+            )
         );
+    }
+
+    /**
+     * Konten BA: hasil edit yang tersimpan, atau template bila belum ada.
+     */
+    private function kontenBeritaAcara(KerjaSama $kerjaSama): string
+    {
+        if (!empty($kerjaSama->berita_acara_content)) {
+            return $kerjaSama->berita_acara_content;
+        }
+
+        $kerjaSama->loadMissing(['tenant', 'lokasi']);
+
+        return view('kerja-sama.berita-acara-editor-content', [
+            'kerjaSama'   => $kerjaSama,
+            'tenant'      => $kerjaSama->tenant,
+            'lokasi'      => $kerjaSama->lokasi,
+            'perusahaan'  => MasterPerusahaan::first(),
+        ])->render();
+    }
+
+    /**
+     * Membuat PDF dari konten BA dan menyimpannya di disk lokal.
+     * Mengembalikan path file, atau null jika gagal.
+     */
+    private function simpanPdfBeritaAcara(KerjaSama $kerjaSama, string $konten): ?string
+    {
+        $pdf = Pdf::loadView('kerja-sama.berita-acara-dokumen-pdf', [
+            'konten' => $konten,
+        ])->setPaper('a4', 'portrait');
+
+        $path = $kerjaSama->berita_acara_path
+            ?: 'berita-acara/BA-KS-' . $kerjaSama->id . '.pdf';
+
+        $tersimpan = Storage::disk('local')->put($path, $pdf->output());
+
+        return $tersimpan ? $path : null;
+    }
+
+    /**
+     * Menyimpan hasil edit Berita Acara.
+     */
+    public function simpanBeritaAcara(Request $request, $id)
+    {
+        $request->validate([
+            'content' => ['required', 'string', 'max:2000000'],
+        ]);
+
+        $kerjaSama = KerjaSama::findOrFail($id);
+
+        if ($kerjaSama->baFinalTersedia()) {
+            return back()->with(
+                'error',
+                'BA final sudah diunggah, isi Berita Acara tidak dapat diubah lagi.'
+            );
+        }
+
+        $content = BeritaAcaraDokumen::bersihkanHtml(
+            $request->input('content')
+        );
+
+        if (trim(strip_tags($content)) === '') {
+            return back()->with(
+                'error',
+                'Isi Berita Acara tidak boleh kosong.'
+            );
+        }
+
+        $kerjaSama->berita_acara_content = $content;
+        $kerjaSama->save();
+
+        // PDF disinkronkan agar "Unduh PDF" memuat hasil edit terbaru.
+        try {
+            $path = $this->simpanPdfBeritaAcara($kerjaSama, $content);
+
+            if ($path && $kerjaSama->berita_acara_path !== $path) {
+                $kerjaSama->berita_acara_path = $path;
+                $kerjaSama->save();
+            }
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('kerja-sama.berita-acara', $id)
+                ->with(
+                    'error',
+                    'Perubahan tersimpan, tetapi PDF gagal diperbarui: '
+                        . $e->getMessage()
+                );
+        }
+
+        return redirect()
+            ->route('kerja-sama.berita-acara', $id)
+            ->with('success', 'Berita Acara berhasil disimpan.');
+    }
+
+    /**
+     * Mengunduh Berita Acara dalam format Word.
+     */
+    public function downloadBeritaAcaraWord($id)
+    {
+        $kerjaSama = KerjaSama::with(['tenant', 'lokasi'])->findOrFail($id);
+
+        if (!$kerjaSama->tenant || !$kerjaSama->lokasi) {
+            return redirect()
+                ->route('kerja-sama')
+                ->with(
+                    'error',
+                    'Data Tenant dan Lokasi harus lengkap sebelum BA dibuat.'
+                );
+        }
+
+        $tempFile = null;
+
+        try {
+            $phpWord = BeritaAcaraDokumen::buatWord(
+                $this->kontenBeritaAcara($kerjaSama)
+            );
+
+            $tempFile = tempnam(sys_get_temp_dir(), 'aerotrack_ba_');
+
+            if ($tempFile === false) {
+                throw new \RuntimeException('Gagal membuat file sementara.');
+            }
+
+            IOFactory::createWriter($phpWord, 'Word2007')->save($tempFile);
+
+            return response()
+                ->download(
+                    $tempFile,
+                    'Berita-Acara-KS-' . $kerjaSama->id . '.docx'
+                )
+                ->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            report($e);
+
+            if ($tempFile && is_file($tempFile)) {
+                @unlink($tempFile);
+            }
+
+            return redirect()
+                ->route('kerja-sama.berita-acara', $id)
+                ->with(
+                    'error',
+                    'Gagal membuat dokumen Word: ' . $e->getMessage()
+                );
+        }
     }
 
     /**
@@ -420,7 +554,6 @@ public function store(Request $request)
             $kerjaSama->delete();
         });
 
-        // Hapus file BA setelah data berhasil dihapus.
         if (
             $kerjaSama->berita_acara_path &&
             Storage::disk('local')->exists(
@@ -429,6 +562,17 @@ public function store(Request $request)
         ) {
             Storage::disk('local')->delete(
                 $kerjaSama->berita_acara_path
+            );
+        }
+
+        if (
+            $kerjaSama->berita_acara_final_path &&
+            Storage::disk('local')->exists(
+                $kerjaSama->berita_acara_final_path
+            )
+        ) {
+            Storage::disk('local')->delete(
+                $kerjaSama->berita_acara_final_path
             );
         }
 

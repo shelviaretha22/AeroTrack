@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('page-title', 'Input Data Kerja Sama')
@@ -127,24 +126,33 @@
                         </select>
                     </div>
 
-                    {{-- BENTUK KERJA SAMA --}}
-                    <div>
-                        <label for="bentuk_kerja_sama"
-                               class="block text-sm font-semibold text-[#365F65] mb-2">
-                            Bentuk Kerja Sama <span class="text-red-500">*</span>
-                        </label>
-                        <select id="bentuk_kerja_sama" name="bentuk_kerja_sama" required
-                                class="w-full rounded-xl border border-[#DCE6E4] bg-[#F9FBFA] px-4 py-3 text-sm text-[#365F65] focus:border-[#365F65] focus:ring-2 focus:ring-[#B8CECA]/50 outline-none transition">
-                            <option value="">Pilih bentuk kerja sama</option>
-                            @foreach (['Revenue Sharing', 'MGRS'] as $bentuk)
-                                <option value="{{ $bentuk }}"
-                                    {{ old('bentuk_kerja_sama') == $bentuk ? 'selected' : '' }}>
-                                    {{ $bentuk }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                   {{-- BENTUK KERJA SAMA --}}
+<div>
+    <label for="bentuk_kerja_sama"
+           class="block text-sm font-semibold text-[#365F65] mb-2">
+        Bentuk Kerja Sama
+    </label>
 
+    <div class="relative">
+        <input
+            type="text"
+            id="bentuk_kerja_sama"
+            value="Revenue Sharing"
+            readonly
+            class="w-full rounded-xl border border-[#DCE6E4] bg-gray-100 px-4 py-3 text-sm font-semibold text-[#365F65] outline-none cursor-not-allowed"
+        >
+
+        <input
+            type="hidden"
+            name="bentuk_kerja_sama"
+            value="Revenue Sharing"
+        >
+    </div>
+
+    <p class="mt-1 text-xs text-[#8BA5A2]">
+        Bentuk kerja sama ditetapkan menggunakan skema Revenue Sharing.
+    </p>
+</div>
                 </div>
             </div>
 
