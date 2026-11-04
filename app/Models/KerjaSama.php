@@ -150,7 +150,10 @@ class KerjaSama extends Model
         $kontrak = $this->kontrakTerbaru;
 
         if ($kontrak) {
-            return ($kontrak->status === 'Selesai' && $kontrak->final_pdf_path)
+            // Kontrak dianggap selesai bila dokumen final sudah diunggah.
+            // Status kontrak sendiri berubah menjadi Aktif/Nonaktif (bukan
+            // "Selesai") setelah upload, jadi jangan dipakai sebagai penanda.
+            return $kontrak->finalTersedia()
                 ? 'Kontrak Selesai'
                 : 'Kontrak Dalam Proses';
         }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="{{ auth()->check() && auth()->user()->theme_preference === 'dark' ? 'dark' : 'light' }}">
 
 <head>
     <meta charset="utf-8">
@@ -25,6 +25,8 @@
         defer
         src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
     ></script>
+    {{-- Tema gelap (aktif hanya jika data-theme="dark") --}}
+    <link rel="stylesheet" href="{{ asset('css/dark.css') }}?v=2">
 </head>
 
 <body

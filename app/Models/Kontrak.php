@@ -131,4 +131,14 @@ class Kontrak extends Model
     {
         return $this->belongsTo(Lokasi::class);
     }
+
+    /**
+     * Dokumen kontrak final (PDF bertanda tangan) sudah diunggah dan
+     * filenya ada di penyimpanan.
+     */
+    public function finalTersedia(): bool
+    {
+        return !empty($this->final_pdf_path)
+            && \Illuminate\Support\Facades\Storage::disk('local')->exists($this->final_pdf_path);
+    }
 }

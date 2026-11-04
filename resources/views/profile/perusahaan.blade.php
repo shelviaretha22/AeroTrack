@@ -1,32 +1,40 @@
-
 @extends('layouts.app')
 
 @section('page-title', 'Identitas Perusahaan')
 
 @section('content')
-<div class="company-page">
 
-    <div class="company-heading">
+@php
+    $input = 'mt-1.5 w-full rounded-xl border border-[#DCE6E4] bg-white px-4 py-2.5 text-sm text-[#365F65] placeholder-[#A0B3B0] shadow-sm transition focus:border-[#527D82] focus:outline-none focus:ring-2 focus:ring-[#527D82]/20';
+    $label = 'block text-xs font-bold uppercase tracking-wide text-[#8BA5A2]';
+@endphp
+
+<div class="min-h-screen bg-[#F3F6F5] py-6">
+<div class="mx-auto max-w-5xl">
+
+    {{-- HEADER --}}
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1>Identitas Perusahaan</h1>
-            <p>Kelola informasi perusahaan yang digunakan sebagai Pihak Pertama dalam dokumen kontrak.</p>
+            <h1 class="text-2xl font-bold text-[#365F65]">Identitas Perusahaan</h1>
+            <p class="mt-1 text-sm text-[#8BA5A2]">Informasi ini dipakai sebagai Pihak Pertama dalam dokumen kontrak.</p>
         </div>
-
-        <a href="{{ route('profile.index') }}" class="btn-secondary">
-            Kembali ke Profil
+        <a href="{{ route('profile.index') }}"
+           class="inline-flex items-center justify-center gap-2 rounded-xl border border-[#DCE6E4] bg-white px-4 py-2.5 text-sm font-semibold text-[#365F65] shadow-sm transition hover:bg-[#F8FAF9]">
+            ← Kembali ke Profil
         </a>
     </div>
 
+    {{-- NOTIFIKASI --}}
     @if (session('success'))
-        <div class="alert-success">
+        <div class="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
             {{ session('success') }}
         </div>
     @endif
 
     @if ($errors->any())
-        <div class="alert-error">
-            <strong>Periksa kembali data yang dimasukkan.</strong>
-            <ul>
+        <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <p class="font-bold">Periksa kembali data yang dimasukkan.</p>
+            <ul class="mt-1 list-disc pl-5">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -34,355 +42,99 @@
         </div>
     @endif
 
-    <form
-        action="{{ route('profile.perusahaan.update') }}"
-        method="POST"
-        class="company-card"
-    >
+    <form action="{{ route('profile.perusahaan.update') }}" method="POST" class="space-y-5">
         @csrf
         @method('PUT')
 
-        <div class="section-heading">
-            <div class="section-icon">🏢</div>
-            <div>
-                <h2>Informasi Perusahaan</h2>
-                <p>Informasi identitas resmi perusahaan.</p>
-            </div>
+        <div class="grid grid-cols-1 gap-5 lg:grid-cols-5">
+
+            {{-- INFORMASI PERUSAHAAN --}}
+            <section class="rounded-2xl border border-[#DCE6E4] bg-white p-6 shadow-sm lg:col-span-3">
+                <div class="mb-5 flex items-center gap-3">
+                    <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E2EBE9] text-xl">🏢</div>
+                    <div>
+                        <h2 class="text-base font-bold text-[#365F65]">Informasi Perusahaan</h2>
+                        <p class="text-xs text-[#8BA5A2]">Identitas resmi perusahaan.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <label for="nama_perusahaan" class="{{ $label }}">Nama Perusahaan</label>
+                        <input type="text" id="nama_perusahaan" name="nama_perusahaan" required
+                               value="{{ old('nama_perusahaan', $perusahaan->nama_perusahaan) }}" class="{{ $input }}">
+                    </div>
+
+                    <div>
+                        <label for="domisili" class="{{ $label }}">Domisili</label>
+                        <input type="text" id="domisili" name="domisili"
+                               value="{{ old('domisili', $perusahaan->domisili) }}" class="{{ $input }}">
+                    </div>
+
+                    <div>
+                        <label for="telepon" class="{{ $label }}">Nomor Telepon</label>
+                        <input type="text" id="telepon" name="telepon"
+                               value="{{ old('telepon', $perusahaan->telepon) }}" class="{{ $input }}">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label for="fax" class="{{ $label }}">Nomor Fax</label>
+                        <input type="text" id="fax" name="fax"
+                               value="{{ old('fax', $perusahaan->fax ?? '(031) 8667506') }}" class="{{ $input }}">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label for="alamat" class="{{ $label }}">Alamat Perusahaan</label>
+                        <textarea id="alamat" name="alamat" rows="3" class="{{ $input }}">{{ old('alamat', $perusahaan->alamat) }}</textarea>
+                    </div>
+                </div>
+            </section>
+
+            {{-- INFORMASI PENANDATANGAN --}}
+            <section class="rounded-2xl border border-[#DCE6E4] bg-white p-6 shadow-sm lg:col-span-2">
+                <div class="mb-5 flex items-center gap-3">
+                    <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#FBF1DC] text-xl">✍</div>
+                    <div>
+                        <h2 class="text-base font-bold text-[#365F65]">Penandatangan</h2>
+                        <p class="text-xs text-[#8BA5A2]">Pejabat yang mewakili perusahaan.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="nama_penandatangan" class="{{ $label }}">Nama Penandatangan</label>
+                        <input type="text" id="nama_penandatangan" name="nama_penandatangan"
+                               value="{{ old('nama_penandatangan', $perusahaan->nama_penandatangan) }}" class="{{ $input }}">
+                    </div>
+
+                    <div>
+                        <label for="jabatan_penandatangan" class="{{ $label }}">Jabatan</label>
+                        <input type="text" id="jabatan_penandatangan" name="jabatan_penandatangan"
+                               value="{{ old('jabatan_penandatangan', $perusahaan->jabatan_penandatangan) }}" class="{{ $input }}">
+                    </div>
+
+                    <div>
+                        <label for="email" class="{{ $label }}">Email Perusahaan</label>
+                        <input type="email" id="email" name="email"
+                               value="{{ old('email', $perusahaan->email) }}" class="{{ $input }}">
+                    </div>
+                </div>
+            </section>
         </div>
 
-        <div class="form-grid">
-
-            <div class="form-group full-width">
-                <label for="nama_perusahaan">Nama Perusahaan</label>
-                <input
-                    type="text"
-                    id="nama_perusahaan"
-                    name="nama_perusahaan"
-                    value="{{ old('nama_perusahaan', $perusahaan->nama_perusahaan) }}"
-                    required
-                >
-            </div>
-
-            <div class="form-group">
-                <label for="domisili">Domisili</label>
-                <input
-                    type="text"
-                    id="domisili"
-                    name="domisili"
-                    value="{{ old('domisili', $perusahaan->domisili) }}"
-                >
-            </div>
-
-            <div class="form-group">
-    <label for="telepon">Nomor Telepon</label>
-    <input
-        type="text"
-        id="telepon"
-        name="telepon"
-        value="{{ old('telepon', $perusahaan->telepon) }}"
-    >
-</div>
-
-<div class="form-group">
-    <label for="fax">Nomor Fax</label>
-    <input
-        type="text"
-        id="fax"
-        name="fax"
-        value="{{ old('fax', $perusahaan->fax ?? '(031) 8667506') }}"
-    >
-</div>
-
-            <div class="form-group full-width">
-                <label for="alamat">Alamat Perusahaan</label>
-                <textarea
-                    id="alamat"
-                    name="alamat"
-                    rows="3"
-                >{{ old('alamat', $perusahaan->alamat) }}</textarea>
-            </div>
-
-        </div>
-
-        <div class="section-heading signatory-heading">
-            <div class="section-icon">✍</div>
-            <div>
-                <h2>Informasi Penandatangan</h2>
-                <p>Data pejabat yang mewakili perusahaan dalam dokumen kontrak.</p>
-            </div>
-        </div>
-
-        <div class="form-grid">
-
-            <div class="form-group">
-                <label for="nama_penandatangan">Nama Penandatangan</label>
-                <input
-                    type="text"
-                    id="nama_penandatangan"
-                    name="nama_penandatangan"
-                    value="{{ old('nama_penandatangan', $perusahaan->nama_penandatangan) }}"
-                >
-            </div>
-
-            <div class="form-group">
-                <label for="jabatan_penandatangan">Jabatan</label>
-                <input
-                    type="text"
-                    id="jabatan_penandatangan"
-                    name="jabatan_penandatangan"
-                    value="{{ old('jabatan_penandatangan', $perusahaan->jabatan_penandatangan) }}"
-                >
-            </div>
-
-            <div class="form-group full-width">
-                <label for="email">Email Perusahaan</label>
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value="{{ old('email', $perusahaan->email) }}"
-                >
-            </div>
-
-        </div>
-
-        <div class="form-footer">
-            <a href="{{ route('profile.index') }}" class="btn-secondary">
+        {{-- FOOTER AKSI --}}
+        <div class="flex flex-col-reverse gap-3 rounded-2xl border border-[#DCE6E4] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-end">
+            <a href="{{ route('profile.index') }}"
+               class="inline-flex items-center justify-center rounded-xl border border-[#DCE6E4] px-5 py-2.5 text-sm font-semibold text-[#527D82] transition hover:bg-[#F8FAF9]">
                 Batal
             </a>
-
-            <button type="submit" class="btn-primary">
+            <button type="submit"
+                    class="inline-flex items-center justify-center rounded-xl bg-[#365F65] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#294F55] focus:outline-none focus:ring-2 focus:ring-[#527D82]/40">
                 Simpan Perubahan
             </button>
         </div>
-
     </form>
 
 </div>
-
-<style>
-.company-page {
-    --company-green: #246b53;
-    --company-green-dark: #19523f;
-    --company-muted: #7b8982;
-    --company-border: #e5ebe8;
-    color: #263b33;
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding-bottom: 32px;
-}
-
-.company-page * {
-    box-sizing: border-box;
-}
-
-.company-heading {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
-.company-heading h1 {
-    margin: 0 0 8px;
-    font-size: 26px;
-    font-weight: 750;
-}
-
-.company-heading p,
-.section-heading p {
-    margin: 0;
-    color: var(--company-muted);
-    font-size: 13px;
-    line-height: 1.7;
-}
-
-.company-card {
-    padding: 26px;
-    border: 1px solid var(--company-border);
-    border-radius: 16px;
-    background: #fff;
-    box-shadow: 0 3px 12px rgba(24, 54, 40, 0.025);
-}
-
-.section-heading {
-    display: flex;
-    align-items: center;
-    gap: 13px;
-    margin-bottom: 24px;
-}
-
-.section-heading h2 {
-    margin: 0 0 5px;
-    font-size: 16px;
-    font-weight: 750;
-}
-
-.section-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    background: #eaf3ed;
-    color: var(--company-green);
-    font-size: 20px;
-}
-
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    gap: 8px;
-}
-
-.form-group label {
-    color: #42544a;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 12px 13px;
-    border: 1px solid #dfe7e2;
-    border-radius: 9px;
-    background: #fff;
-    color: #304239;
-    font: inherit;
-    font-size: 13px;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.form-group input {
-    min-height: 44px;
-}
-
-.form-group textarea {
-    resize: vertical;
-    min-height: 90px;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    border-color: var(--company-green);
-    box-shadow: 0 0 0 3px rgba(36, 107, 83, 0.1);
-}
-
-.full-width {
-    grid-column: 1 / -1;
-}
-
-.signatory-heading {
-    margin-top: 34px;
-    padding-top: 28px;
-    border-top: 1px solid #edf1ee;
-}
-
-.form-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 28px;
-    padding-top: 22px;
-    border-top: 1px solid #edf1ee;
-}
-
-.btn-primary,
-.btn-secondary {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 42px;
-    padding: 11px 18px;
-    border-radius: 9px;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 650;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.btn-primary {
-    border: 1px solid var(--company-green);
-    background: var(--company-green);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: var(--company-green-dark);
-}
-
-.btn-secondary {
-    border: 1px solid #dce6df;
-    background: white;
-    color: var(--company-green);
-}
-
-.alert-success,
-.alert-error {
-    padding: 14px 16px;
-    margin-bottom: 18px;
-    border-radius: 10px;
-    font-size: 13px;
-    line-height: 1.7;
-}
-
-.alert-success {
-    border: 1px solid #c7e5d1;
-    background: #eef9f1;
-    color: #226c40;
-}
-
-.alert-error {
-    border: 1px solid #f0cece;
-    background: #fff2f2;
-    color: #a33232;
-}
-
-.alert-error ul {
-    margin: 8px 0 0;
-    padding-left: 20px;
-}
-
-@media (max-width: 640px) {
-    .company-heading {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .company-card {
-        padding: 18px;
-    }
-
-    .form-grid {
-        grid-template-columns: 1fr;
-        gap: 17px;
-    }
-
-    .full-width {
-        grid-column: auto;
-    }
-
-    .form-footer {
-        flex-direction: column-reverse;
-    }
-
-    .form-footer > * {
-        width: 100%;
-    }
-}
-</style>
+</div>
 @endsection
