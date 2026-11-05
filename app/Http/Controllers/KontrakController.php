@@ -1291,17 +1291,9 @@ if (!$this->sudahUploadFinal($kontrak)) {
         $jabatanApTtd = $ap['jabatan'] ?: '[Jabatan Penandatangan AP Indonesia]';
         $namaApPerusahaan = $ap['nama'] ?: 'PT ANGKASA PURA INDONESIA';
 
-        // Abaikan nilai lama yang ternyata PIC Commercial AP Indonesia.
-        $namaMitraTtd = $kontrak->nama_penandatangan_mitra;
-        $jabatanMitraTtd = $kontrak->jabatan_penandatangan_mitra;
-
-        if ($namaMitraTtd && $namaMitraTtd === $kerjaSama?->pic_commercial) {
-            $namaMitraTtd = $tenant?->nama_pic;
-        }
-
-        if ($jabatanMitraTtd && $jabatanMitraTtd === $kerjaSama?->jabatan_pic_commercial) {
-            $jabatanMitraTtd = $tenant?->jabatan_pic;
-        }
+        // Penandatangan Mitra mengikuti input pada formulir dokumen kontrak.
+        $namaMitraTtd = $kontrak->nama_penandatangan_mitra ?: '-';
+        $jabatanMitraTtd = $kontrak->jabatan_penandatangan_mitra ?: '-';
 
         $namaMitraTtd = $namaMitraTtd ?: '-';
         $jabatanMitraTtd = $jabatanMitraTtd ?: '-';

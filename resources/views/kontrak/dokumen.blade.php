@@ -52,13 +52,15 @@
             : '-'
     );
 
-    // Nomor Berita Acara Kesepakatan dari data Kerja Sama.
-    $nomorBAK = $kerjaSama?->nomor_bak
-        ?: (
-            $kerjaSama?->nomor_berita_acara
-            ?: '[Nomor BA belum tersedia]'
-        );
-
+    // Nomor Berita Acara Kesepakatan.
+$nomorBAK = old(
+    'nomor_ba_kesepakatan',
+    $kontrak?->data_kerja_sama_snapshot['nomor_ba_kesepakatan']
+        ?? (
+            $kerjaSama?->nomor_bak
+            ?: ($kerjaSama?->nomor_berita_acara ?? '')
+        )
+);
 
     /*
     |--------------------------------------------------------------------------
@@ -2822,7 +2824,7 @@
                 Bahwa PARA PIHAK telah menyepakati pemanfaatan
                 Fasilitas Komersial sebagaimana dituangkan dalam
                 Berita Acara Kesepakatan
-                <strong>{{ $nomorBAK }}</strong>
+                <strong id="previewNomorBAK">{{ $nomorBAK ?: '[Nomor BA belum tersedia]' }}</strong>
                 (Selanjutnya disebut
                 <strong>“Berita Acara Kesepakatan”</strong>)
                 dan dokumen lain (sebagaimana relevan).
@@ -3373,11 +3375,11 @@
                 margin: 0 auto 8px;
             "></div>
 
-            <strong>
+            <strong data-preview-field="nama_penandatangan_mitra">
                 {{ $namaPenandatanganMitra ?: '[Nama Penandatangan]' }}
             </strong>
 
-            <div>
+            <div data-preview-field="jabatan_penandatangan_mitra">
                 {{ $jabatanPenandatanganMitra ?: '[Jabatan]' }}
             </div>
 

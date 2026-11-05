@@ -11,6 +11,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AktivasiController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PendapatanController;
+use App\Http\Controllers\LaporanController;
 
 /*
 |--------------------------------------------------------------------------
@@ -374,14 +375,27 @@ Route::middleware('auth')->group(function () {
     )->name('pendapatan.status-invoice');
 });
 
+
 // ================================
 // LAPORAN
 // ================================
 
-Route::get('/laporan', function () {
-    return view('laporan.index');
-})->middleware('auth')
-    ->name('laporan');
+Route::middleware('auth')->group(function () {
+
+    // Halaman utama Laporan
+    Route::get(
+        '/laporan',
+        [LaporanController::class, 'index']
+    )->name('laporan');
+
+    // Detail Laporan berdasarkan Kerja Sama
+    Route::get(
+        '/laporan/{kerjaSama}',
+        [LaporanController::class, 'show']
+    )->whereNumber('kerjaSama')
+     ->name('laporan.detail');
+
+});
 
 // ================================
 // PROFILE
