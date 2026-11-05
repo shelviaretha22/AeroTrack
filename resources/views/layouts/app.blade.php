@@ -299,33 +299,33 @@
                     </a>
 
                     {{-- LAPORAN --}}
-                    <a
-                        href="#"
-                        class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-[19px] h-[19px] shrink-0"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z"
-                            />
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M8 8h8M8 12h8M8 16h5"
-                            />
-                        </svg>
+<a
+    href="{{ route('laporan') }}"
+    @click="sidebarOpen = false"
+    class="group flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium {{ request()->routeIs('laporan*') ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white' }} transition"
+>
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="w-[19px] h-[19px] shrink-0"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.8"
+    >
+        <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z"
+        />
+        <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M8 8h8M8 12h8M8 16h5"
+        />
+    </svg>
 
-                        <span>Laporan</span>
-                    </a>
-
+    <span>Laporan</span>
+</a>
                 </nav>
 
                 {{-- =================================================

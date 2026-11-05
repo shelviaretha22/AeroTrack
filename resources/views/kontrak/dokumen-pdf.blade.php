@@ -275,13 +275,13 @@
     */
 
     $namaPenandatanganMitra = old(
-        'nama_penandatangan_mitra',
-        $abaikanBilaMilikAp($kontrak?->nama_penandatangan_mitra, $kerjaSama?->pic_commercial) ?: $picMitraNamaDefault
+    'nama_penandatangan_mitra',
+    $kontrak?->nama_penandatangan_mitra ?: $picMitraNamaDefault
     );
 
     $jabatanPenandatanganMitra = old(
         'jabatan_penandatangan_mitra',
-        $abaikanBilaMilikAp($kontrak?->jabatan_penandatangan_mitra, $kerjaSama?->jabatan_pic_commercial) ?: $picMitraJabatanDefault
+        $kontrak?->jabatan_penandatangan_mitra ?: $picMitraJabatanDefault
     );
 
     $alamatMitra = old(
