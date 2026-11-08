@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use App\Models\AktivasiRiwayat;
+use App\Models\AuditLog;
 use App\Models\MasterPerusahaan;
+use App\Rules\AmanDariMalware;
 use App\Services\NotifikasiService;
 use Illuminate\Support\Facades\DB;
 
@@ -107,6 +109,14 @@ class ProfileController extends Controller
             ->where('id', '!=', $request->session()->getId())
             ->delete();
 
+        AuditLog::catat(
+            'Akun',
+            'Sesi perangkat lain dikeluarkan',
+            "{$dihapus} sesi dikeluarkan.",
+            null,
+            'peringatan'
+        );
+
         return back()->with(
             'success',
             $dihapus > 0
@@ -167,7 +177,20 @@ class ProfileController extends Controller
             $user->email_verified_at = null;
         }
 
+        $berubah = $user->getDirty();
+        $asli = $user->getOriginal();
+
         $user->save();
+
+        unset($berubah['email_verified_at']);
+
+        if ($berubah) {
+            AuditLog::catat(
+                'Akun',
+                'Informasi akun diubah',
+                AuditLog::ringkasPerubahan($asli, $berubah)
+            );
+        }
 
         return back()->with(
             'success',
@@ -182,13 +205,16 @@ class ProfileController extends Controller
             'password' => [
                 'required',
                 'confirmed',
-                Password::min(8),
+                Password::defaults(),
+                'different:current_password',
             ],
         ]);
 
         $request->user()->update([
             'password' => Hash::make($validated['password']),
         ]);
+
+        AuditLog::catat('Akun', 'Password diubah', 'Password akun diganti oleh pemilik akun.', null, 'peringatan');
 
         return back()->with(
             'success',
@@ -204,6 +230,7 @@ class ProfileController extends Controller
                 'image',
                 'mimes:jpg,jpeg,png,webp',
                 'max:2048',
+                new AmanDariMalware('Akun'),
             ],
         ]);
 
@@ -211,9 +238,10 @@ class ProfileController extends Controller
 
         $oldPhoto = $user->avatar_path;
 
+        // Disimpan di disk privat; ditampilkan lewat route profile.foto.
         $path = $request->file('avatar')->store(
             'profile-photos',
-            'public'
+            'local'
         );
 
         $user->update([
@@ -221,13 +249,28 @@ class ProfileController extends Controller
         ]);
 
         if ($oldPhoto) {
-            Storage::disk('public')->delete($oldPhoto);
+            Storage::disk('local')->delete($oldPhoto);
+            Storage::disk('public')->delete($oldPhoto); // sisa lama sebelum dipindah ke privat
         }
+
+        AuditLog::catat('Akun', 'Foto profil diganti');
 
         return back()->with(
             'success',
             'Foto profil berhasil diperbarui.'
         );
+    }
+
+    /** Menyajikan foto profil milik sendiri dari disk privat. */
+    public function foto(Request $request)
+    {
+        $path = $request->user()->avatar_path;
+
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return response()->file(Storage::disk('local')->path($path), [
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
     }
 
     // Simpan tema saja (dipanggil langsung saat pilihan Terang/Gelap diklik)
@@ -308,5 +351,34 @@ class ProfileController extends Controller
         return redirect()
             ->route('profile.perusahaan.edit')
             ->with('success', 'Identitas perusahaan berhasil diperbarui.');
+    }
+
+    /**
+     * Halaman log aktivitas akun (accounting): hanya milik pengguna sendiri.
+     */
+    public function logAktivitas(Request $request)
+    {
+        $modul = in_array($request->query('modul'), AuditLog::MODUL, true)
+            ? $request->query('modul')
+            : null;
+        $level = $request->query('level') === 'peringatan' ? 'peringatan' : null;
+
+        $dasar = AuditLog::where('user_id', $request->user()->id);
+
+        $ringkas = [
+            'total' => (clone $dasar)->count(),
+            'peringatan' => (clone $dasar)->where('level', 'peringatan')->count(),
+            'tujuhHari' => (clone $dasar)->where('created_at', '>=', now()->subDays(7))->count(),
+        ];
+
+        $log = (clone $dasar)
+            ->when($modul, fn ($q) => $q->where('modul', $modul))
+            ->when($level, fn ($q) => $q->where('level', $level))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('profile.log-aktivitas', compact('log', 'ringkas', 'modul', 'level'));
     }
 }

@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\AmanDariMalware;
+use App\Services\IntegritasDokumen;
 use App\Models\Aktivasi;
 use App\Models\AktivasiProgres;
 use App\Models\AktivasiRiwayat;
+use App\Models\AuditLog;
 use App\Models\KerjaSama;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -215,6 +218,9 @@ class AktivasiController extends Controller
             'komponen' => $komponen,
             'keterangan' => $keterangan,
         ]);
+
+        // Salinan ke audit log pusat (ikut IP dan perangkat).
+        AuditLog::catat('Aktivasi', 'Perubahan ' . $komponen, $keterangan);
     }
 
     /**
@@ -267,6 +273,7 @@ class AktivasiController extends Controller
                 'nullable',
                 'file',
                 'mimes:png,jpg,jpeg',
+                new AmanDariMalware('Aktivasi'),
                 'max:2048',
             ],
         ], [
@@ -391,6 +398,7 @@ class AktivasiController extends Controller
             );
 
             $aktivasi->surat_pengajuan_path = $pathSurat;
+            $aktivasi->surat_pengajuan_sha256 = IntegritasDokumen::hash($pathSurat);
             $aktivasi->save();
 
             $this->catatRiwayat(
@@ -473,6 +481,7 @@ class AktivasiController extends Controller
                 'required',
                 'file',
                 'mimes:pdf,jpg,jpeg,png',
+                new AmanDariMalware('Aktivasi'),
                 'max:5120',
             ],
             'catatan' => [
@@ -481,7 +490,14 @@ class AktivasiController extends Controller
                 'string',
                 'max:2000',
             ],
+            // Keputusan tidak bisa diubah setelah disimpan, jadi password
+            // diminta ulang untuk memastikan yang menekan tombol adalah pemilik akun.
+            'password_konfirmasi' => ['required', 'current_password'],
         ], [
+            'password_konfirmasi.required' =>
+                'Masukkan password Anda untuk mengonfirmasi keputusan.',
+            'password_konfirmasi.current_password' =>
+                'Password yang dimasukkan tidak sesuai.',
             'catatan.required_if' =>
                 'Catatan / alasan wajib diisi jika pengajuan ditolak.',
             'tanggal_keputusan.required' =>
@@ -520,6 +536,7 @@ class AktivasiController extends Controller
                 $data->status = $validated['status'];
                 $data->tanggal_keputusan = $validated['tanggal_keputusan'];
                 $data->dokumen_path = $pathDokumen;
+                $data->dokumen_sha256 = IntegritasDokumen::hash($pathDokumen);
                 $data->catatan = $validated['catatan'] ?? null;
                 $data->save();
 
@@ -573,11 +590,14 @@ class AktivasiController extends Controller
             404
         );
 
+        $this->pastikanUtuh($aktivasi, 'surat');
+
         return response()->file(
             Storage::disk('local')->path(
                 $aktivasi->surat_pengajuan_path
             ),
             [
+                'X-Content-SHA256' => (string) $aktivasi->surat_pengajuan_sha256,
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="'
                     . $aktivasi->nomor_pengajuan
@@ -597,9 +617,68 @@ class AktivasiController extends Controller
             404
         );
 
+        $this->pastikanUtuh($aktivasi, 'dokumen');
+
         return Storage::disk('local')->download(
-            $aktivasi->dokumen_path
+            $aktivasi->dokumen_path,
+            null,
+            ['X-Content-SHA256' => (string) $aktivasi->dokumen_sha256]
         );
+    }
+
+    /**
+     * Status keutuhan dokumen (JSON) untuk satu pengajuan.
+     */
+    public function integritas(Aktivasi $aktivasi)
+    {
+        $ringkas = fn (?string $path, ?string $hash) => IntegritasDokumen::periksa($path, $hash);
+
+        return response()->json([
+            'nomor_pengajuan'   => $aktivasi->nomor_pengajuan,
+            'algoritma'         => 'SHA-256',
+            'surat_pengajuan'   => $ringkas($aktivasi->surat_pengajuan_path, $aktivasi->surat_pengajuan_sha256),
+            'dokumen_keputusan' => $ringkas($aktivasi->dokumen_path, $aktivasi->dokumen_sha256),
+        ]);
+    }
+
+    /**
+     * Cek hash dokumen sebelum dibuka. Jika isi file berbeda dari saat
+     * disimpan, akses ditolak dan kejadian dicatat sebagai peringatan.
+     * Dokumen lama tanpa hash dicatat hash-nya saat pertama dibuka.
+     */
+    private function pastikanUtuh(Aktivasi $aktivasi, string $jenis): void
+    {
+        [$kolomPath, $kolomHash, $label] = $jenis === 'surat'
+            ? ['surat_pengajuan_path', 'surat_pengajuan_sha256', 'Surat pengajuan']
+            : ['dokumen_path', 'dokumen_sha256', 'Dokumen keputusan'];
+
+        $hasil = IntegritasDokumen::periksa($aktivasi->{$kolomPath}, $aktivasi->{$kolomHash});
+
+        if ($hasil['status'] === 'belum-tercatat') {
+            Aktivasi::whereKey($aktivasi->id)->update([$kolomHash => $hasil['dihitung']]);
+            $aktivasi->{$kolomHash} = $hasil['dihitung'];
+
+            AuditLog::catat(
+                'Aktivasi',
+                'Hash dokumen dicatat',
+                "{$label} {$aktivasi->nomor_pengajuan}: hash awal dicatat (dokumen lama).",
+                $aktivasi
+            );
+
+            return;
+        }
+
+        if ($hasil['status'] === 'berubah') {
+            AuditLog::catat(
+                'Aktivasi',
+                'Integritas dokumen gagal',
+                "{$label} {$aktivasi->nomor_pengajuan}: hash SHA-256 tidak cocok dengan yang tersimpan.",
+                $aktivasi,
+                'peringatan'
+            );
+
+            abort(409, 'Dokumen tidak dapat dibuka karena isinya berbeda dari saat disimpan (pemeriksaan integritas gagal).');
+        }
     }
 
     private function ttdDataUri(Aktivasi $aktivasi): ?string

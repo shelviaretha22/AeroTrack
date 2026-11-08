@@ -567,6 +567,18 @@
                             placeholder="Wajib diisi jika ditolak..."
                             class="{{ $inputClass }}"></textarea>
                     </div>
+
+                    <div>
+                        <label for="password-konfirmasi" class="mb-2 block text-sm font-semibold text-gray-700">Konfirmasi dengan password Anda</label>
+                        <input id="password-konfirmasi" type="password" name="password_konfirmasi"
+                            autocomplete="current-password" required
+                            placeholder="Password akun yang sedang login"
+                            class="{{ $inputClass }}">
+                        <p class="mt-1 text-xs text-gray-500">Diminta karena keputusan tidak dapat diedit setelah disimpan.</p>
+                        @error('password_konfirmasi')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
 
                 <div class="flex flex-col-reverse gap-3 border-t border-gray-100 p-5 sm:flex-row sm:justify-end sm:p-6">
@@ -578,6 +590,15 @@
                 </div>
             </form>
         </dialog>
+
+        @if ($errors->has('password_konfirmasi'))
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var modal = document.getElementById('keputusan-modal');
+                    if (modal && typeof modal.showModal === 'function') { modal.showModal(); }
+                });
+            </script>
+        @endif
     @endif
 
 </div>

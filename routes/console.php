@@ -13,3 +13,9 @@ Artisan::command('inspire', function () {
 Schedule::command('notifikasi:kirim-ringkasan')
     ->dailyAt('07:00')
     ->timezone('Asia/Jakarta');
+
+// ETL ringkasan Lokasi (okupansi) dan Aktivasi untuk laporan.
+// Butuh scheduler berjalan, sama seperti ringkasan notifikasi di atas.
+Schedule::command('etl:lokasi-aktivasi --pemicu=jadwal')
+    ->dailyAt('01:00')
+    ->timezone('Asia/Jakarta');

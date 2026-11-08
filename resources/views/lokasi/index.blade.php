@@ -41,13 +41,23 @@
             </p>
         </div>
 
-        <a href="{{ route('lokasi.create') }}"
-           class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#365F65] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#294F55]">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-                <path d="M12 5v14M5 12h14"/>
-            </svg>
-            Tambah Lokasi
-        </a>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('lokasi.whatif') }}"
+               class="inline-flex items-center justify-center rounded-xl border border-[#DCE6E4] bg-white px-4 py-3 text-sm font-semibold text-[#365F65] shadow-sm transition hover:bg-[#F3F6F5]">
+                Analisis What-if
+            </a>
+            <a href="{{ route('lokasi.laporan') }}"
+               class="inline-flex items-center justify-center rounded-xl border border-[#DCE6E4] bg-white px-4 py-3 text-sm font-semibold text-[#365F65] shadow-sm transition hover:bg-[#F3F6F5]">
+                Laporan Lokasi &amp; Aktivasi
+            </a>
+            <a href="{{ route('lokasi.create') }}"
+               class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#365F65] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#294F55]">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Tambah Lokasi
+            </a>
+        </div>
     </div>
 
     {{-- Notifikasi --}}
@@ -164,6 +174,10 @@
                             :aria-selected="tab === 'denah'"
                             :class="tab === 'denah' ? 'bg-white text-[#365F65] shadow-sm' : 'text-[#7A9290] hover:text-[#365F65]'"
                             class="rounded-lg px-3.5 py-1.5 transition">Denah Okupansi</button>
+                    <button type="button" role="tab" @click="tab = 'drilldown'"
+                            :aria-selected="tab === 'drilldown'"
+                            :class="tab === 'drilldown' ? 'bg-white text-[#365F65] shadow-sm' : 'text-[#7A9290] hover:text-[#365F65]'"
+                            class="rounded-lg px-3.5 py-1.5 transition">Drilldown</button>
                 </div>
 
                 <button type="button" @click="buka = !buka" :aria-expanded="buka" aria-label="Buka atau tutup analisis"
@@ -436,6 +450,142 @@
                 @empty
                     <p class="rounded-xl bg-[#F8FAF9] px-4 py-10 text-center text-sm text-[#7A9290]">Belum ada ruangan untuk digambarkan.</p>
                 @endforelse
+            </div>
+
+            {{-- ===== TAB DRILLDOWN ===== --}}
+            <div x-show="tab === 'drilldown'" style="display: none;" class="space-y-5"
+                 x-data="lokasiDrilldown('{{ route('lokasi.drilldown') }}')"
+                 x-effect="if (tab === 'drilldown' && !dimuat) muat()">
+
+                <p class="text-sm text-[#7A9290]">
+                    Klik baris untuk melihat rincian satu tingkat di bawahnya:
+                    Terminal → Lantai → Jenis Ruangan → Ruangan. Angka dihitung langsung dari data lokasi.
+                </p>
+
+                {{-- Jejak (breadcrumb) --}}
+                <nav class="flex flex-wrap items-center gap-1.5 text-sm" aria-label="Jejak drilldown">
+                    <button type="button" @click="naik(0)"
+                            class="rounded-lg px-2.5 py-1 font-semibold transition"
+                            :class="jalur.length === 0 ? 'bg-[#365F65] text-white' : 'bg-[#F3F6F5] text-[#527D82] hover:bg-[#E2EBE9]'">
+                        Semua Terminal
+                    </button>
+                    <template x-for="(j, i) in jalur" :key="i">
+                        <span class="flex items-center gap-1.5">
+                            <span class="text-[#8BA5A2]">›</span>
+                            <button type="button" @click="naik(i + 1)"
+                                    class="rounded-lg px-2.5 py-1 font-semibold transition"
+                                    :class="i === jalur.length - 1 ? 'bg-[#365F65] text-white' : 'bg-[#F3F6F5] text-[#527D82] hover:bg-[#E2EBE9]'"
+                                    x-text="j.label"></button>
+                        </span>
+                    </template>
+                    <button type="button" x-show="jalur.length > 0" @click="naik(jalur.length - 1)"
+                            class="ml-auto text-xs font-semibold text-[#527D82] hover:underline">← Naik satu tingkat</button>
+                </nav>
+
+                <p x-show="galat" x-text="galat" class="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+                <p x-show="memuat" class="text-sm text-[#7A9290]">Memuat data…</p>
+
+                <template x-if="data && !galat">
+                    <div class="space-y-4" :class="memuat ? 'opacity-60' : ''">
+
+                        {{-- Ringkasan level ini --}}
+                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            <div class="rounded-xl border border-[#E2EBE9] p-4">
+                                <p class="text-xs text-[#8BA5A2]">Total ruangan</p>
+                                <p class="mt-1 text-xl font-bold text-[#365F65]" x-text="data.ringkasan.total"></p>
+                            </div>
+                            <div class="rounded-xl border border-[#E2EBE9] p-4">
+                                <p class="text-xs text-[#8BA5A2]">Terisi</p>
+                                <p class="mt-1 text-xl font-bold text-[#A47720]" x-text="data.ringkasan.terisi"></p>
+                            </div>
+                            <div class="rounded-xl border border-[#E2EBE9] p-4">
+                                <p class="text-xs text-[#8BA5A2]">Kosong</p>
+                                <p class="mt-1 text-xl font-bold text-[#31966A]" x-text="data.ringkasan.kosong"></p>
+                            </div>
+                            <div class="rounded-xl border border-[#E2EBE9] p-4">
+                                <p class="text-xs text-[#8BA5A2]">Okupansi</p>
+                                <p class="mt-1 text-xl font-bold text-[#365F65]" x-text="data.ringkasan.okupansi + '%'"></p>
+                            </div>
+                        </div>
+
+                        {{-- Level agregat: klik baris untuk turun --}}
+                        <div x-show="data.kunci !== 'ruangan'" class="overflow-hidden rounded-xl border border-[#E2EBE9]">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="bg-[#F3F6F5] text-xs font-semibold uppercase tracking-wide text-[#527D82]">
+                                    <tr>
+                                        <th class="px-4 py-3" x-text="data.judul"></th>
+                                        <th class="px-4 py-3 text-right">Total</th>
+                                        <th class="px-4 py-3 text-right">Terisi</th>
+                                        <th class="px-4 py-3 text-right">Kosong</th>
+                                        <th class="px-4 py-3">Okupansi</th>
+                                        <th class="px-4 py-3 text-right">Luas terisi / total (m²)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#E2EBE9]">
+                                    <template x-for="r in data.items" :key="r.nilai">
+                                        <tr class="cursor-pointer transition hover:bg-[#F8FAF9]" @click="turun(r)">
+                                            <td class="px-4 py-3">
+                                                <button type="button" class="font-semibold text-[#365F65] hover:underline"
+                                                        x-text="(data.kunci === 'lantai' ? 'Lantai ' : (data.kunci === 'terminal' ? 'Terminal ' : '')) + r.nama"></button>
+                                            </td>
+                                            <td class="px-4 py-3 text-right text-[#365F65]" x-text="r.total"></td>
+                                            <td class="px-4 py-3 text-right text-[#A47720]" x-text="r.terisi"></td>
+                                            <td class="px-4 py-3 text-right text-[#31966A]" x-text="r.kosong"></td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="h-2 w-28 overflow-hidden rounded-full bg-[#E2EBE9]">
+                                                        <div class="h-full rounded-full bg-[#D6A14D]" :style="'width:' + r.okupansi + '%'"></div>
+                                                    </div>
+                                                    <span class="text-xs text-[#7A9290]" x-text="r.okupansi + '%'"></span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-right text-[#7A9290]"
+                                                x-text="fmt(r.luas_terisi) + ' / ' + fmt(r.luas)"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="data.items.length === 0">
+                                        <td colspan="6" class="px-4 py-8 text-center text-[#7A9290]">Tidak ada data pada tingkat ini.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {{-- Level akhir: daftar ruangan --}}
+                        <div x-show="data.kunci === 'ruangan'" class="overflow-hidden rounded-xl border border-[#E2EBE9]">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="bg-[#F3F6F5] text-xs font-semibold uppercase tracking-wide text-[#527D82]">
+                                    <tr>
+                                        <th class="px-4 py-3">Kode ruang</th>
+                                        <th class="px-4 py-3">Lokasi</th>
+                                        <th class="px-4 py-3">Status</th>
+                                        <th class="px-4 py-3">Tenant</th>
+                                        <th class="px-4 py-3 text-right">Luas (m²)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#E2EBE9]">
+                                    <template x-for="r in data.rooms" :key="r.id">
+                                        <tr class="transition hover:bg-[#F8FAF9]">
+                                            <td class="px-4 py-3">
+                                                <a :href="r.url" class="font-semibold text-[#527D82] hover:underline" x-text="r.kode"></a>
+                                            </td>
+                                            <td class="px-4 py-3 text-[#365F65]" x-text="r.lokasi"></td>
+                                            <td class="px-4 py-3">
+                                                <span class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                                                      :class="r.status === 'Terisi' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-50 text-emerald-700'"
+                                                      x-text="r.status"></span>
+                                            </td>
+                                            <td class="px-4 py-3 text-[#7A9290]" x-text="r.tenant || '-'"></td>
+                                            <td class="px-4 py-3 text-right text-[#7A9290]" x-text="r.luas === null ? '-' : fmt(r.luas)"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="data.rooms.length === 0">
+                                        <td colspan="5" class="px-4 py-8 text-center text-[#7A9290]">Tidak ada ruangan.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
     </section>
@@ -786,4 +936,55 @@
         @endif
     </section>
 </div>
+
+<script>
+    // Komponen drilldown Lokasi: setiap klik meminta data tingkat berikutnya ke server.
+    function lokasiDrilldown(url) {
+        return {
+            dimuat: false,
+            memuat: false,
+            galat: '',
+            data: null,
+            jalur: [], // [{kunci, nilai, label}]
+
+            async muat() {
+                this.dimuat = true;
+                this.memuat = true;
+                this.galat = '';
+
+                const q = new URLSearchParams();
+                this.jalur.forEach(j => q.set(j.kunci, j.nilai));
+
+                try {
+                    const r = await fetch(url + '?' + q.toString(), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin',
+                    });
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    this.data = await r.json();
+                } catch (e) {
+                    this.galat = 'Data drilldown gagal dimuat. Muat ulang halaman atau coba lagi.';
+                } finally {
+                    this.memuat = false;
+                }
+            },
+
+            turun(item) {
+                if (!this.data || this.data.kunci === 'ruangan') return;
+                const awalan = this.data.kunci === 'lantai' ? 'Lantai ' : (this.data.kunci === 'terminal' ? 'Terminal ' : '');
+                this.jalur.push({ kunci: this.data.kunci, nilai: item.nilai, label: awalan + item.nama });
+                this.muat();
+            },
+
+            naik(jumlah) {
+                this.jalur = this.jalur.slice(0, jumlah);
+                this.muat();
+            },
+
+            fmt(n) {
+                return Number(n).toLocaleString('id-ID', { maximumFractionDigits: 2 });
+            },
+        };
+    }
+</script>
 @endsection

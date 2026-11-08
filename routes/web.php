@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LokasiController;
+use App\Http\Controllers\LokasiAnalisisController;
 use App\Http\Controllers\KontrakController;
 use App\Http\Controllers\KerjaSamaController;
 use App\Http\Controllers\ProfileController;
@@ -36,6 +37,22 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // TENANT
 Route::resource('/tenant', TenantController::class)
     ->middleware('auth');
+
+// LOKASI - data drilldown okupansi (harus sebelum resource agar tidak
+// dianggap sebagai /lokasi/{lokasi})
+Route::get('/lokasi/drilldown', [LokasiController::class, 'drilldown'])
+    ->middleware('auth')
+    ->name('lokasi.drilldown');
+
+// LOKASI - analisis what-if dan laporan Lokasi + Aktivasi (hasil ETL).
+// Harus sebelum resource agar tidak dianggap sebagai /lokasi/{lokasi}.
+Route::middleware('auth')->prefix('lokasi')->name('lokasi.')->group(function () {
+    Route::get('/whatif', [LokasiAnalisisController::class, 'whatif'])->name('whatif');
+    Route::get('/laporan', [LokasiAnalisisController::class, 'laporan'])->name('laporan');
+    Route::get('/laporan/pdf', [LokasiAnalisisController::class, 'laporanPdf'])->name('laporan.pdf');
+    Route::get('/laporan/excel', [LokasiAnalisisController::class, 'laporanExcel'])->name('laporan.excel');
+    Route::post('/laporan/etl', [LokasiAnalisisController::class, 'jalankanEtl'])->name('laporan.etl');
+});
 
 // LOKASI
 Route::resource('/lokasi', LokasiController::class)
@@ -355,6 +372,12 @@ Route::middleware('auth')->group(function () {
         [AktivasiController::class, 'lihatDokumenKeputusan']
     )->name('aktivasi.dokumen-keputusan');
 
+    // Status keutuhan dokumen (hash SHA-256), format JSON
+    Route::get(
+        '/aktivasi/{aktivasi}/integritas',
+        [AktivasiController::class, 'integritas']
+    )->name('aktivasi.integritas');
+
 });
 
 // ================================
@@ -423,6 +446,16 @@ Route::middleware('auth')->group(function () {
         '/profile/photo',
         [ProfileController::class, 'updatePhoto']
     )->name('profile.photo.update');
+
+    // Foto profil disajikan dari disk privat (hanya milik akun yang login).
+    Route::get('/profile/foto', [ProfileController::class, 'foto'])
+        ->name('profile.foto');
+
+    // Log aktivitas akun (audit log)
+    Route::get(
+        '/profile/log-aktivitas',
+        [ProfileController::class, 'logAktivitas']
+    )->name('profile.log');
 
     Route::patch(
         '/profile/preferences',

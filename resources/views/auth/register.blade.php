@@ -16,6 +16,15 @@
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
+        @if (config('auth.registrasi_kode'))
+            <!-- Kode undangan -->
+            <div class="mt-4">
+                <x-input-label for="kode_undangan" value="Kode Undangan" />
+                <x-text-input id="kode_undangan" class="block mt-1 w-full" type="text" name="kode_undangan" required autocomplete="off" />
+                <x-input-error :messages="$errors->get('kode_undangan')" class="mt-2" />
+            </div>
+        @endif
+
         <!-- Password -->
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />

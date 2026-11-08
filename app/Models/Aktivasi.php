@@ -22,11 +22,15 @@ class Aktivasi extends Model
         'ttd_type',
         'nama_penandatangan',
         'jabatan_penandatangan',
+        'surat_pengajuan_sha256',
+        'dokumen_sha256',
     ];
 
     protected $casts = [
         'tanggal_pengajuan' => 'date',
         'tanggal_keputusan' => 'date',
+        // Catatan keputusan disimpan terenkripsi.
+        'catatan' => 'encrypted',
     ];
 
     public function kerjaSama(): BelongsTo

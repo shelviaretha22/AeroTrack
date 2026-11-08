@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
 use App\Models\KerjaSama;
 use App\Models\Lokasi;
 use App\Models\NotifikasiDibaca;
@@ -48,6 +49,11 @@ class NotifikasiService
             'deskripsi' => 'Lokasi yang kosong lebih dari 90 hari sejak terakhir diperbarui.',
             'kategori' => 'info',
         ],
+        'login_baru' => [
+            'label' => 'Login dari IP baru',
+            'deskripsi' => 'Akun Anda dipakai login dari alamat IP yang belum pernah dipakai, dalam 7 hari terakhir.',
+            'kategori' => 'tindakan',
+        ],
     ];
 
     public const HARI_KONTRAK = 90;
@@ -68,7 +74,9 @@ class NotifikasiService
     {
         $preferensi = $user->preferensiNotifikasi();
 
+        // Notifikasi umum (sama untuk semua user) + notifikasi khusus akun ini.
         $items = $this->semua()
+            ->concat($this->loginBaru($user))
             ->filter(fn ($i) => $preferensi[$i['jenis']] ?? true)
             ->take(500)
             ->values();
@@ -89,6 +97,31 @@ class NotifikasiService
                 -strtotime($i['waktu']),
             ])
             ->values();
+    }
+
+    /**
+     * Peringatan login dari IP baru (diambil dari audit log) untuk satu user.
+     * Tidak ikut cache umum karena hanya relevan bagi pemilik akun.
+     */
+    private function loginBaru(User $user): Collection
+    {
+        return AuditLog::where('user_id', $user->id)
+            ->where('aksi', 'Login dari IP baru')
+            ->where('created_at', '>=', now()->subDays(7))
+            ->latest('created_at')
+            ->limit(10)
+            ->get()
+            ->map(fn (AuditLog $log) => [
+                'kunci' => 'login-baru:' . $log->id,
+                'jenis' => 'login_baru',
+                'level' => 'penting',
+                'judul' => 'Login dari IP baru terdeteksi',
+                'pesan' => 'IP ' . ($log->ip_address ?: '-') . ' pada '
+                    . $log->created_at->format('d M Y H:i')
+                    . '. Jika bukan Anda, segera ganti password.',
+                'url' => route('profile.log'),
+                'waktu' => $log->created_at->toDateTimeString(),
+            ]);
     }
 
     /** Untuk dropdown lonceng di header. */
