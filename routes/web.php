@@ -10,6 +10,7 @@ use App\Http\Controllers\KontrakController;
 use App\Http\Controllers\KerjaSamaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AktivasiController;
+use App\Http\Controllers\AktivasiAnalisisController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PendapatanController;
 use App\Http\Controllers\LaporanController;
@@ -333,6 +334,12 @@ Route::middleware('auth')->group(function () {
         '/aktivasi',
         [AktivasiController::class, 'index']
     )->name('aktivasi');
+
+    // Analisis Aktivasi (SIE): drilldown dan what-if, data JSON
+    Route::get('/aktivasi/drilldown', [AktivasiAnalisisController::class, 'drilldown'])
+        ->name('aktivasi.drilldown');
+    Route::get('/aktivasi/whatif', [AktivasiAnalisisController::class, 'whatif'])
+        ->name('aktivasi.whatif');
 
     // Halaman Detail Aktivasi
     Route::get(

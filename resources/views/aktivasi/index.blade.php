@@ -336,6 +336,341 @@
         </div>
     </section>
 
+    {{-- Analisis Aktivasi (SIE): drilldown dan what-if --}}
+    <section x-data="{ buka: true, tab: 'drilldown' }" class="rounded-2xl border border-[#E2EBE9] bg-white shadow-sm">
+        <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="font-bold text-[#365F65]">Analisis Aktivasi</h2>
+                <p class="mt-0.5 text-sm text-[#7A9290]">Telusuri rincian per status dan terminal, atau simulasikan berapa kontrak yang aktif jika pengajuan diselesaikan.</p>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <div x-show="buka" class="inline-flex rounded-xl bg-[#F3F6F5] p-1 text-sm font-semibold" role="tablist">
+                    <button type="button" role="tab" @click="tab = 'drilldown'"
+                            :aria-selected="tab === 'drilldown'"
+                            :class="tab === 'drilldown' ? 'bg-white text-[#365F65] shadow-sm' : 'text-[#7A9290] hover:text-[#365F65]'"
+                            class="rounded-lg px-3.5 py-1.5 transition">Drilldown</button>
+                    <button type="button" role="tab" @click="tab = 'whatif'"
+                            :aria-selected="tab === 'whatif'"
+                            :class="tab === 'whatif' ? 'bg-white text-[#365F65] shadow-sm' : 'text-[#7A9290] hover:text-[#365F65]'"
+                            class="rounded-lg px-3.5 py-1.5 transition">What-if</button>
+                </div>
+
+                <button type="button" @click="buka = !buka" :aria-expanded="buka" aria-label="Buka atau tutup analisis"
+                        class="flex h-9 w-9 items-center justify-center rounded-xl text-[#527D82] transition hover:bg-[#F3F6F5]">
+                    <svg class="h-5 w-5 transition" :class="buka ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div x-show="buka" x-transition class="border-t border-[#E2EBE9] p-5 sm:p-6">
+
+            {{-- ===== TAB DRILLDOWN ===== --}}
+            <div x-show="tab === 'drilldown'" class="space-y-5"
+                 x-data="aktivasiDrilldown('{{ route('aktivasi.drilldown') }}')"
+                 x-effect="if (tab === 'drilldown' && !dimuat) muat()">
+
+                <p class="text-sm text-[#7A9290]">
+                    Klik baris untuk turun satu tingkat: Status → Terminal → Kerja Sama → Riwayat.
+                    Angka dihitung langsung dari data kerja sama dan aktivasi.
+                </p>
+
+                <nav class="flex flex-wrap items-center gap-1.5 text-sm" aria-label="Jejak drilldown">
+                    <button type="button" @click="naik(0)"
+                            class="rounded-lg px-2.5 py-1 font-semibold transition"
+                            :class="jalur.length === 0 ? 'bg-[#365F65] text-white' : 'bg-[#F3F6F5] text-[#527D82] hover:bg-[#E2EBE9]'">
+                        Semua Status
+                    </button>
+                    <template x-for="(j, i) in jalur" :key="i">
+                        <span class="flex items-center gap-1.5">
+                            <span class="text-[#8BA5A2]">›</span>
+                            <button type="button" @click="naik(i + 1)"
+                                    class="rounded-lg px-2.5 py-1 font-semibold transition"
+                                    :class="i === jalur.length - 1 ? 'bg-[#365F65] text-white' : 'bg-[#F3F6F5] text-[#527D82] hover:bg-[#E2EBE9]'"
+                                    x-text="j.label"></button>
+                        </span>
+                    </template>
+                    <button type="button" x-show="jalur.length > 0" @click="naik(jalur.length - 1)"
+                            class="ml-auto text-xs font-semibold text-[#527D82] hover:underline">← Naik satu tingkat</button>
+                </nav>
+
+                <p x-show="galat" x-text="galat" class="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+                <p x-show="memuat" class="text-sm text-[#7A9290]">Memuat data…</p>
+
+                <template x-if="data && !galat">
+                    <div class="space-y-4" :class="memuat ? 'opacity-60' : ''">
+
+                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3" x-show="data.kunci !== 'riwayat'">
+                            <div class="rounded-xl border border-[#E2EBE9] p-4">
+                                <p class="text-xs text-[#8BA5A2]">Kerja sama</p>
+                                <p class="mt-1 text-xl font-bold text-[#365F65]" x-text="data.ringkasan.total"></p>
+                            </div>
+                            <div class="rounded-xl border border-[#E2EBE9] p-4">
+                                <p class="text-xs text-[#8BA5A2]">Kontrak sistem aktif</p>
+                                <p class="mt-1 text-xl font-bold text-[#31966A]" x-text="data.ringkasan.aktif"></p>
+                            </div>
+                            <div class="rounded-xl border border-[#E2EBE9] p-4">
+                                <p class="text-xs text-[#8BA5A2]">Rata-rata umur pengajuan</p>
+                                <p class="mt-1 text-xl font-bold text-[#365F65]" x-text="data.ringkasan.rata_hari === null ? '-' : data.ringkasan.rata_hari + ' hari'"></p>
+                            </div>
+                        </div>
+
+                        {{-- Level kelompok (status / terminal) --}}
+                        <div x-show="data.kunci === 'status' || data.kunci === 'terminal'" class="overflow-hidden rounded-xl border border-[#E2EBE9]">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="bg-[#F3F6F5] text-xs font-semibold uppercase tracking-wide text-[#527D82]">
+                                    <tr>
+                                        <th class="px-4 py-3" x-text="data.judul"></th>
+                                        <th class="px-4 py-3 text-right">Jumlah</th>
+                                        <th class="px-4 py-3">Porsi</th>
+                                        <th class="px-4 py-3 text-right">Sistem aktif</th>
+                                        <th class="px-4 py-3 text-right">Rata-rata umur (hari)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#E2EBE9]">
+                                    <template x-for="r in data.items" :key="r.nilai">
+                                        <tr class="transition" :class="r.total > 0 ? 'cursor-pointer hover:bg-[#F8FAF9]' : 'opacity-50'"
+                                            @click="r.total > 0 && turun(r)">
+                                            <td class="px-4 py-3">
+                                                <button type="button" class="font-semibold text-[#365F65]" :class="r.total > 0 ? 'hover:underline' : ''"
+                                                        x-text="(data.kunci === 'terminal' && r.nama !== 'Belum ada lokasi' ? 'Terminal ' : '') + r.nama"></button>
+                                            </td>
+                                            <td class="px-4 py-3 text-right font-semibold text-[#365F65]" x-text="r.total"></td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="h-2 w-28 overflow-hidden rounded-full bg-[#E2EBE9]">
+                                                        <div class="h-full rounded-full bg-[#527D82]" :style="'width:' + r.persen + '%'"></div>
+                                                    </div>
+                                                    <span class="text-xs text-[#7A9290]" x-text="r.persen + '%'"></span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-right text-[#31966A]" x-text="r.aktif"></td>
+                                            <td class="px-4 py-3 text-right text-[#7A9290]" x-text="r.rata_hari === null ? '-' : r.rata_hari"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="data.items.length === 0">
+                                        <td colspan="5" class="px-4 py-8 text-center text-[#7A9290]">Tidak ada data pada tingkat ini.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {{-- Level daftar kerja sama --}}
+                        <div x-show="data.kunci === 'kerja_sama'" class="overflow-hidden rounded-xl border border-[#E2EBE9]">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="bg-[#F3F6F5] text-xs font-semibold uppercase tracking-wide text-[#527D82]">
+                                    <tr>
+                                        <th class="px-4 py-3">Mitra / Brand</th>
+                                        <th class="px-4 py-3">No. pengajuan</th>
+                                        <th class="px-4 py-3">Tgl pengajuan</th>
+                                        <th class="px-4 py-3 text-right">Umur (hari)</th>
+                                        <th class="px-4 py-3">Kontrak fisik</th>
+                                        <th class="px-4 py-3">Sistem</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#E2EBE9]">
+                                    <template x-for="r in data.daftar" :key="r.id">
+                                        <tr class="cursor-pointer transition hover:bg-[#F8FAF9]" @click="turun({ nilai: r.id, nama: r.mitra })">
+                                            <td class="px-4 py-3">
+                                                <span class="font-semibold text-[#365F65]" x-text="r.mitra"></span>
+                                                <span class="block text-xs text-[#8BA5A2]" x-text="r.brand || '-'"></span>
+                                            </td>
+                                            <td class="px-4 py-3 text-[#7A9290]" x-text="r.nomor || '-'"></td>
+                                            <td class="px-4 py-3 text-[#7A9290]" x-text="r.tanggal || '-'"></td>
+                                            <td class="px-4 py-3 text-right text-[#365F65]" x-text="r.umur_hari === null ? '-' : r.umur_hari"></td>
+                                            <td class="px-4 py-3 text-[#7A9290]" x-text="r.fisik"></td>
+                                            <td class="px-4 py-3">
+                                                <span class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                                                      :class="r.sistem === 'Aktif' ? 'bg-emerald-50 text-emerald-700' : 'bg-[#F3F6F5] text-[#7A9290]'"
+                                                      x-text="r.sistem"></span>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="data.daftar.length === 0">
+                                        <td colspan="6" class="px-4 py-8 text-center text-[#7A9290]">Tidak ada kerja sama.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {{-- Level akhir: riwayat --}}
+                        <div x-show="data.kunci === 'riwayat'" class="space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#F3F6F5] px-4 py-3">
+                                <div class="text-sm">
+                                    <p class="font-bold text-[#365F65]" x-text="data.ks ? data.ks.mitra + (data.ks.brand ? ' · ' + data.ks.brand : '') : ''"></p>
+                                    <p class="text-[#7A9290]" x-text="data.ks ? 'Status aktivasi: ' + data.ks.status + ' · Kontrak sistem: ' + data.ks.sistem : ''"></p>
+                                </div>
+                                <a :href="data.ks ? data.ks.url : '#'" class="rounded-xl bg-[#365F65] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">Buka detail aktivasi</a>
+                            </div>
+                            <div class="overflow-hidden rounded-xl border border-[#E2EBE9]">
+                                <table class="min-w-full text-left text-sm">
+                                    <thead class="bg-[#F3F6F5] text-xs font-semibold uppercase tracking-wide text-[#527D82]">
+                                        <tr>
+                                            <th class="px-4 py-3">Waktu</th>
+                                            <th class="px-4 py-3">Komponen</th>
+                                            <th class="px-4 py-3">Keterangan</th>
+                                            <th class="px-4 py-3">Oleh</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-[#E2EBE9]">
+                                        <template x-for="(r, i) in data.riwayat" :key="i">
+                                            <tr class="align-top">
+                                                <td class="whitespace-nowrap px-4 py-3 text-[#365F65]" x-text="r.waktu"></td>
+                                                <td class="px-4 py-3 font-semibold text-[#365F65]" x-text="r.komponen"></td>
+                                                <td class="px-4 py-3 text-[#7A9290]" x-text="r.keterangan || '-'"></td>
+                                                <td class="px-4 py-3 text-[#7A9290]" x-text="r.oleh"></td>
+                                            </tr>
+                                        </template>
+                                        <tr x-show="data.riwayat.length === 0">
+                                            <td colspan="4" class="px-4 py-8 text-center text-[#7A9290]">Belum ada riwayat perubahan.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            {{-- ===== TAB WHAT-IF ===== --}}
+            <div x-show="tab === 'whatif'" style="display: none;" class="space-y-5"
+                 x-data="aktivasiWhatIf('{{ route('aktivasi.whatif') }}')"
+                 x-effect="if (tab === 'whatif' && !dimuat) muat()">
+
+                <p class="text-sm text-[#7A9290]">
+                    Simulasi pengandaian: <strong class="text-[#365F65]">kalau sebagian pengajuan disetujui</strong>, berapa kontrak
+                    sistem yang aktif dan berapa potensi pendapatannya? Geser kontrol dan hasil dihitung ulang. Data tidak diubah.
+                </p>
+
+                <div class="grid grid-cols-1 gap-4 rounded-xl border border-[#E2EBE9] p-4 md:grid-cols-3">
+                    <div>
+                        <label for="wa-menunggu" class="block text-xs font-semibold text-[#527D82]">
+                            "Menunggu Keputusan" yang disetujui:
+                            <span class="text-[#365F65]" x-text="setuju_menunggu + '%'"></span>
+                        </label>
+                        <input id="wa-menunggu" type="range" min="0" max="100" step="5" x-model.number="setuju_menunggu" @input="tunda()"
+                               class="mt-3 w-full accent-[#365F65]">
+                    </div>
+                    <div>
+                        <label for="wa-belum" class="block text-xs font-semibold text-[#527D82]">
+                            "Belum Diajukan" yang diajukan dan disetujui:
+                            <span class="text-[#365F65]" x-text="ajukan_belum + '%'"></span>
+                        </label>
+                        <input id="wa-belum" type="range" min="0" max="100" step="5" x-model.number="ajukan_belum" @input="tunda()"
+                               class="mt-3 w-full accent-[#365F65]">
+                    </div>
+                    <div>
+                        <label for="wa-sla" class="block text-xs font-semibold text-[#527D82]">Batas waktu keputusan (hari)</label>
+                        <input id="wa-sla" type="number" min="1" max="365" x-model.number="sla" @input="tunda()"
+                               class="mt-1 w-full rounded-xl border-[#E2EBE9] text-sm">
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <button type="button" @click="reset()" class="text-xs font-semibold text-[#527D82] hover:underline">Reset ke bawaan</button>
+                    <span x-show="memuat" class="text-xs text-[#7A9290]">Menghitung…</span>
+                </div>
+
+                <p x-show="galat" x-text="galat" class="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+
+                <template x-if="hasil && !galat">
+                    <div class="space-y-4" :class="memuat ? 'opacity-60' : ''">
+                        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                            <div class="rounded-xl border border-[#E2EBE9] p-5">
+                                <h3 class="font-bold text-[#365F65]">Kondisi sekarang</h3>
+                                <dl class="mt-3 space-y-3 text-sm">
+                                    <div>
+                                        <div class="flex justify-between"><dt class="text-[#7A9290]">Kontrak sistem aktif</dt>
+                                            <dd class="font-bold text-[#365F65]" x-text="hasil.sekarang.aktif + ' / ' + hasil.sekarang.total + ' (' + hasil.sekarang.tingkat + '%)'"></dd></div>
+                                        <div class="mt-1 h-2 overflow-hidden rounded-full bg-[#E2EBE9]">
+                                            <div class="h-full rounded-full bg-[#527D82]" :style="'width:' + hasil.sekarang.tingkat + '%'"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between"><dt class="text-[#7A9290]">Menunggu keputusan pusat</dt>
+                                        <dd class="font-semibold text-[#365F65]" x-text="hasil.sekarang.menunggu_keputusan"></dd></div>
+                                    <div class="flex justify-between"><dt class="text-[#7A9290]">Belum diajukan (BA siap)</dt>
+                                        <dd class="font-semibold text-[#365F65]" x-text="hasil.sekarang.belum_diajukan"></dd></div>
+                                    <div class="flex justify-between"><dt class="text-[#7A9290]">Ditolak</dt>
+                                        <dd class="font-semibold text-[#365F65]" x-text="hasil.sekarang.ditolak"></dd></div>
+                                    <div class="flex justify-between"><dt class="text-[#7A9290]">Rata-rata hari sampai keputusan</dt>
+                                        <dd class="font-semibold text-[#365F65]" x-text="hasil.sekarang.rata_hari_keputusan === null ? '-' : hasil.sekarang.rata_hari_keputusan + ' hari'"></dd></div>
+                                    <div class="flex justify-between"><dt class="text-[#7A9290]">Potensi pendapatan / bulan</dt>
+                                        <dd class="font-semibold text-[#365F65]" x-text="rupiah(hasil.sekarang.potensi_bulan)"></dd></div>
+                                </dl>
+                            </div>
+
+                            <div class="rounded-xl border-2 border-[#D6A14D] bg-[#FFFBF2] p-5">
+                                <h3 class="font-bold text-[#365F65]">Skenario what-if</h3>
+                                <dl class="mt-3 space-y-3 text-sm">
+                                    <div>
+                                        <div class="flex justify-between"><dt class="text-[#7A9290]">Kontrak sistem aktif</dt>
+                                            <dd class="font-bold text-[#365F65]">
+                                                <span x-text="hasil.skenario.aktif + ' / ' + hasil.sekarang.total + ' (' + hasil.skenario.tingkat + '%)'"></span>
+                                                <span class="ml-1 text-xs font-semibold text-[#31966A]"
+                                                      x-text="(hasil.skenario.selisih_tingkat >= 0 ? '+' : '') + hasil.skenario.selisih_tingkat + ' poin'"></span>
+                                            </dd></div>
+                                        <div class="mt-1 h-2 overflow-hidden rounded-full bg-[#E2EBE9]">
+                                            <div class="h-full rounded-full bg-[#31966A]" :style="'width:' + hasil.skenario.tingkat + '%'"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between"><dt class="text-[#7A9290]">Tambahan dari "Menunggu Keputusan"</dt>
+                                        <dd class="font-semibold text-[#365F65]" x-text="'+' + hasil.skenario.tambah_dari_menunggu"></dd></div>
+                                    <div class="flex justify-between"><dt class="text-[#7A9290]">Tambahan dari "Belum Diajukan"</dt>
+                                        <dd class="font-semibold text-[#365F65]" x-text="'+' + hasil.skenario.tambah_dari_belum"></dd></div>
+                                    <div class="flex justify-between"><dt class="text-[#7A9290]">Potensi pendapatan / bulan</dt>
+                                        <dd class="font-bold text-[#365F65]" x-text="rupiah(hasil.skenario.potensi_bulan)"></dd></div>
+                                    <div class="flex justify-between"><dt class="text-[#7A9290]">Potensi pendapatan / tahun</dt>
+                                        <dd class="font-bold text-[#365F65]" x-text="rupiah(hasil.skenario.potensi_tahun)"></dd></div>
+                                </dl>
+                            </div>
+                        </div>
+
+                        <p class="rounded-xl bg-[#F3F6F5] px-4 py-3 text-sm text-[#365F65]">
+                            Jika <strong x-text="hasil.parameter.setuju_menunggu + '%'"></strong> pengajuan yang menunggu disetujui dan
+                            <strong x-text="hasil.parameter.ajukan_belum + '%'"></strong> kerja sama yang belum diajukan ikut disetujui,
+                            kontrak sistem aktif naik dari <strong x-text="hasil.sekarang.aktif"></strong> menjadi
+                            <strong x-text="hasil.skenario.aktif"></strong>, dengan tambahan potensi pendapatan
+                            <strong x-text="rupiah(hasil.skenario.potensi_tambahan)"></strong> per bulan.
+                        </p>
+
+                        {{-- SLA --}}
+                        <div class="rounded-xl border border-[#E2EBE9] p-5">
+                            <h3 class="font-bold text-[#365F65]">Pengajuan melewati batas waktu</h3>
+                            <p class="mt-1 text-sm text-[#7A9290]">
+                                Dengan batas keputusan <strong x-text="hasil.sla.batas_hari + ' hari'"></strong>:
+                                <strong class="text-[#B96B60]" x-text="hasil.sla.melewati + ' dari ' + hasil.sla.dari"></strong>
+                                pengajuan yang menunggu sudah melewati batas.
+                            </p>
+                            <ul class="mt-3 divide-y divide-[#E2EBE9] text-sm">
+                                <template x-for="r in hasil.sla.terlama" :key="r.id">
+                                    <li class="flex items-center justify-between gap-3 py-2">
+                                        <a :href="r.url" class="min-w-0 truncate font-semibold text-[#527D82] hover:underline"
+                                           x-text="(r.nomor ? r.nomor + ' · ' : '') + r.mitra"></a>
+                                        <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
+                                              :class="r.lewat ? 'bg-red-50 text-red-700' : 'bg-[#EAF2F1] text-[#365F65]'"
+                                              x-text="r.umur + ' hari'"></span>
+                                    </li>
+                                </template>
+                            </ul>
+                            <p x-show="hasil.sla.terlama.length === 0" class="mt-3 text-sm text-[#7A9290]">Tidak ada pengajuan yang sedang menunggu keputusan.</p>
+                        </div>
+
+                        <div class="rounded-xl border border-dashed border-[#C9D6D3] px-4 py-3 text-xs text-[#7A9290]">
+                            <p class="font-semibold text-[#527D82]">Asumsi simulasi</p>
+                            <ul class="mt-1 list-disc space-y-0.5 pl-5">
+                                <li>Persentase diterapkan sebagai proporsi (dibulatkan), bukan memilih kerja sama tertentu.</li>
+                                <li>Potensi pendapatan = GTO × revenue sharing tenant (sama dengan Dashboard); kerja sama tanpa data GTO dihitung Rp 0.</li>
+                                <li>Ini simulasi, bukan prediksi: tidak memperhitungkan alasan penolakan atau kapan keputusan benar-benar keluar.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+
     {{-- Daftar Aktivasi --}}
     <section class="overflow-hidden rounded-2xl border border-[#E2EBE9] bg-white shadow-sm">
 
@@ -567,4 +902,98 @@
     </section>
 
 </div>
+
+<script>
+    // Drilldown Aktivasi: setiap klik meminta data tingkat berikutnya ke server.
+    function aktivasiDrilldown(url) {
+        return {
+            dimuat: false, memuat: false, galat: '', data: null,
+            jalur: [], // [{kunci, nilai, label}]
+
+            async muat() {
+                this.dimuat = true;
+                this.memuat = true;
+                this.galat = '';
+                const q = new URLSearchParams();
+                this.jalur.forEach(j => q.set(j.kunci, j.nilai));
+                try {
+                    const r = await fetch(url + '?' + q.toString(), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin',
+                    });
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    this.data = await r.json();
+                } catch (e) {
+                    this.galat = 'Data drilldown gagal dimuat. Muat ulang halaman atau coba lagi.';
+                } finally {
+                    this.memuat = false;
+                }
+            },
+
+            turun(item) {
+                if (!this.data || this.data.kunci === 'riwayat') return;
+                const awalan = this.data.kunci === 'terminal' && item.nama !== 'Belum ada lokasi' ? 'Terminal ' : '';
+                this.jalur.push({ kunci: this.data.kunci, nilai: item.nilai, label: awalan + item.nama });
+                this.muat();
+            },
+
+            naik(jumlah) {
+                this.jalur = this.jalur.slice(0, jumlah);
+                this.muat();
+            },
+        };
+    }
+
+    // What-if Aktivasi: setiap perubahan input meminta hitung ulang ke server.
+    function aktivasiWhatIf(url) {
+        return {
+            dimuat: false, memuat: false, galat: '', hasil: null,
+            setuju_menunggu: 100, ajukan_belum: 50, sla: 14,
+            _timer: null, _seq: 0,
+
+            async muat() {
+                this.dimuat = true;
+                this.memuat = true;
+                this.galat = '';
+                const seq = ++this._seq;
+                const sla = Math.min(365, Math.max(1, parseInt(this.sla, 10) || 14));
+                const q = new URLSearchParams({
+                    setuju_menunggu: this.setuju_menunggu,
+                    ajukan_belum: this.ajukan_belum,
+                    sla: sla,
+                });
+                try {
+                    const r = await fetch(url + '?' + q.toString(), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin',
+                    });
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    const data = await r.json();
+                    if (seq !== this._seq) return; // jawaban lama diabaikan
+                    this.hasil = data;
+                } catch (e) {
+                    if (seq === this._seq) this.galat = 'Simulasi gagal dihitung. Periksa isian atau muat ulang halaman.';
+                } finally {
+                    if (seq === this._seq) this.memuat = false;
+                }
+            },
+
+            tunda() {
+                clearTimeout(this._timer);
+                this._timer = setTimeout(() => this.muat(), 250);
+            },
+
+            reset() {
+                this.setuju_menunggu = 100;
+                this.ajukan_belum = 50;
+                this.sla = 14;
+                this.muat();
+            },
+
+            rupiah(n) {
+                return 'Rp ' + Number(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+            },
+        };
+    }
+</script>
 @endsection
