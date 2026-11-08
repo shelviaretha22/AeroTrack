@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\KerjaSama;
 use App\Models\Lokasi;
 use App\Models\Tenant;
@@ -262,6 +263,115 @@ class LokasiController extends Controller
     }
 
     /**
+     * Drilldown okupansi (JSON): Terminal > Lantai > Jenis Ruangan > Ruangan.
+     *
+     * Level yang dikembalikan ditentukan oleh filter yang sudah dipilih,
+     * sehingga setiap klik "turun" satu tingkat dan datanya langsung
+     * dihitung dari tabel lokasis.
+     */
+    public function drilldown(Request $request)
+    {
+        // Nilai kosong/NULL di database ditampilkan dan difilter sebagai "-".
+        $kosong = '-';
+        $ekspresi = fn (string $kolom) => "COALESCE(NULLIF({$kolom}, ''), '{$kosong}')";
+
+        $filter = [
+            'terminal'      => trim((string) $request->query('terminal', '')),
+            'lantai'        => trim((string) $request->query('lantai', '')),
+            'jenis_ruangan' => trim((string) $request->query('jenis_ruangan', '')),
+        ];
+
+        $dasar = Lokasi::query();
+
+        foreach ($filter as $kolom => $nilai) {
+            if ($nilai === '') {
+                continue;
+            }
+
+            $dasar->whereRaw($ekspresi($kolom) . ' = ?', [$nilai]);
+        }
+
+        // Tentukan level berikutnya dari filter yang sudah terisi.
+        $level = match (true) {
+            $filter['terminal'] === ''      => ['kunci' => 'terminal', 'judul' => 'Terminal'],
+            $filter['lantai'] === ''        => ['kunci' => 'lantai', 'judul' => 'Lantai'],
+            $filter['jenis_ruangan'] === '' => ['kunci' => 'jenis_ruangan', 'judul' => 'Jenis Ruangan'],
+            default                         => ['kunci' => 'ruangan', 'judul' => 'Ruangan'],
+        };
+
+        // Level paling bawah: daftar ruangan.
+        if ($level['kunci'] === 'ruangan') {
+            $rooms = (clone $dasar)
+                ->with('tenant:id,nama_tenant')
+                ->orderBy('kode_ruang')
+                ->get()
+                ->map(fn (Lokasi $l) => [
+                    'id'     => $l->id,
+                    'kode'   => $l->kode_ruang,
+                    'lokasi' => $l->lokasi,
+                    'status' => $l->status,
+                    'luas'   => $l->luas_area !== null ? (float) $l->luas_area : null,
+                    'tenant' => $l->tenant?->nama_tenant,
+                    'url'    => route('lokasi.show', $l->id),
+                ])
+                ->values();
+
+            $terisi = $rooms->where('status', 'Terisi')->count();
+
+            return response()->json([
+                'kunci'    => $level['kunci'],
+                'judul'    => $level['judul'],
+                'items'    => [],
+                'rooms'    => $rooms,
+                'ringkasan' => $this->ringkasanDrilldown($rooms->count(), $terisi),
+            ]);
+        }
+
+        $kolomGrup = $ekspresi($level['kunci']);
+
+        $items = (clone $dasar)
+            ->select(
+                DB::raw("{$kolomGrup} as nilai"),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN status = 'Terisi' THEN 1 ELSE 0 END) as terisi"),
+                DB::raw('COALESCE(SUM(luas_area), 0) as luas'),
+                DB::raw("COALESCE(SUM(CASE WHEN status = 'Terisi' THEN luas_area ELSE 0 END), 0) as luas_terisi")
+            )
+            ->groupBy(DB::raw($kolomGrup))
+            ->get()
+            ->sortBy(fn ($r) => (string) $r->nilai, SORT_NATURAL)
+            ->values()
+            ->map(fn ($r) => [
+                'nilai'       => (string) $r->nilai,
+                'nama'        => (string) $r->nilai === $kosong ? 'Belum diisi' : (string) $r->nilai,
+                'total'       => (int) $r->total,
+                'terisi'      => (int) $r->terisi,
+                'kosong'      => (int) $r->total - (int) $r->terisi,
+                'okupansi'    => $r->total > 0 ? round($r->terisi / $r->total * 100, 1) : 0,
+                'luas'        => round((float) $r->luas, 2),
+                'luas_terisi' => round((float) $r->luas_terisi, 2),
+            ]);
+
+        return response()->json([
+            'kunci'     => $level['kunci'],
+            'judul'     => $level['judul'],
+            'items'     => $items,
+            'rooms'     => [],
+            'ringkasan' => $this->ringkasanDrilldown($items->sum('total'), $items->sum('terisi')),
+        ]);
+    }
+
+    private function ringkasanDrilldown(int $total, int $terisi): array
+    {
+        return [
+            'total'    => $total,
+            'terisi'   => $terisi,
+            'kosong'   => $total - $terisi,
+            'okupansi' => $total > 0 ? round($terisi / $total * 100, 1) : 0,
+        ];
+    }
+
+    /**
      * Menampilkan form tambah lokasi.
      */
     public function create()
@@ -370,6 +480,13 @@ class LokasiController extends Controller
             ]);
         });
 
+        AuditLog::catat(
+            'Lokasi',
+            'Lokasi ditambahkan',
+            "Lokasi {$lokasi->kode_ruang} ({$lokasi->lokasi}) ditambahkan.",
+            $lokasi
+        );
+
         return redirect()
             ->route('lokasi.index')
             ->with(
@@ -421,7 +538,20 @@ class LokasiController extends Controller
         ]);
 
         // kode_ruang, status, dan tenant_id tidak diubah melalui form edit.
-        $lokasi->update($validated);
+        $lokasi->fill($validated);
+        $berubah = $lokasi->getDirty();
+        $asli = $lokasi->getOriginal();
+        $lokasi->save();
+
+        if ($berubah) {
+            AuditLog::catat(
+                'Lokasi',
+                'Lokasi diubah',
+                "Lokasi {$lokasi->kode_ruang} diubah. "
+                    . AuditLog::ringkasPerubahan($asli, $berubah),
+                $lokasi
+            );
+        }
 
         return redirect()
             ->route('lokasi.index')
@@ -448,6 +578,14 @@ class LokasiController extends Controller
         $kodeRuang = $lokasi->kode_ruang;
 
         $lokasi->delete();
+
+        AuditLog::catat(
+            'Lokasi',
+            'Lokasi dihapus',
+            "Lokasi {$kodeRuang} ({$lokasi->lokasi}) dihapus.",
+            $lokasi,
+            'peringatan'
+        );
 
         return redirect()
             ->route('lokasi.index')
@@ -525,7 +663,9 @@ class LokasiController extends Controller
                 ->with('info', 'Tenant ini sudah memiliki lokasi.');
         }
 
-        DB::transaction(function () use ($request, $tenant) {
+        $lokasiTerpilih = null;
+
+        DB::transaction(function () use ($request, $tenant, &$lokasiTerpilih) {
             $lokasi = Lokasi::whereKey($request->lokasi_id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -544,7 +684,18 @@ class LokasiController extends Controller
                 'tenant_id' => $tenant->id,
                 'status' => 'Terisi',
             ]);
+
+            $lokasiTerpilih = $lokasi;
         });
+
+        if ($lokasiTerpilih) {
+            AuditLog::catat(
+                'Lokasi',
+                'Lokasi dihubungkan ke tenant',
+                "Lokasi {$lokasiTerpilih->kode_ruang} dihubungkan ke tenant {$tenant->nama_tenant}.",
+                $lokasiTerpilih
+            );
+        }
 
         return redirect()
             ->route('kerja-sama')

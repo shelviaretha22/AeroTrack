@@ -56,6 +56,9 @@ class User extends Authenticatable
             'notification_preferences' => 'array',
             'last_login_at' => 'datetime',
             'previous_login_at' => 'datetime',
+            // IP login disimpan terenkripsi (memakai APP_KEY).
+            'last_login_ip' => 'encrypted',
+            'previous_login_ip' => 'encrypted',
         ];
     }
 

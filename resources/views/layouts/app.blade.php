@@ -492,7 +492,7 @@
                         <button type="button" @click="buka = !buka" :aria-expanded="buka" aria-haspopup="true"
                                 class="flex items-center gap-3 rounded-xl py-1 pl-1 pr-2 transition hover:bg-[#F3F6F5]">
                             @if (auth()->user()->avatar_path)
-                                <img src="{{ asset('storage/' . auth()->user()->avatar_path) }}" alt=""
+                                <img src="{{ route('profile.foto', ['v' => md5(auth()->user()->avatar_path)]) }}" alt=""
                                      class="h-9 w-9 rounded-xl object-cover">
                             @else
                                 <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#D9E5E3] text-sm font-bold text-[#365F65]">

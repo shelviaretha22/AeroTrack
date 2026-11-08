@@ -114,4 +114,18 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pendaftaran Akun
+    |--------------------------------------------------------------------------
+    |
+    | Ditutup secara bawaan. Jika dibuka (REGISTRASI_TERBUKA=true), isi
+    | REGISTRASI_KODE agar pendaftar harus memasukkan kode undangan.
+    |
+    */
+
+    'registrasi_terbuka' => (bool) env('REGISTRASI_TERBUKA', false),
+
+    'registrasi_kode' => env('REGISTRASI_KODE'),
+
 ];

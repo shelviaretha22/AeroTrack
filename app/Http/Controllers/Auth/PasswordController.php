@@ -24,6 +24,8 @@ class PasswordController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
+        \App\Models\AuditLog::catat('Akun', 'Password diubah', 'Password akun diganti oleh pemilik akun.', null, 'peringatan');
+
         return back()->with('status', 'password-updated');
     }
 }

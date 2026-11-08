@@ -44,7 +44,7 @@
         <div class="avatar-wrapper">
             @if (auth()->user()->avatar_path)
                 <img
-                    src="{{ asset('storage/' . auth()->user()->avatar_path) }}"
+                    src="{{ route('profile.foto', ['v' => md5(auth()->user()->avatar_path)]) }}"
                     alt="Foto profil"
                     class="profile-avatar"
                 >
@@ -207,6 +207,12 @@
                 Belum ada aktivitas. Perubahan yang Anda catat di menu Aktivasi akan muncul di sini.
             </p>
         @endforelse
+
+        <div class="mt-5 border-t border-[#E2EBE9] pt-4">
+            <a href="{{ route('profile.log') }}" class="text-sm font-semibold text-[#527D82] hover:underline">
+                Lihat log aktivitas lengkap (login, perubahan akun, Lokasi, Aktivasi) →
+            </a>
+        </div>
     </section>
 
     {{-- INFORMASI AKUN --}}
@@ -329,9 +335,9 @@
                         id="password"
                         name="password"
                         x-model="pw"
-                        placeholder="Minimal 8 karakter"
+                        placeholder="Minimal 10 karakter: huruf besar, kecil, angka, simbol"
                         autocomplete="new-password"
-                        minlength="8"
+                        minlength="10"
                         required
                     >
 
