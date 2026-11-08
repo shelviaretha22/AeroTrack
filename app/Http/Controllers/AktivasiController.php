@@ -522,6 +522,11 @@ class AktivasiController extends Controller
                 $data->dokumen_path = $pathDokumen;
                 $data->catatan = $validated['catatan'] ?? null;
                 $data->save();
+
+                // Nomor konsumen terbit otomatis saat kontrak sistem aktif.
+                if ($data->status === 'Disetujui') {
+                    AktivasiProgres::terbitkanNomorKonsumen((int) $data->kerja_sama_id);
+                }
             });
 
             $this->catatRiwayat(

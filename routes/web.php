@@ -330,6 +330,7 @@ Route::middleware('auth')->group(function () {
         [AktivasiController::class, 'updateKontrakFisik']
     )->name('aktivasi.kontrak-fisik');
 
+
     // Membuat pengajuan aktivasi baru
     Route::post(
         '/aktivasi/{kerjaSamaId}/request',
