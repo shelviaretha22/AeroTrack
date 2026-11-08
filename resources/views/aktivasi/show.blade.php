@@ -307,6 +307,16 @@
                     @endif
                 </div>
             @endif
+
+            {{-- Nomor konsumen: terbit otomatis saat aktivasi disetujui --}}
+            <div class="mt-4 border-t border-gray-100 pt-4">
+                <p class="text-xs font-semibold text-gray-500">No Konsumen Sistem</p>
+                @if ($kerjaSama->progres?->nomor_konsumen)
+                    <p class="mt-1 text-sm font-bold text-gray-800">{{ $kerjaSama->progres->nomor_konsumen }}</p>
+                @else
+                    <p class="mt-1 text-sm text-gray-400">Terbit otomatis setelah aktivasi disetujui Commercial Pusat.</p>
+                @endif
+            </div>
         </section>
 
         {{-- C. AKTIVASI --}}
