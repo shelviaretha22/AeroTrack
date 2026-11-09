@@ -377,6 +377,50 @@
         </form>
     </section>
 
+    {{-- IDENTITAS PERUSAHAAN --}}
+    <section class="profile-card">
+        <div class="section-heading">
+            <div class="section-icon">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <path d="M3 21h18" />
+                    <path d="M5 21V7l8-4v18" />
+                    <path d="M19 21V11l-6-4" />
+                    <path d="M9 9v.01M9 12v.01M9 15v.01" />
+                    <path d="M15 13v.01M15 16v.01M15 19v.01" />
+                </svg>
+            </div>
+            <div>
+                <h2>Identitas Perusahaan</h2>
+                <p>Kelola informasi perusahaan yang digunakan dalam dokumen kontrak AeroTrack.</p>
+            </div>
+        </div>
+
+        <div class="preference-row">
+            <div class="preference-description">
+                <h3>Master Perusahaan</h3>
+                <p>
+                    Atur nama perusahaan, alamat, domisili, serta informasi
+                    penandatangan sebagai Pihak Pertama dalam dokumen kontrak.
+                </p>
+            </div>
+
+            <a href="{{ route('profile.perusahaan.edit') }}" class="btn-primary">
+                Kelola Identitas
+            </a>
+        </div>
+    </section>
+
     {{-- PERANGKAT DAN SESI --}}
     <section class="profile-card">
         <div class="section-heading">

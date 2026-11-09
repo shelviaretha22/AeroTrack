@@ -48,6 +48,7 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
+    
     protected function casts(): array
     {
         return [
@@ -56,10 +57,52 @@ class User extends Authenticatable
             'notification_preferences' => 'array',
             'last_login_at' => 'datetime',
             'previous_login_at' => 'datetime',
-            // IP login disimpan terenkripsi (memakai APP_KEY).
-            'last_login_ip' => 'encrypted',
-            'previous_login_ip' => 'encrypted',
         ];
+    }
+
+    
+    /**
+     * Membaca IP login dengan aman.
+     * Jika data lama gagal didekripsi, kembalikan null.
+     */
+    protected function lastLoginIp(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: function ($value) {
+                if ($value === null) {
+                    return null;
+                }
+
+                try {
+                    return \Illuminate\Support\Facades\Crypt::decryptString($value);
+                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    return null;
+                }
+            },
+            set: fn ($value) => $value === null
+                ? null
+                : \Illuminate\Support\Facades\Crypt::encryptString($value),
+        );
+    }
+
+    protected function previousLoginIp(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: function ($value) {
+                if ($value === null) {
+                    return null;
+                }
+
+                try {
+                    return \Illuminate\Support\Facades\Crypt::decryptString($value);
+                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    return null;
+                }
+            },
+            set: fn ($value) => $value === null
+                ? null
+                : \Illuminate\Support\Facades\Crypt::encryptString($value),
+        );
     }
 
     /** Sementara semua akun berperan Commercial (belum ada kolom role). */

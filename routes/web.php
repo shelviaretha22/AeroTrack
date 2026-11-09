@@ -35,6 +35,29 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // MANAGEMENT MENU
 // ================================
 
+// TENANT - DRILLDOWN GRAFIK ANALISIS
+Route::get('/tenant/drilldown', [TenantController::class, 'drilldown'])
+    ->middleware('auth')
+    ->name('tenant.drilldown');
+
+// TENANT - HALAMAN SIMULASI PORTOFOLIO WHAT-IF
+Route::get('/tenant/whatif', [TenantController::class, 'whatif'])
+    ->middleware('auth')
+    ->name('tenant.whatif');
+
+// TENANT - HALAMAN LAPORAN
+Route::middleware('auth')->prefix('tenant')->name('tenant.')->group(function () {
+    Route::get('/laporan', [TenantController::class, 'laporan'])
+        ->name('laporan');
+
+    Route::get('/laporan/pdf', [TenantController::class, 'laporanPdf'])
+        ->name('laporan.pdf');
+
+    // Ekspor Laporan Tenant ke Excel
+    Route::get('/laporan/excel', [TenantController::class, 'laporanExcel'])
+        ->name('laporan.excel');
+});
+
 // TENANT
 Route::resource('/tenant', TenantController::class)
     ->middleware('auth');
