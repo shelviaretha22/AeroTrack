@@ -226,6 +226,12 @@ Route::middleware('auth')->group(function () {
         [KontrakController::class, 'store']
     )->name('kontrak.store');
 
+    // DRILL-DOWN DASHBOARD KONTRAK
+    Route::get(
+        '/kontrak/drilldown',
+        [KontrakController::class, 'drilldown']
+    )->name('kontrak.drilldown');
+
     // Menampilkan logo Mitra yang tersimpan secara privat
     Route::get(
         '/kontrak/{id}/logo-mitra',
@@ -328,6 +334,65 @@ Route::middleware('auth')->group(function () {
         '/kontrak/{id}/konfirmasi-perpanjangan',
         [KontrakController::class, 'storeKonfirmasiPerpanjangan']
     )->name('kontrak.konfirmasi-perpanjangan');
+
+        // =================================
+    // WHAT-IF KONTRAK
+    // =================================
+
+    Route::get(
+        '/kontrak/whatif',
+        [KontrakController::class, 'whatif']
+    )->name('kontrak.whatif');
+
+
+    // =================================
+    // LAPORAN KONTRAK
+    // =================================
+
+    Route::get(
+        '/kontrak/laporan',
+        [KontrakController::class, 'laporan']
+    )->name('kontrak.laporan');
+
+    Route::get(
+        '/kontrak/laporan/pdf',
+        [KontrakController::class, 'laporanPdf']
+    )->name('kontrak.laporan.pdf');
+
+    Route::get(
+        '/kontrak/laporan/excel',
+        [KontrakController::class, 'laporanExcel']
+    )->name('kontrak.laporan.excel');
+
+        // =================================
+    // WHAT-IF KONTRAK
+    // =================================
+
+    Route::get(
+        '/kontrak/whatif',
+        [KontrakController::class, 'whatif']
+    )->name('kontrak.whatif');
+
+
+    // =================================
+    // LAPORAN KONTRAK
+    // =================================
+
+    Route::get(
+        '/kontrak/laporan',
+        [KontrakController::class, 'laporan']
+    )->name('kontrak.laporan');
+
+    Route::get(
+        '/kontrak/laporan/pdf',
+        [KontrakController::class, 'laporanPdf']
+    )->name('kontrak.laporan.pdf');
+
+    Route::get(
+        '/kontrak/laporan/excel',
+        [KontrakController::class, 'laporanExcel']
+    )->name('kontrak.laporan.excel');
+
 
     // =================================
     // DETAIL KONTRAK

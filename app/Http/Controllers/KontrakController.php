@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;
+use Maatwebsite\Excel\Facades\Excel;
 
 class KontrakController extends Controller
 {
@@ -82,6 +83,166 @@ class KontrakController extends Controller
         ];
     }
 
+
+/**
+ * Menampilkan detail data dari dashboard drill-down kontrak.
+ */
+public function drilldown(Request $request)
+{
+    $type = $request->query('type');
+    $value = $request->query('value');
+
+    $jenisDrilldown = [
+        'semua',
+        'status',
+        'perpanjangan',
+        'tahun',
+    ];
+
+    abort_unless(in_array($type, $jenisDrilldown, true), 404);
+
+    if ($type !== 'semua' && ($value === null || $value === '')) {
+        abort(404);
+    }
+
+    $hariIni = now()->startOfDay();
+
+    $kontraks = collect();
+    $kandidatKontrak = collect();
+
+    $judul = 'Seluruh Kontrak';
+    $deskripsi = 'Daftar seluruh kontrak yang tercatat dalam sistem.';
+
+    /*
+    |--------------------------------------------------------------------------
+    | 1. DRILL-DOWN SELURUH KONTRAK
+    |--------------------------------------------------------------------------
+    */
+    if ($type === 'semua') {
+        $kontraks = Kontrak::with([
+            'kerjaSama',
+            'tenant',
+            'lokasi',
+        ])->latest()->get();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 2. DRILL-DOWN BERDASARKAN STATUS
+    |--------------------------------------------------------------------------
+    */
+    elseif ($type === 'status') {
+
+        $judul = 'Kontrak Status ' . $value;
+        $deskripsi = 'Daftar kontrak berdasarkan status ' . $value . '.';
+
+        if ($value === 'Belum Dibuat') {
+
+            $kerjaSamaSudahAdaKontrak = Kontrak::pluck('kerja_sama_id');
+
+            $kandidatKontrak = KerjaSama::with([
+                'tenant',
+                'lokasi',
+                'aktivasi',
+            ])
+                ->whereNotNull('berita_acara_path')
+                ->latest()
+                ->get()
+                ->filter(function ($kerjaSama) use ($kerjaSamaSudahAdaKontrak) {
+                    return Storage::disk('local')->exists(
+                        $kerjaSama->berita_acara_path
+                    )
+                    && $kerjaSama->tenant !== null
+                    && $kerjaSama->lokasi !== null
+                    && !$kerjaSamaSudahAdaKontrak->contains($kerjaSama->id);
+                })
+                ->values();
+
+        } else {
+
+            abort_unless(
+                in_array($value, ['Draft', 'Aktif', 'Nonaktif'], true),
+                404
+            );
+
+            $kontraks = Kontrak::with([
+                'kerjaSama',
+                'tenant',
+                'lokasi',
+            ])
+                ->latest()
+                ->get()
+                ->filter(function ($kontrak) use ($value, $hariIni) {
+                    return $this->tentukanStatusKontrak(
+                        $kontrak,
+                        $hariIni
+                    ) === $value;
+                })
+                ->values();
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 3. DRILL-DOWN STATUS PERPANJANGAN
+    |--------------------------------------------------------------------------
+    */
+    elseif ($type === 'perpanjangan') {
+
+        $judul = 'Perpanjangan: ' . $value;
+        $deskripsi = 'Daftar kontrak berdasarkan status perpanjangan ' . $value . '.';
+
+        $kontraks = Kontrak::with([
+            'kerjaSama',
+            'tenant',
+            'lokasi',
+        ])
+            ->latest()
+            ->get()
+            ->filter(function ($kontrak) use ($value) {
+                $statusPerpanjangan = $kontrak->status_perpanjangan
+                    ?: 'Belum Dikonfirmasi';
+
+                return $statusPerpanjangan === $value;
+            })
+            ->values();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 4. DRILL-DOWN KONTRAK PER TAHUN
+    |--------------------------------------------------------------------------
+    */
+    elseif ($type === 'tahun') {
+
+        abort_unless(
+            preg_match('/^\d{4}$/', (string) $value),
+            404
+        );
+
+        $judul = 'Kontrak Tahun ' . $value;
+        $deskripsi = 'Daftar kontrak berdasarkan tahun pengajuan ' . $value . '.';
+
+        $kontraks = Kontrak::with([
+            'kerjaSama',
+            'tenant',
+            'lokasi',
+        ])
+            ->whereYear('tanggal_pengajuan', $value)
+            ->latest()
+            ->get();
+    }
+
+    return view('kontrak.drilldown', compact(
+        'type',
+        'value',
+        'judul',
+        'deskripsi',
+        'kontraks',
+        'kandidatKontrak'
+    ));
+}
+
     /**
      * Menampilkan dashboard, statistik, grafik,
      * daftar kontrak, dan kandidat kontrak.
@@ -116,36 +277,91 @@ foreach ($semuaKontrak as $kontrak) {
     }
 }
 
-$totalKontrak = $semuaKontrak->count();
+/*
+|--------------------------------------------------------------------------
+| 1. FILTER DASHBOARD KONTRAK
+|--------------------------------------------------------------------------
+*/
 
-        $kontrakAktif = $semuaKontrak
-            ->filter(fn ($kontrak) => $this->tentukanStatusKontrak($kontrak, $hariIni) === 'Aktif')
-            ->count();
+// Filter berdasarkan periode, terminal, dan jenis usaha.
+$kontrakDashboard = $semuaKontrak->filter(function ($kontrak) use ($request) {
 
-        $kontrakNonAktif = $semuaKontrak
-            ->filter(fn ($kontrak) => $this->tentukanStatusKontrak($kontrak, $hariIni) === 'Nonaktif')
-            ->count();
+    // Filter tahun pengajuan.
+    if ($request->filled('tahun')) {
+        if (
+            !$kontrak->tanggal_pengajuan ||
+            Carbon::parse($kontrak->tanggal_pengajuan)->format('Y') !== $request->tahun
+        ) {
+            return false;
+        }
+    }
 
-        $kontrakDraft = $semuaKontrak
-            ->filter(fn ($kontrak) => $this->tentukanStatusKontrak($kontrak, $hariIni) === 'Draft')
-            ->count();
+    // Filter terminal.
+    if ($request->filled('terminal')) {
+        if ($kontrak->lokasi?->terminal !== $request->terminal) {
+            return false;
+        }
+    }
 
-        /*
-        |--------------------------------------------------------------------------
-        | 2. DATA GRAFIK KONTRAK PER TAHUN
-        |--------------------------------------------------------------------------
-        */
+    // Filter jenis usaha.
+    if ($request->filled('jenis_usaha')) {
+        $jenisUsaha = $kontrak->kerjaSama?->jenis_usaha
+            ?? $kontrak->tenant?->jenis_usaha;
 
-        $dataTahunan = $semuaKontrak
-            ->filter(fn ($kontrak) => $kontrak->tanggal_pengajuan !== null)
-            ->groupBy(function ($kontrak) {
-                return Carbon::parse($kontrak->tanggal_pengajuan)->format('Y');
-            })
-            ->map(fn ($items) => $items->count())
-            ->sortKeys();
+        if ($jenisUsaha !== $request->jenis_usaha) {
+            return false;
+        }
+    }
 
-        $tahunTersedia = $dataTahunan->keys()->values();
+    return true;
+})->values();
 
+/*
+|--------------------------------------------------------------------------
+| 2. STATISTIK KONTRAK
+|--------------------------------------------------------------------------
+*/
+
+$totalKontrak = $kontrakDashboard->count();
+
+$kontrakAktif = $kontrakDashboard
+    ->filter(fn ($kontrak) => $this->tentukanStatusKontrak($kontrak, $hariIni) === 'Aktif')
+    ->count();
+
+$kontrakNonAktif = $kontrakDashboard
+    ->filter(fn ($kontrak) => $this->tentukanStatusKontrak($kontrak, $hariIni) === 'Nonaktif')
+    ->count();
+
+$kontrakDraft = $kontrakDashboard
+    ->filter(fn ($kontrak) => $this->tentukanStatusKontrak($kontrak, $hariIni) === 'Draft')
+    ->count();
+
+/*
+|--------------------------------------------------------------------------
+| 3. DATA GRAFIK KONTRAK PER TAHUN
+|--------------------------------------------------------------------------
+*/
+
+$dataTahunan = $kontrakDashboard
+    ->filter(fn ($kontrak) => $kontrak->tanggal_pengajuan !== null)
+    ->groupBy(function ($kontrak) {
+        return Carbon::parse($kontrak->tanggal_pengajuan)->format('Y');
+    })
+    ->map(fn ($items) => $items->count())
+    ->sortKeys();
+
+/*
+|--------------------------------------------------------------------------
+| 4. DATA GRAFIK STATUS PERPANJANGAN
+|--------------------------------------------------------------------------
+*/
+
+$dataPerpanjanganKontrak = $kontrakDashboard
+    ->groupBy(function ($kontrak) {
+        return $kontrak->status_perpanjangan
+            ?: 'Belum Dikonfirmasi';
+    })
+    ->map(fn ($items) => $items->count());
         /*
         |--------------------------------------------------------------------------
         | 3. QUERY DAFTAR KONTRAK
@@ -181,9 +397,31 @@ $totalKontrak = $semuaKontrak->count();
         }
 
         // Filter tahun pengajuan.
-        if ($request->filled('tahun')) {
-            $query->whereYear('tanggal_pengajuan', $request->input('tahun'));
-        }
+if ($request->filled('tahun')) {
+    $query->whereYear('tanggal_pengajuan', $request->input('tahun'));
+}
+
+// Filter terminal.
+if ($request->filled('terminal')) {
+    $terminal = $request->input('terminal');
+
+    $query->whereHas('lokasi', function ($q) use ($terminal) {
+        $q->where('terminal', $terminal);
+    });
+}
+
+// Filter jenis usaha.
+if ($request->filled('jenis_usaha')) {
+    $jenisUsaha = $request->input('jenis_usaha');
+
+    $query->where(function ($q) use ($jenisUsaha) {
+        $q->whereHas('kerjaSama', function ($ks) use ($jenisUsaha) {
+            $ks->where('jenis_usaha', $jenisUsaha);
+        })->orWhereHas('tenant', function ($tenant) use ($jenisUsaha) {
+            $tenant->where('jenis_usaha', $jenisUsaha);
+        });
+    });
+}
 
         // Pengurutan daftar kontrak.
         switch ($request->input('sort', 'newest')) {
@@ -248,10 +486,42 @@ $totalKontrak = $semuaKontrak->count();
             })
             ->values();
 
-        // Jumlah Belum Dibuat dihitung sebelum pencarian dan filter tahun.
-        $kontrakBelumDibuat = $kandidatKontrakSemua->count();
-
         $kandidatKontrak = $kandidatKontrakSemua;
+
+        // Filter periode kandidat.
+        if ($request->filled('tahun')) {
+            $tahun = $request->input('tahun');
+
+            $kandidatKontrak = $kandidatKontrak->filter(function ($kerjaSama) use ($tahun) {
+                return $kerjaSama->tanggal_pengajuan
+                    && Carbon::parse($kerjaSama->tanggal_pengajuan)->format('Y') === $tahun;
+            });
+        }
+
+        // Filter terminal kandidat.
+        if ($request->filled('terminal')) {
+            $terminal = $request->input('terminal');
+
+            $kandidatKontrak = $kandidatKontrak->filter(function ($kerjaSama) use ($terminal) {
+                return $kerjaSama->lokasi?->terminal === $terminal;
+            });
+        }
+
+        // Filter jenis usaha kandidat.
+        if ($request->filled('jenis_usaha')) {
+            $jenisUsaha = $request->input('jenis_usaha');
+
+            $kandidatKontrak = $kandidatKontrak->filter(function ($kerjaSama) use ($jenisUsaha) {
+                $jenis = $kerjaSama->jenis_usaha
+                    ?? $kerjaSama->tenant?->jenis_usaha;
+
+                return $jenis === $jenisUsaha;
+            });
+        }
+
+        // Jumlah Belum Dibuat mengikuti filter dashboard,
+        // tetapi tidak dipengaruhi pencarian.
+        $kontrakBelumDibuat = $kandidatKontrak->count();
 
         // Pencarian kandidat kontrak.
         if ($request->filled('search')) {
@@ -282,15 +552,6 @@ $totalKontrak = $semuaKontrak->count();
             $kandidatKontrak = collect();
         }
 
-        // Filter tahun kandidat berdasarkan tanggal pengajuan kerja sama.
-        if ($request->filled('tahun')) {
-            $tahun = $request->input('tahun');
-
-            $kandidatKontrak = $kandidatKontrak->filter(function ($kerjaSama) use ($tahun) {
-                return $kerjaSama->tanggal_pengajuan
-                    && Carbon::parse($kerjaSama->tanggal_pengajuan)->format('Y') === $tahun;
-            });
-        }
 
         // Pengurutan kandidat kontrak.
         switch ($request->input('sort', 'newest')) {
@@ -326,6 +587,75 @@ $totalKontrak = $semuaKontrak->count();
 
         /*
         |--------------------------------------------------------------------------
+        | PILIHAN FILTER DASHBOARD
+        |--------------------------------------------------------------------------
+        */
+
+        $tahunTersedia = $semuaKontrak
+            ->pluck('tanggal_pengajuan')
+            ->filter()
+            ->map(fn ($tanggal) => Carbon::parse($tanggal)->format('Y'))
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        $terminalTersedia = $semuaKontrak
+            ->pluck('lokasi.terminal')
+            ->merge(
+                $kandidatKontrakSemua->pluck('lokasi.terminal')
+            )
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        $jenisUsahaTersedia = $semuaKontrak
+            ->map(fn ($kontrak) =>
+                $kontrak->kerjaSama?->jenis_usaha
+                ?? $kontrak->tenant?->jenis_usaha
+            )
+            ->merge(
+                $kandidatKontrakSemua->map(fn ($kerjaSama) =>
+                    $kerjaSama->jenis_usaha
+                    ?? $kerjaSama->tenant?->jenis_usaha
+                )
+            )
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+// Data kontrak untuk simulasi What-If di halaman Index.
+$dataWhatIfKontrak = $semuaKontrak->map(function ($kontrak) use ($hariIni) {
+
+    $tanggalBerakhir = $kontrak->kerjaSama?->tanggal_berakhir;
+
+    return [
+        'id' => $kontrak->id,
+
+        'nomor_kontrak' => $kontrak->nomor_kontrak ?: '-',
+
+        'mitra' => $kontrak->nama_mitra_snapshot
+            ?: '-',
+
+        'tenant' => $kontrak->tenant?->nama_tenant ?: '-',
+
+        'status' => $this->tentukanStatusKontrak(
+            $kontrak,
+            $hariIni
+        ),
+
+        'tanggal_berakhir' => $tanggalBerakhir
+            ? Carbon::parse($tanggalBerakhir)->toDateString()
+            : null,
+
+        'status_perpanjangan' => $kontrak->status_perpanjangan
+            ?: 'Belum Dikonfirmasi',
+    ];
+})->values();
+
+        /*
+        |--------------------------------------------------------------------------
         | 6. KIRIM DATA KE VIEW
         |--------------------------------------------------------------------------
         */
@@ -340,7 +670,11 @@ $totalKontrak = $semuaKontrak->count();
             'kontrakNonAktif',
             'dataStatus',
             'dataTahunan',
-            'tahunTersedia'
+            'dataPerpanjanganKontrak',
+            'tahunTersedia',
+            'terminalTersedia',
+            'jenisUsahaTersedia',
+            'dataWhatIfKontrak'
         ));
     }
 
@@ -2347,5 +2681,291 @@ if (!$this->sudahUploadFinal($kontrak)) {
             'success' => true,
             'message' => 'Draft dokumen kontrak berhasil disimpan.',
         ]);
+    }
+        /*
+    |--------------------------------------------------------------------------
+    | LAPORAN KONTRAK
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Mengambil satu sumber data laporan kontrak.
+     * Digunakan bersama oleh halaman laporan, PDF, dan Excel.
+     */
+    private function dataLaporanKontrak(Request $request): array
+    {
+        $request->validate([
+            'tanggal_mulai' => 'nullable|date',
+            'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
+            'status' => 'nullable|in:Semua,Draft,Aktif,Nonaktif',
+            'jenis_usaha' => 'nullable|string',
+            'terminal' => 'nullable|string',
+            'status_perpanjangan' => 'nullable|string',
+        ]);
+
+        $kontraks = Kontrak::with([
+            'kerjaSama',
+            'tenant',
+            'lokasi',
+        ])->get();
+
+        $hariIni = now()->startOfDay();
+
+        // Hitung status berdasarkan aturan status kontrak yang sudah ada.
+        $kontraks = $kontraks->map(function ($kontrak) use ($hariIni) {
+            $kontrak->status_laporan = $this->tentukanStatusKontrak(
+                $kontrak,
+                $hariIni
+            );
+
+            return $kontrak;
+        });
+
+        // Filter tanggal pengajuan kontrak.
+        if ($request->filled('tanggal_mulai')) {
+            $tanggalMulai = Carbon::parse(
+                $request->tanggal_mulai
+            )->startOfDay();
+
+            $kontraks = $kontraks->filter(function ($kontrak) use ($tanggalMulai) {
+                return $kontrak->tanggal_pengajuan
+                    && Carbon::parse($kontrak->tanggal_pengajuan)
+                        ->startOfDay()
+                        ->greaterThanOrEqualTo($tanggalMulai);
+            });
+        }
+
+        if ($request->filled('tanggal_selesai')) {
+            $tanggalSelesai = Carbon::parse(
+                $request->tanggal_selesai
+            )->endOfDay();
+
+            $kontraks = $kontraks->filter(function ($kontrak) use ($tanggalSelesai) {
+                return $kontrak->tanggal_pengajuan
+                    && Carbon::parse($kontrak->tanggal_pengajuan)
+                        ->lessThanOrEqualTo($tanggalSelesai);
+            });
+        }
+
+        // Filter status kontrak.
+        if (
+            $request->filled('status')
+            && $request->status !== 'Semua'
+        ) {
+            $kontraks = $kontraks->filter(function ($kontrak) use ($request) {
+                return $kontrak->status_laporan === $request->status;
+            });
+        }
+
+        // Filter jenis usaha.
+        if ($request->filled('jenis_usaha')) {
+            $kontraks = $kontraks->filter(function ($kontrak) use ($request) {
+                return $kontrak->kerjaSama?->jenis_usaha
+                    === $request->jenis_usaha;
+            });
+        }
+
+        // Filter terminal.
+        if ($request->filled('terminal')) {
+            $kontraks = $kontraks->filter(function ($kontrak) use ($request) {
+                return $kontrak->lokasi?->terminal
+                    === $request->terminal;
+            });
+        }
+
+        // Filter status perpanjangan.
+        if ($request->filled('status_perpanjangan')) {
+            $kontraks = $kontraks->filter(function ($kontrak) use ($request) {
+                $statusPerpanjangan = $kontrak->status_perpanjangan
+                    ?: 'Belum Dikonfirmasi';
+
+                return $statusPerpanjangan === $request->status_perpanjangan;
+            });
+        }
+
+        $kontraks = $kontraks
+            ->sortByDesc('tanggal_pengajuan')
+            ->values();
+
+        // Ringkasan laporan berdasarkan data yang sudah difilter.
+        $totalKontrak = $kontraks->count();
+
+        $totalDraft = $kontraks
+            ->where('status_laporan', 'Draft')
+            ->count();
+
+        $totalAktif = $kontraks
+            ->where('status_laporan', 'Aktif')
+            ->count();
+
+        $totalNonaktif = $kontraks
+            ->where('status_laporan', 'Nonaktif')
+            ->count();
+
+        // Grafik berdasarkan status.
+        $dataStatus = [
+            'Draft' => $totalDraft,
+            'Aktif' => $totalAktif,
+            'Nonaktif' => $totalNonaktif,
+        ];
+
+        // Grafik jumlah kontrak berdasarkan tahun pengajuan.
+        $dataTahunan = $kontraks
+            ->filter(fn ($kontrak) => $kontrak->tanggal_pengajuan !== null)
+            ->groupBy(function ($kontrak) {
+                return Carbon::parse(
+                    $kontrak->tanggal_pengajuan
+                )->format('Y');
+            })
+            ->map(fn ($items) => $items->count())
+            ->sortKeys();
+
+        // Pilihan filter diambil dari data yang tersedia.
+        $opsiJenisUsaha = KerjaSama::whereNotNull('jenis_usaha')
+            ->distinct()
+            ->orderBy('jenis_usaha')
+            ->pluck('jenis_usaha');
+
+        $opsiTerminal = Lokasi::whereNotNull('terminal')
+            ->distinct()
+            ->orderBy('terminal')
+            ->pluck('terminal');
+
+        return [
+            'kontraks' => $kontraks,
+            'totalKontrak' => $totalKontrak,
+            'totalDraft' => $totalDraft,
+            'totalAktif' => $totalAktif,
+            'totalNonaktif' => $totalNonaktif,
+            'dataStatus' => $dataStatus,
+            'dataTahunan' => $dataTahunan,
+            'opsiJenisUsaha' => $opsiJenisUsaha,
+            'opsiTerminal' => $opsiTerminal,
+            'filters' => $request->only([
+                'tanggal_mulai',
+                'tanggal_selesai',
+                'status',
+                'jenis_usaha',
+                'terminal',
+                'status_perpanjangan',
+            ]),
+        ];
+    }
+
+    /**
+     * Halaman laporan kontrak.
+     */
+    public function laporan(Request $request)
+    {
+        $data = $this->dataLaporanKontrak($request);
+
+        return view('kontrak.laporan', $data);
+    }
+
+    /**
+     * Ekspor laporan kontrak ke PDF.
+     */
+    public function laporanPdf(Request $request)
+    {
+        $data = $this->dataLaporanKontrak($request);
+
+        $pdf = Pdf::loadView(
+            'kontrak.laporan-pdf',
+            $data
+        )->setPaper('a4', 'landscape');
+
+        return $pdf->download(
+            'Laporan-Kontrak-' . now()->format('Ymd-His') . '.pdf'
+        );
+    }
+
+    /**
+     * Ekspor laporan kontrak ke Excel.
+     */
+    public function laporanExcel(Request $request)
+    {
+        $data = $this->dataLaporanKontrak($request);
+
+        return Excel::download(
+            new \App\Exports\KontrakReportExport($data['kontraks']),
+            'Laporan-Kontrak-' . now()->format('Ymd-His') . '.xlsx'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | WHAT-IF KONTRAK
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Simulasi kondisi kontrak tanpa mengubah database.
+     */
+    public function whatif(Request $request)
+    {
+        $request->validate([
+            'periode' => 'nullable|in:30,60,90',
+        ]);
+
+        $periode = (int) $request->input('periode', 30);
+
+        $hariIni = now()->startOfDay();
+        $batasTanggal = $hariIni->copy()->addDays($periode);
+
+        $kontraks = Kontrak::with([
+            'kerjaSama',
+            'tenant',
+            'lokasi',
+        ])->get();
+
+        // Simulasi kontrak yang mendekati tanggal berakhir.
+        $kontrakMendekatiAkhir = $kontraks->filter(function ($kontrak) use (
+            $hariIni,
+            $batasTanggal
+        ) {
+            $tanggalBerakhir = $kontrak->kerjaSama?->tanggal_berakhir;
+
+            if (!$tanggalBerakhir) {
+                return false;
+            }
+
+            $tanggalBerakhir = Carbon::parse($tanggalBerakhir)->startOfDay();
+
+            return $tanggalBerakhir->greaterThanOrEqualTo($hariIni)
+                && $tanggalBerakhir->lessThanOrEqualTo($batasTanggal);
+        })->values();
+
+        // Simulasi penyelesaian seluruh kontrak Draft.
+        // Hanya perhitungan, tidak mengunggah dokumen atau mengubah status database.
+        $kontrakDraft = $kontraks->filter(function ($kontrak) use ($hariIni) {
+            return $this->tentukanStatusKontrak($kontrak, $hariIni) === 'Draft';
+        })->values();
+
+        $totalDraft = $kontrakDraft->count();
+
+        // Simulasi keputusan perpanjangan berdasarkan konfirmasi yang tersimpan.
+        $inginMemperpanjang = $kontraks
+            ->where('status_perpanjangan', 'Ingin Memperpanjang')
+            ->values();
+
+        $tidakMemperpanjang = $kontraks
+            ->where('status_perpanjangan', 'Tidak Memperpanjang')
+            ->values();
+
+        $belumKonfirmasi = $kontraks
+            ->filter(function ($kontrak) {
+                return empty($kontrak->status_perpanjangan);
+            })
+            ->values();
+
+        return view('kontrak.whatif', compact(
+            'periode',
+            'kontrakMendekatiAkhir',
+            'kontrakDraft',
+            'totalDraft',
+            'inginMemperpanjang',
+            'tidakMemperpanjang',
+            'belumKonfirmasi'
+        ));
     }
 }
