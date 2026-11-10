@@ -507,6 +507,24 @@ Route::middleware('auth')->group(function () {
         [LaporanController::class, 'index']
     )->name('laporan');
 
+    // Ekspor Laporan ke PDF
+    Route::get(
+        '/laporan/pdf',
+        [LaporanController::class, 'exportPdf']
+    )->name('laporan.pdf');
+
+    // Ekspor Laporan ke Excel
+    Route::get(
+        '/laporan/excel',
+        [LaporanController::class, 'exportExcel']
+    )->name('laporan.excel');
+
+    // Drill-down halaman Laporan
+    Route::get(
+        '/laporan/drilldown',
+        [LaporanController::class, 'drilldown']
+    )->name('laporan.drilldown');
+
     // Detail Laporan berdasarkan Kerja Sama
     Route::get(
         '/laporan/{kerjaSama}',

@@ -50,7 +50,7 @@
     ];
 @endphp
 
-<div class="detail-laporan-page space-y-6">
+<div class="detail-laporan-page w-full min-w-0 max-w-full space-y-6 overflow-x-hidden">
 
     {{-- HEADER --}}
     <div>
@@ -165,20 +165,19 @@
             <div class="grid gap-x-10 gap-y-5 md:grid-cols-2">
 
                 <div class="detail-field">
-                    <span>Mitra Usaha</span>
-                    <strong>{{ $kerjaSama->mitra_usaha ?? '-' }}</strong>
-                </div>
+    <span>Jenis Usaha</span>
+    <strong>{{ $tenant->jenis_usaha ?? '-' }}</strong>
+</div>
+
+<div class="detail-field">
+    <span>Bentuk Kerja Sama</span>
+    <strong>{{ $tenant->bentuk_kerja_sama ?? '-' }}</strong>
+</div>
 
                 <div class="detail-field">
-                    <span>Brand</span>
-                    <strong>{{ $kerjaSama->brand ?? '-' }}</strong>
+                    <span>NPWP</span>
+                    <strong>{{ $tenant->npwp ?? '-' }}</strong>
                 </div>
-
-                <div class="detail-field">
-                    <span>Bentuk Kerja Sama</span>
-                    <strong>{{ $kerjaSama->bentuk_kerja_sama ?? '-' }}</strong>
-                </div>
-
                 <div class="detail-field">
                     <span>Jenis Usaha</span>
                     <strong>{{ $kerjaSama->jenis_usaha ?? '-' }}</strong>
@@ -613,9 +612,8 @@
                             <span class="text-xs text-slate-400">Belum tersedia</span>
                         @endif
                     </div>
-                </div>
+                                </div>
             </div>
-                        </div>
 
         </div>
 
@@ -623,119 +621,148 @@
 
 
     {{-- ===================================================== --}}
-    {{-- TAB KONTRAK --}}
-    {{-- ===================================================== --}}
-    <section id="tab-kontrak" class="detail-tab-content hidden">
+{{-- TAB KONTRAK --}}
+{{-- ===================================================== --}}
+<section id="tab-kontrak" class="detail-tab-content hidden w-full min-w-0 max-w-full">
 
-        <div class="rounded-2xl border border-slate-200 bg-white p-6">
-            <div class="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50 text-teal-800">
-                    <i class="fas fa-file-contract"></i>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-slate-800">Informasi Kontrak</h3>
-                    <p class="text-xs text-slate-500">Informasi dan dokumen kontrak tenant</p>
-                </div>
+    <div class="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-6">
+
+        <div class="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50 text-teal-800">
+                <i class="fas fa-file-contract"></i>
             </div>
 
-            @if($kontrak)
-                <div class="grid gap-x-10 gap-y-5 md:grid-cols-2">
-
-                    <div class="detail-field">
-                        <span>Nomor Kontrak</span>
-                        <strong>{{ $kontrak->nomor_kontrak ?? '-' }}</strong>
-                    </div>
-
-                    <div class="detail-field">
-                        <span>Nomor Kontrak Mitra</span>
-                        <strong>{{ $kontrak->nomor_kontrak_mitra ?? '-' }}</strong>
-                    </div>
-
-                    <div class="detail-field">
-                        <span>Tanggal Pengajuan</span>
-                        <strong>{{ $formatTanggal($kontrak->tanggal_pengajuan) }}</strong>
-                    </div>
-
-                    <div class="detail-field">
-                        <span>Tanggal Dokumen</span>
-                        <strong>{{ $formatTanggal($kontrak->tanggal_dokumen) }}</strong>
-                    </div>
-
-                    <div class="detail-field">
-                        <span>Status Kontrak</span>
-                        <strong>{{ $kontrak->status ?? '-' }}</strong>
-                    </div>
-
-                    <div class="detail-field">
-                        <span>Progress Tahap</span>
-                        <strong>{{ $kontrak->progress_tahap ?? '-' }}</strong>
-                    </div>
-
-                    <div class="detail-field">
-                        <span>Nama Penandatangan Mitra</span>
-                        <strong>{{ $kontrak->nama_penandatangan_mitra ?? '-' }}</strong>
-                    </div>
-
-                    <div class="detail-field">
-                        <span>Jabatan Penandatangan Mitra</span>
-                        <strong>{{ $kontrak->jabatan_penandatangan_mitra ?? '-' }}</strong>
-                    </div>
-
-                    <div class="detail-field">
-                        <span>Periode Evaluasi Tarif</span>
-                        <strong>
-                            {{ $kontrak->periode_evaluasi_tarif ?? '-' }}
-                            {{ $kontrak->satuan_evaluasi_tarif ?? '' }}
-                        </strong>
-                    </div>
-
-                    <div class="detail-field">
-                        <span>Status Perpanjangan</span>
-                        <strong>{{ $kontrak->status_perpanjangan ?? '-' }}</strong>
-                    </div>
-
-                </div>
-
-                {{-- DOKUMEN KONTRAK --}}
-                <div class="mt-6 border-t border-slate-100 pt-5">
-                    <h4 class="mb-4 text-sm font-semibold text-slate-800">Dokumen Kontrak</h4>
-                    <div class="document-row">
-                        <div class="flex items-center gap-3">
-                            <div class="document-icon"><i class="fas fa-file-pdf"></i></div>
-                            <div>
-                                <p class="text-sm font-semibold text-slate-700">Dokumen Kontrak Final</p>
-                                @if($kontrak->final_pdf_path)
-                                    <p class="mt-1 text-xs text-slate-400">Diunggah: {{ $formatTanggal($kontrak->final_uploaded_at) }}</p>
-                                @else
-                                    <p class="mt-1 text-xs text-slate-400">Belum tersedia</p>
-                                @endif
-                            </div>
-                        </div>
-                        @if($kontrak->final_pdf_path)
-                            <a href="{{ route('kontrak.finalPdf', $kontrak->id) }}" target="_blank" class="text-sm font-semibold text-teal-700 hover:underline">Lihat File</a>
-                        @else
-                            <span class="text-xs text-slate-400">Belum tersedia</span>
-                        @endif
-                    </div>
-                </div>
-
-                </div>
-            @else
-                <p class="py-8 text-center text-sm text-slate-500">
-                    Data kontrak belum tersedia.
+            <div>
+                <h3 class="font-semibold text-slate-800">Informasi Kontrak</h3>
+                <p class="text-xs text-slate-500">
+                    Informasi dan dokumen kontrak tenant
                 </p>
-            @endif
+            </div>
         </div>
 
-    </section>
+        @if($kontrak)
 
+            <div class="grid gap-x-10 gap-y-5 md:grid-cols-2">
+
+                <div class="detail-field">
+                    <span>Nomor Kontrak</span>
+                    <strong>{{ $kontrak->nomor_kontrak ?? '-' }}</strong>
+                </div>
+
+                <div class="detail-field">
+                    <span>Nomor Kontrak Mitra</span>
+                    <strong>{{ $kontrak->nomor_kontrak_mitra ?? '-' }}</strong>
+                </div>
+
+                <div class="detail-field">
+                    <span>Tanggal Pengajuan</span>
+                    <strong>{{ $formatTanggal($kontrak->tanggal_pengajuan) }}</strong>
+                </div>
+
+                <div class="detail-field">
+                    <span>Tanggal Dokumen</span>
+                    <strong>{{ $formatTanggal($kontrak->tanggal_dokumen) }}</strong>
+                </div>
+
+                <div class="detail-field">
+                    <span>Status Kontrak</span>
+                    <strong>{{ $kontrak->status ?? '-' }}</strong>
+                </div>
+
+                <div class="detail-field">
+                    <span>Progress Tahap</span>
+                    <strong>{{ $kontrak->progress_tahap ?? '-' }}</strong>
+                </div>
+
+                <div class="detail-field">
+                    <span>Nama Penandatangan Mitra</span>
+                    <strong>{{ $kontrak->nama_penandatangan_mitra ?? '-' }}</strong>
+                </div>
+
+                <div class="detail-field">
+                    <span>Jabatan Penandatangan Mitra</span>
+                    <strong>{{ $kontrak->jabatan_penandatangan_mitra ?? '-' }}</strong>
+                </div>
+
+                <div class="detail-field">
+                    <span>Periode Evaluasi Tarif</span>
+                    <strong>
+                        {{ $kontrak->periode_evaluasi_tarif ?? '-' }}
+                        {{ $kontrak->satuan_evaluasi_tarif ?? '' }}
+                    </strong>
+                </div>
+
+                <div class="detail-field">
+                    <span>Status Perpanjangan</span>
+                    <strong>{{ $kontrak->status_perpanjangan ?? '-' }}</strong>
+                </div>
+
+            </div>
+
+            {{-- DOKUMEN KONTRAK --}}
+            <div class="mt-6 border-t border-slate-100 pt-5">
+
+                <h4 class="mb-4 text-sm font-semibold text-slate-800">
+                    Dokumen Kontrak
+                </h4>
+
+                <div class="document-row">
+
+                    <div class="flex items-center gap-3">
+                        <div class="document-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+
+                        <div>
+                            <p class="text-sm font-semibold text-slate-700">
+                                Dokumen Kontrak Final
+                            </p>
+
+                            @if($kontrak->final_pdf_path)
+                                <p class="mt-1 text-xs text-slate-400">
+                                    Diunggah:
+                                    {{ $formatTanggal($kontrak->final_uploaded_at) }}
+                                </p>
+                            @else
+                                <p class="mt-1 text-xs text-slate-400">
+                                    Belum tersedia
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+
+                    @if($kontrak->final_pdf_path)
+                        <a href="{{ route('kontrak.finalPdf', $kontrak->id) }}"
+                           target="_blank"
+                           class="text-sm font-semibold text-teal-700 hover:underline">
+                            Lihat File
+                        </a>
+                    @else
+                        <span class="text-xs text-slate-400">
+                            Belum tersedia
+                        </span>
+                    @endif
+
+                </div>
+            </div>
+
+        @else
+
+            <p class="py-8 text-center text-sm text-slate-500">
+                Data kontrak belum tersedia.
+            </p>
+
+        @endif
+
+    </div>
+
+</section>
 
     {{-- ===================================================== --}}
     {{-- TAB PENDAPATAN --}}
     {{-- ===================================================== --}}
-    <section id="tab-pendapatan" class="detail-tab-content hidden">
-
-        <div class="rounded-2xl border border-slate-200 bg-white p-6">
+<section id="tab-pendapatan" class="detail-tab-content hidden w-full min-w-0 max-w-full">
+        <div class="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-6">
             <div class="mb-5">
                 <h3 class="font-semibold text-slate-800">Riwayat Pendapatan</h3>
                 <p class="mt-1 text-xs text-slate-500">
