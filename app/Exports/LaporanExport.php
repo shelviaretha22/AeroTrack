@@ -6,9 +6,18 @@ use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class LaporanExport implements FromArray, ShouldAutoSize, WithStyles, WithTitle
+class LaporanExport extends DefaultValueBinder implements
+    FromArray,
+    ShouldAutoSize,
+    WithStyles,
+    WithTitle,
+    WithCustomValueBinder
 {
     protected array $data;
 
@@ -20,6 +29,17 @@ class LaporanExport implements FromArray, ShouldAutoSize, WithStyles, WithTitle
     public function title(): string
     {
         return 'Laporan AeroTrack';
+    }
+
+    public function bindValue(Cell $cell, $value): bool
+    {
+        if (is_string($value)) {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
     }
 
     public function array(): array
@@ -131,60 +151,60 @@ class LaporanExport implements FromArray, ShouldAutoSize, WithStyles, WithTitle
     }
 
     public function styles(Worksheet $sheet)
-{
-    $lastRow = $sheet->getHighestRow();
+    {
+        $lastRow = $sheet->getHighestRow();
 
-    $sectionTitles = [
-        'RINGKASAN KONTRAK',
-        'RINGKASAN AKTIVASI',
-        'PROGRESS AKTIVASI PER TERMINAL',
-        'REKAPITULASI PERIODE KONTRAK',
-        'KELENGKAPAN DOKUMEN',
-        'DAFTAR LAPORAN KERJA SAMA',
-    ];
+        $sectionTitles = [
+            'RINGKASAN KONTRAK',
+            'RINGKASAN AKTIVASI',
+            'PROGRESS AKTIVASI PER TERMINAL',
+            'REKAPITULASI PERIODE KONTRAK',
+            'KELENGKAPAN DOKUMEN',
+            'DAFTAR LAPORAN KERJA SAMA',
+        ];
 
-    for ($row = 1; $row <= $lastRow; $row++) {
-        $value = $sheet->getCell('A' . $row)->getValue();
+        for ($row = 1; $row <= $lastRow; $row++) {
+            $value = $sheet->getCell('A' . $row)->getValue();
 
-        if (in_array($value, $sectionTitles, true)) {
-            $sheet->getStyle('A' . $row . ':J' . $row)->applyFromArray([
-                'font' => [
-                    'bold' => true,
-                    'color' => ['rgb' => 'FFFFFF'],
-                ],
-                'fill' => [
-                    'fillType' => 'solid',
-                    'startColor' => ['rgb' => '365F65'],
-                ],
-            ]);
+            if (in_array($value, $sectionTitles, true)) {
+                $sheet->getStyle('A' . $row . ':J' . $row)->applyFromArray([
+                    'font' => [
+                        'bold' => true,
+                        'color' => ['rgb' => 'FFFFFF'],
+                    ],
+                    'fill' => [
+                        'fillType' => 'solid',
+                        'startColor' => ['rgb' => '365F65'],
+                    ],
+                ]);
+            }
+
+            if ($value === 'No.') {
+                $sheet->getStyle('A' . $row . ':J' . $row)->applyFromArray([
+                    'font' => [
+                        'bold' => true,
+                        'color' => ['rgb' => 'FFFFFF'],
+                    ],
+                    'fill' => [
+                        'fillType' => 'solid',
+                        'startColor' => ['rgb' => '527D82'],
+                    ],
+                    'alignment' => [
+                        'horizontal' => 'center',
+                        'vertical' => 'center',
+                    ],
+                ]);
+            }
         }
 
-        if ($value === 'No.') {
-            $sheet->getStyle('A' . $row . ':J' . $row)->applyFromArray([
+        return [
+            1 => [
                 'font' => [
                     'bold' => true,
-                    'color' => ['rgb' => 'FFFFFF'],
+                    'size' => 16,
+                    'color' => ['rgb' => '365F65'],
                 ],
-                'fill' => [
-                    'fillType' => 'solid',
-                    'startColor' => ['rgb' => '527D82'],
-                ],
-                'alignment' => [
-                    'horizontal' => 'center',
-                    'vertical' => 'center',
-                ],
-            ]);
-        }
-    }
-
-    return [
-        1 => [
-            'font' => [
-                'bold' => true,
-                'size' => 16,
-                'color' => ['rgb' => '365F65'],
             ],
-        ],
-    ];
-}
+        ];
+    }
 }
