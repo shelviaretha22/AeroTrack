@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Aktivasi;
 use App\Models\Kontrak;
 use App\Models\KerjaSama;
+use App\Models\AuditLog;
 use App\Models\Tenant;
 use App\Models\Lokasi;
 use App\Models\MasterPerusahaan;
@@ -272,9 +273,21 @@ foreach ($semuaKontrak as $kontrak) {
     );
 
     if ($kontrak->status !== $statusTerbaru) {
-        $kontrak->status = $statusTerbaru;
-        $kontrak->save();
-    }
+    $statusLama = $kontrak->status;
+
+    $kontrak->status = $statusTerbaru;
+    $kontrak->save();
+
+    AuditLog::catat(
+        'Kontrak',
+        'Status kontrak diperbarui',
+        'Status kontrak ' . $kontrak->nomor_kontrak .
+            ' berubah dari ' . ($statusLama ?: '-') .
+            ' menjadi ' . $statusTerbaru . '.',
+        $kontrak,
+        'info'
+    );
+}
 }
 
 /*
@@ -753,12 +766,13 @@ $dataWhatIfKontrak = $semuaKontrak->map(function ($kontrak) use ($hariIni) {
                 ]);
             });
 
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Data dokumen kontrak berhasil disimpan.'
-                ]);
-            }
+            AuditLog::catat(
+    'Kontrak',
+    'Kontrak dibuat',
+    'Kontrak baru berhasil dibuat dengan nomor ' . $kontrak->nomor_kontrak,
+    $kontrak,
+    'info'
+);
 
             if ($request->expectsJson()) {
                 return response()->json([
@@ -1067,6 +1081,14 @@ $dataWhatIfKontrak = $semuaKontrak->map(function ($kontrak) use ($hariIni) {
             ),
         ]);
 
+                AuditLog::catat(
+            'Kontrak',
+            'Dokumen kontrak diperbarui',
+            'Data dokumen kontrak ' . $kontrak->nomor_kontrak . ' berhasil diperbarui.',
+            $kontrak,
+            'info'
+        );
+
         // Hapus logo lama setelah data baru berhasil diperbarui.
         if (
             isset($logoPathBaru) &&
@@ -1193,6 +1215,18 @@ if (!$this->sudahUploadFinal($kontrak)) {
 
         session()->put($sessionKey, $tempUpload);
 
+        // Catat aktivitas unggah PDF sementara.
+        AuditLog::catat(
+            'Kontrak',
+            'PDF sementara diunggah',
+            'Pengguna mengunggah PDF sementara untuk kontrak ' .
+                $kontrak->nomor_kontrak .
+                '. Nama file: ' . $tempUpload['name'] .
+                ', ukuran: ' . $tempUpload['size'] . ' byte.',
+            $kontrak,
+            'info'
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'PDF berhasil disimpan sementara.',
@@ -1209,30 +1243,40 @@ if (!$this->sudahUploadFinal($kontrak)) {
      * Menampilkan PDF dari penyimpanan sementara.
      */
     public function previewUploadFinalTemp($id)
-    {
-        $kontrak = Kontrak::findOrFail($id);
+{
+    $kontrak = Kontrak::findOrFail($id);
 
-        $tempUpload = session()->get(
-            'kontrak_upload_final_temp.' . $kontrak->id
-        );
-                if (
-            !$tempUpload ||
-            empty($tempUpload['path']) ||
-            !Storage::disk('local')->exists($tempUpload['path'])
-        ) {
-            abort(404, 'PDF sementara tidak ditemukan.');
-        }
+    $tempUpload = session()->get(
+        'kontrak_upload_final_temp.' . $kontrak->id
+    );
 
-        return Storage::disk('local')->response(
-            $tempUpload['path'],
-            $tempUpload['name'] ?? 'dokumen-kontrak.pdf',
-            [
-                'Content-Type' => 'application/pdf',
-            ],
-            'inline'
-        );
+    if (
+        !$tempUpload ||
+        empty($tempUpload['path']) ||
+        !Storage::disk('local')->exists($tempUpload['path'])
+    ) {
+        abort(404, 'PDF sementara tidak ditemukan.');
     }
 
+    // Catat aktivitas pratinjau PDF sementara.
+    AuditLog::catat(
+        'Kontrak',
+        'PDF sementara dilihat',
+        'Pengguna melihat pratinjau PDF sementara kontrak ' .
+            $kontrak->nomor_kontrak . '.',
+        $kontrak,
+        'info'
+    );
+
+    return Storage::disk('local')->response(
+        $tempUpload['path'],
+        $tempUpload['name'] ?? 'dokumen-kontrak.pdf',
+        [
+            'Content-Type' => 'application/pdf',
+        ],
+        'inline'
+    );
+}
 
     /**
      * Menghapus PDF dari penyimpanan sementara.
@@ -1255,16 +1299,26 @@ if (!$this->sudahUploadFinal($kontrak)) {
 
         session()->forget($sessionKey);
 
+                if ($tempUpload) {
+            AuditLog::catat(
+                'Kontrak',
+                'Dokumen sementara dihapus',
+                'Dokumen sementara kontrak ' . $kontrak->nomor_kontrak . ' dihapus.',
+                $kontrak,
+                'info'
+            );
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Dokumen sementara berhasil dihapus.',
         ]);
     }
 
-
     /**
      * Memproses penyimpanan dokumen kontrak final.
      */
+        
     public function storeUploadFinal(Request $request, $id)
     {
         $kontrak = Kontrak::findOrFail($id);
@@ -1276,17 +1330,25 @@ if (!$this->sudahUploadFinal($kontrak)) {
                 ->with('error', 'Kontrak ini sudah selesai.');
         }
 
-        // Validasi konfirmasi tanda tangan.
+        // Validasi konfirmasi tanda tangan dan verifikasi password.
         $request->validate([
             'final_signature_confirmed' => [
                 'required',
                 'accepted',
+            ],
+            'password' => [
+                'required',
+                'current_password',
             ],
         ], [
             'final_signature_confirmed.required' =>
                 'Konfirmasi tanda tangan wajib dicentang.',
             'final_signature_confirmed.accepted' =>
                 'Dokumen harus dikonfirmasi telah ditandatangani kedua pihak.',
+            'password.required' =>
+                'Password akun wajib dimasukkan untuk mengonfirmasi dokumen final.',
+            'password.current_password' =>
+                'Password yang kamu masukkan tidak sesuai dengan akun yang sedang login.',
         ]);
 
         // Ambil PDF dari penyimpanan sementara.
@@ -1330,11 +1392,29 @@ if (!$this->sudahUploadFinal($kontrak)) {
                 );
         }
 
+        // Hitung hash SHA-256 dari PDF final yang sudah disalin.
+        $hashFinal = hash_file(
+            'sha256',
+            Storage::disk('local')->path($pathBaru)
+        );
+
+        if ($hashFinal === false) {
+            Storage::disk('local')->delete($pathBaru);
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Hash integritas dokumen gagal dibuat. Silakan coba kembali.'
+                );
+        }
+
         // Simpan informasi dokumen final ke database.
         $pathLama = $kontrak->final_pdf_path;
 
         try {
             $kontrak->final_pdf_path = $pathBaru;
+            $kontrak->final_pdf_hash = $hashFinal;
             $kontrak->final_uploaded_at = now();
             $kontrak->final_signature_confirmed = true;
 
@@ -1347,6 +1427,15 @@ if (!$this->sudahUploadFinal($kontrak)) {
 
             throw $e;
         }
+
+        AuditLog::catat(
+            'Kontrak',
+            'PDF final diunggah',
+            'Dokumen kontrak final ' . $kontrak->nomor_kontrak .
+                ' berhasil diunggah dan hash SHA-256 berhasil disimpan.',
+            $kontrak,
+            'info'
+        );
 
         // Hapus file final sebelumnya jika ada.
         if (
@@ -1366,11 +1455,11 @@ if (!$this->sudahUploadFinal($kontrak)) {
             ->route('kontrak')
             ->with(
                 'success',
-                'Dokumen kontrak final berhasil diunggah dan disimpan.'
+                'Dokumen kontrak final berhasil diunggah dan dikonfirmasi.'
             );
     }
 
-
+    
     public function finalPdf($id)
     {
         $kontrak = Kontrak::findOrFail($id);
@@ -1381,6 +1470,72 @@ if (!$this->sudahUploadFinal($kontrak)) {
         ) {
             abort(404, 'Dokumen kontrak final tidak ditemukan.');
         }
+
+        // Hitung ulang hash SHA-256 dari file yang akan diakses.
+        $hashAktual = hash_file(
+            'sha256',
+            Storage::disk('local')->path($kontrak->final_pdf_path)
+        );
+
+        if ($hashAktual === false) {
+            AuditLog::catat(
+                'Kontrak',
+                'Pemeriksaan integritas PDF gagal',
+                'Hash SHA-256 dokumen kontrak ' .
+                    $kontrak->nomor_kontrak .
+                    ' tidak dapat dihitung.',
+                $kontrak,
+                'warning'
+            );
+
+            abort(500, 'Integritas dokumen gagal diperiksa.');
+        }
+
+        // Dokumen lama yang belum memiliki hash.
+        // Buat baseline hash pada akses pertama.
+        if (empty($kontrak->final_pdf_hash)) {
+            $kontrak->final_pdf_hash = $hashAktual;
+            $kontrak->save();
+
+            AuditLog::catat(
+                'Kontrak',
+                'Hash PDF final dibuat',
+                'Hash SHA-256 untuk dokumen kontrak lama ' .
+                    $kontrak->nomor_kontrak .
+                    ' berhasil dibuat pada akses pertama.',
+                $kontrak,
+                'info'
+            );
+        }
+
+        // Bandingkan hash tersimpan dengan hash aktual.
+        if (!hash_equals($kontrak->final_pdf_hash, $hashAktual)) {
+            AuditLog::catat(
+                'Kontrak',
+                'Integritas PDF final gagal',
+                'Hash SHA-256 dokumen kontrak ' .
+                    $kontrak->nomor_kontrak .
+                    ' tidak sesuai. Dokumen diduga mengalami perubahan.',
+                $kontrak,
+                'warning'
+            );
+
+            abort(
+                409,
+                'Integritas dokumen gagal. Dokumen kontrak terindikasi mengalami perubahan.'
+            );
+        }
+
+        // Catat aktivitas akses dokumen kontrak final.
+        AuditLog::catat(
+            'Kontrak',
+            'PDF final diakses',
+            'Pengguna mengakses dokumen kontrak final ' .
+                $kontrak->nomor_kontrak .
+                ' setelah pemeriksaan integritas berhasil.',
+            $kontrak,
+            'info'
+        );
 
         return Storage::disk('local')->response(
             $kontrak->final_pdf_path,
@@ -2408,6 +2563,15 @@ if (!$this->sudahUploadFinal($kontrak)) {
 
         $kontrak->save();
 
+                AuditLog::catat(
+            'Kontrak',
+            'Konfirmasi perpanjangan',
+            'Keputusan perpanjangan kontrak ' . $kontrak->nomor_kontrak .
+                ': ' . $kontrak->status_perpanjangan,
+            $kontrak,
+            'info'
+        );
+
         // Ambil nama mitra usaha.
         $namaMitra = $kontrak->kerjaSama->mitra_usaha
             ?? 'Mitra Usaha';
@@ -2673,14 +2837,23 @@ if (!$this->sudahUploadFinal($kontrak)) {
         }
 
         // Simpan perubahan draft.
-        if (!empty($dataUpdate)) {
-            $kontrak->update($dataUpdate);
-        }
+if (!empty($dataUpdate)) {
+    $kontrak->update($dataUpdate);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Draft dokumen kontrak berhasil disimpan.',
-        ]);
+    AuditLog::catat(
+        'Kontrak',
+        'Draft dokumen kontrak disimpan',
+        'Draft dokumen kontrak ' . $kontrak->nomor_kontrak .
+            ' berhasil diperbarui.',
+        $kontrak,
+        'info'
+    );
+}
+
+return response()->json([
+    'success' => true,
+    'message' => 'Draft dokumen kontrak berhasil disimpan.',
+]);
     }
         /*
     |--------------------------------------------------------------------------

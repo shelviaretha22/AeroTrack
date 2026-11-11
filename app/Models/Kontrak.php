@@ -81,6 +81,7 @@ class Kontrak extends Model
         'nama_commercial',
         'jabatan_commercial',
         'final_pdf_path',
+        'final_pdf_hash',
         'final_uploaded_at',
         'final_signature_confirmed',
         'status',
