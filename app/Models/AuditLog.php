@@ -15,7 +15,13 @@ class AuditLog extends Model
 {
     public const UPDATED_AT = null;
 
-    public const MODUL = ['Autentikasi', 'Akun', 'Lokasi', 'Aktivasi'];
+    public const MODUL = [
+        'Autentikasi',
+        'Akun',
+        'Lokasi',
+        'Aktivasi',
+        'Kontrak',
+    ];
 
     protected $fillable = [
         'user_id',

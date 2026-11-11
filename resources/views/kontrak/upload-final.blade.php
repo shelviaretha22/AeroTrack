@@ -533,6 +533,7 @@ body.modal-open {
                             Konfirmasi
                         </h3>
 
+                        {{-- KONFIRMASI TANDA TANGAN --}}
                         <label class="mt-3 flex cursor-pointer items-start gap-3">
                             <input
                                 type="checkbox"
@@ -548,6 +549,50 @@ body.modal-open {
                                 Saya telah memeriksa bahwa dokumen final yang diunggah sudah memuat tanda tangan kedua pihak (tenant dan pihak komersil) serta sesuai dengan dokumen kontrak yang di-ACC.
                             </span>
                         </label>
+
+                        {{-- VERIFIKASI PASSWORD --}}
+                        <div class="mt-5">
+                            <label
+                                for="password"
+                                class="mb-2 block text-sm font-semibold text-[#29405C]"
+                            >
+                                Verifikasi Password Akun
+                                <span class="text-red-500">*</span>
+                            </label>
+
+                            <div class="relative">
+                                <input
+                                    type="password"
+                                    name="password"
+                                    id="password"
+                                    required
+                                    autocomplete="current-password"
+                                    placeholder="Masukkan password akun yang sedang login"
+                                    class="w-full rounded-lg border border-[#CBD9E3] bg-white px-4 py-3 pr-12 text-sm text-[#29405C] outline-none transition focus:border-[#087F73] focus:ring-2 focus:ring-[#087F73]/10 @error('password') border-red-500 @enderror"
+                                >
+
+                                <button
+                                    type="button"
+                                    id="togglePassword"
+                                    class="absolute inset-y-0 right-0 flex items-center px-4 text-[#718198] hover:text-[#087F73]"
+                                    aria-label="Tampilkan password"
+                                >
+                                    <i class="fas fa-eye" id="passwordIcon"></i>
+                                </button>
+                            </div>
+
+                            @error('password')
+                                <p class="mt-2 text-xs text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+
+                            <p class="mt-2 text-xs leading-5 text-[#718198]">
+                                Masukkan password akun yang sedang kamu gunakan untuk memastikan
+                                bahwa proses penyimpanan dokumen final dilakukan oleh pengguna
+                                yang terautentikasi.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -602,6 +647,36 @@ body.modal-open {
         const submitButton = document.getElementById('submitUpload');
         const confirmation = document.getElementById('final_signature_confirmed');
 
+        // Elemen verifikasi password.
+        const passwordInput = document.getElementById('password');
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordIcon = document.getElementById('passwordIcon');
+        // Tampilkan atau sembunyikan password.
+togglePassword.addEventListener('click', function () {
+    const passwordSedangTersembunyi =
+        passwordInput.type === 'password';
+
+    passwordInput.type = passwordSedangTersembunyi
+        ? 'text'
+        : 'password';
+
+    passwordIcon.classList.toggle(
+        'fa-eye',
+        !passwordSedangTersembunyi
+    );
+
+    passwordIcon.classList.toggle(
+        'fa-eye-slash',
+        passwordSedangTersembunyi
+    );
+
+    togglePassword.setAttribute(
+        'aria-label',
+        passwordSedangTersembunyi
+            ? 'Sembunyikan password'
+            : 'Tampilkan password'
+    );
+});
         const uploadUrl = form.dataset.tempUploadUrl;
         const deleteUrl = form.dataset.tempDeleteUrl;
         const previewUrl = form.dataset.tempPreviewUrl;
@@ -863,6 +938,13 @@ body.modal-open {
             if (!confirmation.checked) {
                 event.preventDefault();
                 alert('Silakan centang konfirmasi tanda tangan kedua pihak.');
+                return;
+            }
+
+            if (!passwordInput.value.trim()) {
+                event.preventDefault();
+                alert('Silakan masukkan password akun terlebih dahulu.');
+                passwordInput.focus();
                 return;
             }
 
