@@ -28,6 +28,11 @@ class SecurityHeaders
         $header->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
         $header->set('Cross-Origin-Opener-Policy', 'same-origin');
 
+        // Mencegah halaman terautentikasi disimpan dalam cache browser.
+        if ($request->user()) {
+            $header->set('Cache-Control', 'no-store, private');
+        }
+
         $nama = config('keamanan.csp_report_only')
             ? 'Content-Security-Policy-Report-Only'
             : 'Content-Security-Policy';
