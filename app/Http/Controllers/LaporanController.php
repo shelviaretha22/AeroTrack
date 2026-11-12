@@ -18,6 +18,73 @@ class LaporanController extends Controller
 {
     public function index(Request $request)
     {
+            // Validasi seluruh parameter filter laporan.
+            $request->validate([
+                'tahun' => [
+                    'sometimes',
+                    'nullable',
+                    'integer',
+                    'between:2000,2100',
+                ],
+
+                'jenis_usaha' => [
+                    'sometimes',
+                    'nullable',
+                    'string',
+                    'max:100',
+                    \Illuminate\Validation\Rule::in([
+                        'Duty Free',
+                        'F&B',
+                        'Lounge',
+                        'Retail',
+                        'UMKM',
+                    ]),
+                ],
+
+                'terminal' => [
+                    'sometimes',
+                    'nullable',
+                    'string',
+                    \Illuminate\Validation\Rule::in([
+                        'T1',
+                        'T2',
+                    ]),
+                ],
+
+                'status' => [
+                    'sometimes',
+                    'nullable',
+                    'string',
+                    \Illuminate\Validation\Rule::in([
+                        'Belum Dibuat',
+                        'Draft',
+                        'Aktif',
+                        'Nonaktif',
+                    ]),
+                ],
+
+                'dokumen' => [
+                    'sometimes',
+                    'nullable',
+                    'string',
+                    \Illuminate\Validation\Rule::in([
+                        'Lengkap',
+                        'Belum Lengkap',
+                    ]),
+                ],
+
+                'urutan' => [
+                    'sometimes',
+                    'string',
+                    \Illuminate\Validation\Rule::in([
+                        'status',
+                        'terbaru',
+                        'terlama',
+                        'az',
+                        'za',
+                    ]),
+                ],
+            ]);
         $tahun = (int) $request->input('tahun', now()->year);
 
         if ($tahun < 2000 || $tahun > 2100) {
@@ -458,6 +525,104 @@ $baBelumLengkap = max(
 
     public function drilldown(Request $request)
 {
+        // Daftar nilai yang diperbolehkan untuk setiap jenis drill-down.
+        $nilaiDrilldown = [
+            'status' => [
+                'Aktif',
+                'Nonaktif',
+                'Proses',
+            ],
+
+            'terminal' => [
+                'T1',
+                'T2',
+            ],
+
+            'aktivasi' => [
+                'aktif',
+                'belum_aktif',
+            ],
+
+            'aktivasi_terminal' => [
+                'T1',
+                'T2',
+            ],
+
+            'kategori' => [
+                'F&B',
+                'Food & Beverage',
+                'Services',
+                'Service',
+                'Retail',
+                'Lounge',
+                'Duty Free',
+                'UMKM',
+            ],
+
+            'perpanjangan' => [
+                'lintas',
+                'perpanjangan',
+            ],
+
+            'dokumen_kontrak' => [
+                'lengkap',
+                'belum_lengkap',
+            ],
+
+            'berita_acara' => [
+                'lengkap',
+                'belum_lengkap',
+            ],
+        ];
+
+        $type = $request->query('type');
+
+        // Aturan dasar validasi parameter value.
+        $aturanValue = [
+            'nullable',
+            'string',
+            'max:100',
+        ];
+
+        // Jenis drill-down tertentu wajib memiliki value.
+        if (
+            is_string($type)
+            && array_key_exists($type, $nilaiDrilldown)
+        ) {
+            $aturanValue[] = 'required';
+
+            $aturanValue[] = \Illuminate\Validation\Rule::in(
+                $nilaiDrilldown[$type]
+            );
+        }
+
+        // Validasi parameter drill-down.
+        $request->validate([
+            'tahun' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'between:2000,2100',
+            ],
+
+            'type' => [
+                'required',
+                'string',
+                \Illuminate\Validation\Rule::in([
+                    'kontrak',
+                    'status',
+                    'terminal',
+                    'aktivasi',
+                    'aktivasi_terminal',
+                    'kategori',
+                    'perpanjangan',
+                    'dokumen_kontrak',
+                    'berita_acara',
+                ]),
+            ],
+
+            'value' => $aturanValue,
+        ]);
     $tahun = (int) $request->query('tahun', now()->year);
 
     if ($tahun < 2000 || $tahun > 2100) {
