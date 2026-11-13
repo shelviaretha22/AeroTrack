@@ -12,17 +12,16 @@ return new class extends Migration
     {
         Schema::table('kerja_samas', function (Blueprint $table) {
             $table->string('berita_acara_path')->nullable();
-        });
 
-        DB::statement("
-            ALTER TABLE kerja_samas
-            MODIFY status VARCHAR(50) NOT NULL DEFAULT 'Draft'
-        ");
+            $table->string('status', 50)
+                ->default('Draft')
+                ->change();
+        });
     }
 
     public function down(): void
     {
-        // Kembalikan status baru ke nilai yang didukung enum lama.
+        // Kembalikan status ke nilai yang didukung enum lama.
         DB::table('kerja_samas')
             ->where('status', 'Pengajuan BA')
             ->update(['status' => 'Proses']);
@@ -31,17 +30,14 @@ return new class extends Migration
             ->where('status', 'Aktivasi')
             ->update(['status' => 'Disetujui']);
 
-        DB::statement("
-            ALTER TABLE kerja_samas
-            MODIFY status ENUM(
+        Schema::table('kerja_samas', function (Blueprint $table) {
+            $table->enum('status', [
                 'Draft',
                 'Proses',
                 'Disetujui',
                 'Ditolak'
-            ) NOT NULL DEFAULT 'Draft'
-        ");
+            ])->default('Draft')->change();
 
-        Schema::table('kerja_samas', function (Blueprint $table) {
             $table->dropColumn('berita_acara_path');
         });
     }

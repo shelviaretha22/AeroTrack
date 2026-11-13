@@ -37,6 +37,14 @@ class Lokasi extends Model
         $jenisUsaha = $this->tenant?->jenis_usaha
             ?? $this->tenant?->kerjaSama?->jenis_usaha;
 
+        return $this->kodeTampilanUntuk($jenisUsaha);
+    }
+
+    /**
+     * Susun kode tampilan (mis. FB-01-001) berdasarkan jenis usaha yang diberikan.
+     */
+    public function kodeTampilanUntuk(?string $jenisUsaha)
+    {
         $kodeUsaha = [
             'F&B'       => 'FB',
             'Retail'    => 'RTL',
