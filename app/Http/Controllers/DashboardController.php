@@ -182,7 +182,10 @@ class DashboardController extends Controller
             'brand'         => $ks->brand,
             'terminal'      => (string) ($lokasi->terminal ?? ''),
             'lokasi'        => (string) ($lokasi->lokasi ?? ''),
-            'kode_ruang'    => $lokasi->kode_ruang ?? null,
+            // Kode tampilan sesuai jenis usaha (mis. FB-01-001), sama seperti di halaman Lokasi.
+            'kode_ruang'    => $lokasi
+                                ? $lokasi->kodeTampilanUntuk($ks->jenis_usaha ?: ($tenant->jenis_usaha ?? null))
+                                : null,
             'kategori'      => $ks->jenis_usaha,
             'status'        => $this->tentukanStatus($ks),
             'aktif'         => $ks->statusKontrakSistem() === 'Aktif',
